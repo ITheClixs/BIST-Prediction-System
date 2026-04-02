@@ -1,7 +1,14 @@
 {
   "permissions": {
     "allow": [
-      "Bash(uv sync:*)"
+      "Bash(uv sync:*)",
+      "Read(//Users/dmr/.cargo/bin/**)",
+      "Read(//usr/local/bin/**)",
+      "Read(//Users/dmr/.local/bin/**)",
+      "Read(//opt/homebrew/bin/**)",
+      "Read(//Users/dmr/**)",
+      "Bash(/Users/dmr/venv/bin/uv sync:*)",
+      "Bash(/Users/dmr/venv/bin/uv run:*)"
     ]
   }
 }
