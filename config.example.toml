@@ -1,0 +1,21 @@
+[data]
+tcmb_api_key = ""
+fetch_retries = 3
+rate_limit_delay = 1.0
+
+[signals]
+min_confidence = 0.70
+lookback_days = 30
+
+[models]
+retrain_interval = "monthly"
+ensemble_weights = "learned"
+
+[quant]
+hmm_states = 3
+kelly_fraction = 0.25
+hurst_window = 252
+
+[backtest]
+commission = 0.001
+slippage = 0.0005
