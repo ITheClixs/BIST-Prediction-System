@@ -50,3 +50,33 @@
 •⁠  ⁠Simplicity First: Make every change as simple as possible. Impact minimal code.\
 •⁠  ⁠No Laziness: Find root causes. No temporary fixes. Senior developer standards.\
 •⁠  ⁠Minimal Impact: Only touch what's necessary. No side effects with new bugs.\
+
+## Project: BIST Predictor
+
+### Quick Start
+```bash
+uv sync                        # Install dependencies
+uv run bist-predict --help     # CLI usage
+uv run pytest tests/ -v        # Run all tests
+```
+
+### Architecture
+Modular pipeline: Data Ingest → Feature Engine (Rust) → Quant Alpha → ML Ensemble → Evaluation
+- Design spec: `docs/superpowers/specs/2026-04-02-bist-predictor-design.md`
+- Implementation plans: `docs/superpowers/plans/`
+
+### Key Conventions
+- All data types in `src/bist_predict/ingest/types.py` — use these, don't create ad-hoc dicts
+- Database access via `Database` class only — never raw sqlite3 outside storage/
+- Collectors implement `PriceCollector`, `MacroCollector`, or `SentimentCollector` protocols
+- All async I/O — use `httpx.AsyncClient`, wrap sync libs with `asyncio.to_thread`
+- Tests use `respx` for HTTP mocking, `tmp_db_path` fixture for database tests
+- Config loaded via `load_config()` — never hardcode paths or API keys
+
+### Testing
+```bash
+uv run pytest tests/ -v                        # All tests
+uv run pytest tests/test_ingest/ -v             # Ingest tests only
+uv run pytest tests/test_storage/ -v            # Storage tests only
+uv run pytest tests/path/test_file.py::test_fn  # Single test
+```
