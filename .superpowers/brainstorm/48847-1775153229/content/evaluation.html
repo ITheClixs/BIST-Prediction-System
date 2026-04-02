@@ -1,0 +1,103 @@
+<h2>Evaluation & Backtesting</h2>
+<p class="subtitle">Measure real predictive power — no self-deception</p>
+
+<div class="mockup">
+  <div class="mockup-header">Evaluation Pipeline</div>
+  <div class="mockup-body" style="padding: 24px; font-family: monospace; font-size: 13px; line-height: 1.6;">
+    <pre style="color: #e0e0e0; overflow-x: auto;">
+┌─────────────────────────────────────────────────────────────┐
+│                    Walk-Forward Backtest                     │
+│                                                             │
+│  ┌──────┐ ┌──────┐ ┌──────┐ ┌──────┐ ┌──────┐             │
+│  │Train │ │Train │ │Train │ │Train │ │Train │  ...         │
+│  │Window│ │Window│ │Window│ │Window│ │Window│             │
+│  │ 1yr  │ │ 1yr  │ │ 1yr  │ │ 1yr  │ │ 1yr  │             │
+│  └──┬───┘ └──┬───┘ └──┬───┘ └──┬───┘ └──┬───┘             │
+│     ▼        ▼        ▼        ▼        ▼                  │
+│  ┌──────┐ ┌──────┐ ┌──────┐ ┌──────┐ ┌──────┐             │
+│  │Test  │ │Test  │ │Test  │ │Test  │ │Test  │  ...         │
+│  │1 mon │ │1 mon │ │1 mon │ │1 mon │ │1 mon │             │
+│  └──┬───┘ └──┬───┘ └──┬───┘ └──┬───┘ └──┬───┘             │
+│     │        │        │        │        │                  │
+│     └────────┴────────┴────────┴────────┘                  │
+│                       │                                     │
+│                       ▼                                     │
+│              Aggregate Metrics                              │
+└─────────────────────────────────────────────────────────────┘
+                        │
+          ┌─────────────┼─────────────┐
+          ▼             ▼             ▼
+   ┌─────────────┐ ┌──────────┐ ┌──────────────┐
+   │  Prediction  │ │ Trading  │ │  Comparison  │
+   │  Metrics     │ │ Metrics  │ │  Benchmarks  │
+   ├─────────────┤ ├──────────┤ ├──────────────┤
+   │ Accuracy     │ │ Sharpe   │ │ vs Buy&Hold  │
+   │ Precision    │ │ Sortino  │ │ vs BIST-100  │
+   │ Recall       │ │ Max DD   │ │ vs Random    │
+   │ F1 Score     │ │ Win Rate │ │ vs Each      │
+   │ AUC-ROC      │ │ Profit   │ │   sub-model  │
+   │ Brier Score  │ │ Factor   │ │ Per-sector   │
+   │ (calibration)│ │ Avg Win/ │ │   breakdown  │
+   │ MAE on %     │ │ Avg Loss │ │              │
+   │ predictions  │ │ Calmar   │ │              │
+   └─────────────┘ └──────────┘ └──────────────┘
+</pre>
+  </div>
+</div>
+
+<div style="margin-top: 20px;">
+  <div class="section">
+    <h3>Backtest Rules (No Cheating)</h3>
+    <ul style="color: #ccc; line-height: 2;">
+      <li><strong>Walk-forward only</strong> — train on past, test on future. Window slides forward. Never peek.</li>
+      <li><strong>Realistic costs</strong> — include estimated commission (0.1%) and slippage (0.05%) per trade</li>
+      <li><strong>No survivorship bias</strong> — include delisted stocks that were in BIST-100 during test period</li>
+      <li><strong>Signal delay</strong> — prediction made at market close, trade executed at next-day open price</li>
+      <li><strong>Confidence threshold</strong> — only count trades above configurable confidence (default 60%)</li>
+    </ul>
+  </div>
+
+  <div class="section">
+    <h3>Live Accuracy Tracking</h3>
+    <ul style="color: #ccc; line-height: 2;">
+      <li>Every prediction logged with timestamp, confidence, predicted direction and % move</li>
+      <li>Next-day actual result recorded automatically on next fetch</li>
+      <li>Rolling 30/60/90-day accuracy windows</li>
+      <li>Per-stock accuracy breakdown — identify which stocks the model is best/worst at</li>
+      <li>Confidence bucket analysis — is 80%+ confidence actually more accurate than 60-70%?</li>
+      <li>Automatic alerts if accuracy drops below threshold (model degradation detection)</li>
+    </ul>
+  </div>
+
+  <div class="section">
+    <h3>CLI Output Example</h3>
+    <div style="background: #1a1a2e; padding: 16px; border-radius: 8px; font-family: monospace; font-size: 12px; color: #0f0;">
+      <pre>
+$ bist-predict accuracy --days 30
+
+📊 Last 30 Days Performance
+──────────────────────────────────────
+Direction Accuracy:  67.3%  (202/300 signals)
+Avg Predicted Move:  ±1.8%
+Avg Actual Move:     ±1.6%
+MAE on % Target:     0.9%
+
+Confidence Buckets:
+  90%+:  82.1% accurate  (28/34)
+  80-90: 74.5% accurate  (41/55)
+  70-80: 65.8% accurate  (50/76)
+  60-70: 58.5% accurate  (83/135)
+
+Trading Metrics (≥70% confidence only):
+  Win Rate:     71.5%
+  Profit Factor: 1.85
+  Sharpe Ratio:  2.1
+  Max Drawdown: -4.2%
+  vs BIST-100:  +3.8% alpha
+
+Top 5 Stocks (accuracy):
+  THYAO  81.2% | GARAN  76.4% | EREGL  74.1% | AKBNK  73.8% | SISE  72.0%
+      </pre>
+    </div>
+  </div>
+</div>

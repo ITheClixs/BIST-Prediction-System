@@ -1,0 +1,81 @@
+<h2>Feature Engine (Rust + PyO3)</h2>
+<p class="subtitle">High-performance feature computation — the core analytical layer</p>
+
+<div class="mockup">
+  <div class="mockup-header">Feature Pipeline Flow</div>
+  <div class="mockup-body" style="padding: 24px; font-family: monospace; font-size: 13px; line-height: 1.6;">
+    <pre style="color: #e0e0e0; overflow-x: auto;">
+Raw Data (SQLite)
+       │
+       ▼
+┌──────────────────────────────────────────────────────────┐
+│              Rust Feature Engine (PyO3)                   │
+│                                                          │
+│  ┌────────────┐  ┌────────────┐  ┌─────────────────┐    │
+│  │  Technical  │  │  Pattern   │  │  Cross-Stock    │    │
+│  │ Indicators │  │ Detection  │  │  Correlations   │    │
+│  ├────────────┤  ├────────────┤  ├─────────────────┤    │
+│  │ RSI (14)   │  │ Candlestk  │  │ Sector momentum │    │
+│  │ MACD       │  │ patterns   │  │ Pair correlation│    │
+│  │ Bollinger  │  │ Support/   │  │ Beta to BIST100 │    │
+│  │ Stochastic │  │ resistance │  │ Lead-lag rels.  │    │
+│  │ ATR        │  │ Volume     │  │ Volume flow     │    │
+│  │ OBV        │  │ profiles   │  │ between sectors │    │
+│  │ VWAP       │  │ Trend      │  │                 │    │
+│  │ ADX        │  │ breakouts  │  │                 │    │
+│  │ CCI, MFI   │  │            │  │                 │    │
+│  │ Williams%R │  │            │  │                 │    │
+│  │ 12 MAs     │  │            │  │                 │    │
+│  └────────────┘  └────────────┘  └─────────────────┘    │
+│                                                          │
+│  Computed in Rust: ~100 stocks × 50+ features × 5yr     │
+│  = millions of calculations — 10-50x faster than Python  │
+└──────────────────────┬───────────────────────────────────┘
+                       │
+                       ▼
+┌──────────────────────────────────────────────────────────┐
+│              Python Feature Layer                         │
+│                                                          │
+│  ┌────────────┐  ┌────────────┐  ┌─────────────────┐    │
+│  │   Macro    │  │ Sentiment  │  │  Temporal        │    │
+│  │ Features   │  │  Scores    │  │  Features        │    │
+│  ├────────────┤  ├────────────┤  ├─────────────────┤    │
+│  │ USD/TRY Δ  │  │ News sent. │  │ Day of week     │    │
+│  │ EUR/TRY Δ  │  │ X/Twitter  │  │ Month effect    │    │
+│  │ Interest Δ │  │ Investing  │  │ Pre/post holiday│    │
+│  │ CPI trend  │  │ .com forum │  │ Earnings season │    │
+│  │ Gold Δ     │  │ Aggregate  │  │ BIST session    │    │
+│  │ Bond yield │  │ per-stock  │  │ time patterns   │    │
+│  │ Spread     │  │ score      │  │                 │    │
+│  └────────────┘  └────────────┘  └─────────────────┘    │
+│                                                          │
+│  Python handles: NLP, API calls, calendar logic          │
+└──────────────────────┬───────────────────────────────────┘
+                       │
+                       ▼
+              ┌─────────────────┐
+              │  Feature Store  │
+              │   (SQLite)      │
+              │                 │
+              │ Per stock/date: │
+              │ ~80+ features   │
+              └─────────────────┘
+</pre>
+  </div>
+</div>
+
+<div style="margin-top: 20px;">
+  <h3>Why Split Rust / Python?</h3>
+  <ul style="color: #ccc; line-height: 2;">
+    <li><strong>Rust</strong> — pure numerical computation: indicators, correlations, pattern matching. These are hot loops over large arrays. 10-50x speedup over numpy/pandas.</li>
+    <li><strong>Python</strong> — NLP sentiment scoring, API interactions, calendar/temporal logic. These are I/O-bound or need Python NLP libraries (transformers).</li>
+  </ul>
+
+  <h3>Feature Store Design</h3>
+  <ul style="color: #ccc; line-height: 2;">
+    <li>Keyed by <code>(ticker, date)</code></li>
+    <li>Incremental computation — only recalculate for new dates</li>
+    <li>Feature versioning — schema migrations when adding new features</li>
+    <li>Missing value strategy: forward-fill for macro, NaN flag for sentiment gaps</li>
+  </ul>
+</div>

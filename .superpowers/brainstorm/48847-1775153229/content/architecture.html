@@ -1,0 +1,47 @@
+<h2>System Architecture</h2>
+<p class="subtitle">Modular pipeline — data flows left to right</p>
+
+<div class="mockup">
+  <div class="mockup-header">BIST Predictor — Architecture Overview</div>
+  <div class="mockup-body" style="padding: 24px; font-family: monospace; font-size: 13px; line-height: 1.6;">
+    <pre style="color: #e0e0e0; overflow-x: auto;">
+┌─────────────────────────────────────────────────────────────────────────┐
+│                          CLI Interface (Python)                        │
+│   bist-predict fetch | train | signals | backtest | accuracy           │
+└──────┬──────────────┬──────────────┬──────────────┬─────────────────────┘
+       │              │              │              │
+       ▼              ▼              ▼              ▼
+┌─────────────┐ ┌──────────────┐ ┌──────────────┐ ┌──────────────────┐
+│ Data Ingest │ │Feature Engine│ │ Model Layer  │ │   Evaluation     │
+│  (Python)   │ │(Rust + PyO3) │ │  (Python)    │ │   (Python)       │
+├─────────────┤ ├──────────────┤ ├──────────────┤ ├──────────────────┤
+│• Is Yatirim │ │• 50+ tech    │ │• XGBoost     │ │• Backtest engine │
+│  API        │ │  indicators  │ │• LightGBM    │ │• Accuracy tracker│
+│• Yahoo Fin. │ │• Macro feat. │ │• LSTM         │ │• Sharpe ratio    │
+│  (fallback) │ │• Sentiment   │ │• Transformer │ │• Win rate        │
+│• TCMB macro │ │  scores      │ │• Ensemble    │ │• Profit factor   │
+│• News RSS   │ │• Sector corr.│ │  combiner    │ │• Per-stock stats │
+│• Rate limit │ │• Inter-stock │ │• Confidence  │ │                  │
+│  handling   │ │  features    │ │  calibration │ │                  │
+└──────┬──────┘ └──────┬───────┘ └──────┬───────┘ └──────────────────┘
+       │              │              │
+       ▼              ▼              ▼
+┌─────────────────────────────────────────────────────────────────────────┐
+│                    SQLite Storage Layer                                 │
+├─────────────────────────────────────────────────────────────────────────┤
+│  raw_prices │ features │ predictions │ model_registry │ accuracy_log   │
+└─────────────────────────────────────────────────────────────────────────┘
+    </pre>
+  </div>
+</div>
+
+<div style="margin-top: 20px;">
+  <h3>Key Design Decisions</h3>
+  <ul style="color: #ccc; line-height: 2;">
+    <li><strong>SQLite</strong> — zero-config, single file, perfect for local CLI tool</li>
+    <li><strong>Rust via PyO3</strong> — computing 50+ indicators × 100 stocks × years of history needs speed</li>
+    <li><strong>Multi-source with fallback</strong> — Is Yatirim primary, Yahoo Finance backup, TCMB for macro</li>
+    <li><strong>Model registry</strong> — track trained models, compare versions, roll back</li>
+    <li><strong>Ensemble combiner</strong> — weighted average of XGBoost + LightGBM + LSTM + Transformer</li>
+  </ul>
+</div>

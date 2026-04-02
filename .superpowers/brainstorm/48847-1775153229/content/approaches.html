@@ -1,0 +1,40 @@
+<h2>Architecture Approaches</h2>
+<p class="subtitle">Pick the architecture that best fits your goals</p>
+
+<div class="options">
+  <div class="option" data-choice="a" onclick="toggleSelect(this)">
+    <div class="letter">A</div>
+    <div class="content">
+      <h3>Monolith Pipeline</h3>
+      <p>Single Python package. Data fetching → feature engineering → model training → prediction all in one linear pipeline. Rust used for a fast technical indicator calculation library (called via PyO3).</p>
+      <div class="pros-cons">
+        <div class="pros"><h4>Pros</h4><ul><li>Simplest to build and debug</li><li>Single entry point, easy CLI</li><li>Fast to get first predictions</li></ul></div>
+        <div class="cons"><h4>Cons</h4><ul><li>Hard to swap/test components independently</li><li>Retraining requires running entire pipeline</li><li>Doesn't scale well as features grow</li></ul></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="option" data-choice="b" onclick="toggleSelect(this)">
+    <div class="letter">B</div>
+    <div class="content">
+      <h3>Modular Pipeline (Recommended)</h3>
+      <p>Separate modules for data ingestion, feature store, model training, and prediction. Each module has clear interfaces. Rust powers a high-perf feature computation engine. SQLite for local data/feature storage.</p>
+      <div class="pros-cons">
+        <div class="pros"><h4>Pros</h4><ul><li>Test and iterate each component independently</li><li>Add new data sources or models without rewiring</li><li>Feature store enables fast experimentation</li><li>Balanced complexity vs. flexibility</li></ul></div>
+        <div class="cons"><h4>Cons</h4><ul><li>More upfront design work</li><li>Slightly more files/structure</li></ul></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="option" data-choice="c" onclick="toggleSelect(this)">
+    <div class="letter">C</div>
+    <div class="content">
+      <h3>Microservice / Event-Driven</h3>
+      <p>Each component runs as an independent process communicating via message queues (e.g., Redis). Data collectors, feature engine, model servers all separate. Rust as standalone services.</p>
+      <div class="pros-cons">
+        <div class="pros"><h4>Pros</h4><ul><li>Maximum scalability and isolation</li><li>Can run data collection 24/7 independently</li><li>Production-grade architecture</li></ul></div>
+        <div class="cons"><h4>Cons</h4><ul><li>Massive overkill for a CLI tool</li><li>Operational complexity (Docker, queues, etc.)</li><li>Slowest to build and debug</li></ul></div>
+      </div>
+    </div>
+  </div>
+</div>

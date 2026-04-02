@@ -1,0 +1,164 @@
+<h2>Quantitative Alpha Layer</h2>
+<p class="subtitle">Institutional-grade quant methods — between Feature Engine and Model Layer</p>
+
+<div class="mockup">
+  <div class="mockup-header">Updated Architecture — Alpha Layer Added</div>
+  <div class="mockup-body" style="padding: 24px; font-family: monospace; font-size: 13px; line-height: 1.6;">
+    <pre style="color: #e0e0e0; overflow-x: auto;">
+┌──────────────┐   ┌──────────────┐
+│ Feature Eng. │   │ Data Ingest  │
+│ (Rust+PyO3)  │   │  (Python)    │
+└──────┬───────┘   └──────┬───────┘
+       │                  │
+       ▼                  ▼
+┌─────────────────────────────────────────────────────────────┐
+│              QUANTITATIVE ALPHA LAYER  (Python)             │
+│                                                             │
+│  ┌──────────────┐ ┌──────────────┐ ┌──────────────────────┐│
+│  │Factor Models │ │ Statistical  │ │ Risk & Sizing        ││
+│  │& Alpha       │ │ Methods      │ │                      ││
+│  │Signals       │ │              │ │                      ││
+│  ├──────────────┤ ├──────────────┤ ├──────────────────────┤│
+│  │Fama-French   │ │Kalman Filter │ │Kelly Criterion       ││
+│  │  (adapted)   │ │HMM Regimes   │ │Ledoit-Wolf Cov.     ││
+│  │Cross-sect.   │ │GARCH(1,1)    │ │PCA Factors           ││
+│  │  Momentum    │ │Cointegration │ │                      ││
+│  │Time-series   │ │              │ │                      ││
+│  │  Momentum    │ │              │ │                      ││
+│  │Mean Reversion│ │              │ │                      ││
+│  │  (O-U proc.) │ │              │ │                      ││
+│  └──────────────┘ └──────────────┘ └──────────────────────┘│
+│                                                             │
+│  ┌──────────────────┐ ┌────────────────────────────────────┐│
+│  │Signal Quality    │ │ Regime-Aware Routing               ││
+│  ├──────────────────┤ ├────────────────────────────────────┤│
+│  │Information Coeff.│ │HMM detects bull/bear/sideways      ││
+│  │Hurst Exponent    │ │→ adjusts ensemble weights           ││
+│  │Wavelet Decomp.   │ │→ selects model trust per regime     ││
+│  │                  │ │→ adjusts position sizing            ││
+│  └──────────────────┘ └────────────────────────────────────┘│
+└──────────────────────────┬──────────────────────────────────┘
+                           │
+              ┌────────────┼────────────┐
+              ▼            ▼            ▼
+        ┌──────────┐ ┌──────────┐ ┌──────────┐
+        │ As extra │ │ As indep.│ │ As model │
+        │ features │ │ signals  │ │ routing  │
+        │ to ML    │ │ (direct) │ │ control  │
+        └──────────┘ └──────────┘ └──────────┘
+              │            │            │
+              └────────────┼────────────┘
+                           ▼
+                    ┌─────────────┐
+                    │ Model Layer │
+                    │ (Ensemble)  │
+                    └─────────────┘
+</pre>
+  </div>
+</div>
+
+<div style="margin-top: 24px;">
+  <div class="section">
+    <h3>1. Factor Models & Alpha Signals</h3>
+    <table style="width: 100%; border-collapse: collapse; color: #ccc;">
+      <tr style="border-bottom: 1px solid #444;">
+        <td style="padding: 10px; width: 180px;"><strong>Fama-French (adapted)</strong></td>
+        <td style="padding: 10px;">Compute SMB (size), HML (value), momentum, profitability factors for BIST-100. Rank stocks on factor exposures. Stocks with positive multi-factor alignment get alpha boost.</td>
+      </tr>
+      <tr style="border-bottom: 1px solid #444;">
+        <td style="padding: 10px;"><strong>Cross-sectional Momentum</strong></td>
+        <td style="padding: 10px;">Jegadeesh & Titman (1993). Rank all BIST-100 stocks by trailing 3/6/12-month returns. Top decile historically outperforms. Compute percentile rank as feature.</td>
+      </tr>
+      <tr style="border-bottom: 1px solid #444;">
+        <td style="padding: 10px;"><strong>Time-series Momentum</strong></td>
+        <td style="padding: 10px;">Moskowitz et al. (2012). Per-stock: if trailing 12-month excess return > 0, signal is long. Captures trend persistence. Binary signal + magnitude as features.</td>
+      </tr>
+      <tr>
+        <td style="padding: 10px;"><strong>Mean Reversion (O-U)</strong></td>
+        <td style="padding: 10px;">Fit Ornstein-Uhlenbeck process to estimate mean-reversion speed (θ), long-term mean (μ), and current deviation. Stocks far from mean with high θ → mean reversion signal.</td>
+      </tr>
+    </table>
+  </div>
+
+  <div class="section">
+    <h3>2. Statistical Methods</h3>
+    <table style="width: 100%; border-collapse: collapse; color: #ccc;">
+      <tr style="border-bottom: 1px solid #444;">
+        <td style="padding: 10px; width: 180px;"><strong>Kalman Filter</strong></td>
+        <td style="padding: 10px;">Track hidden "true momentum" state, filtering out noise. Outputs: filtered trend estimate, prediction error variance. Better than raw moving averages — adapts to changing volatility.</td>
+      </tr>
+      <tr style="border-bottom: 1px solid #444;">
+        <td style="padding: 10px;"><strong>HMM Regimes</strong></td>
+        <td style="padding: 10px;">3-state Hidden Markov Model (bull / bear / sideways) trained on BIST-100 index returns + volatility. Outputs: current regime probability, regime transition probability. <strong>Controls ensemble routing.</strong></td>
+      </tr>
+      <tr style="border-bottom: 1px solid #444;">
+        <td style="padding: 10px;"><strong>GARCH(1,1)</strong></td>
+        <td style="padding: 10px;">Per-stock volatility forecast. Conditional variance: σ²(t) = ω + α·ε²(t-1) + β·σ²(t-1). Outputs: forecasted volatility, volatility surprise (actual vs predicted). Critical for confidence calibration.</td>
+      </tr>
+      <tr>
+        <td style="padding: 10px;"><strong>Cointegration</strong></td>
+        <td style="padding: 10px;">Engle-Granger test across BIST-100 pairs. Find cointegrated pairs → when spread deviates beyond 2σ, mean reversion trade. Outputs: spread z-score, half-life of mean reversion.</td>
+      </tr>
+    </table>
+  </div>
+
+  <div class="section">
+    <h3>3. Risk & Position Sizing</h3>
+    <table style="width: 100%; border-collapse: collapse; color: #ccc;">
+      <tr style="border-bottom: 1px solid #444;">
+        <td style="padding: 10px; width: 180px;"><strong>Kelly Criterion</strong></td>
+        <td style="padding: 10px;">f* = (p·b - q) / b, where p = win probability, b = win/loss ratio, q = 1-p. Outputs optimal fraction of capital per trade. Use fractional Kelly (0.25-0.5×) for safety. Shown in signal output.</td>
+      </tr>
+      <tr style="border-bottom: 1px solid #444;">
+        <td style="padding: 10px;"><strong>Ledoit-Wolf Cov.</strong></td>
+        <td style="padding: 10px;">Shrinkage estimator for robust covariance matrix of BIST-100 returns. Prevents overfitting to noisy sample correlations. Used for portfolio-level risk estimation.</td>
+      </tr>
+      <tr>
+        <td style="padding: 10px;"><strong>PCA Factors</strong></td>
+        <td style="padding: 10px;">Extract top 5-10 principal components from BIST-100 return matrix. These are latent market drivers (e.g., "banking factor", "export factor"). Both features for ML and risk decomposition.</td>
+      </tr>
+    </table>
+  </div>
+
+  <div class="section">
+    <h3>4. Signal Quality Measurement</h3>
+    <table style="width: 100%; border-collapse: collapse; color: #ccc;">
+      <tr style="border-bottom: 1px solid #444;">
+        <td style="padding: 10px; width: 180px;"><strong>Information Coeff.</strong></td>
+        <td style="padding: 10px;">IC = rank_correlation(predicted_return, actual_return). IC > 0.05 is meaningful. Measured per feature and per model — prunes useless signals automatically.</td>
+      </tr>
+      <tr style="border-bottom: 1px solid #444;">
+        <td style="padding: 10px;"><strong>Hurst Exponent</strong></td>
+        <td style="padding: 10px;">H > 0.5 → trending (trust momentum models). H < 0.5 → mean-reverting (trust O-U / pairs). H ≈ 0.5 → random walk (reduce confidence). Computed per-stock via R/S analysis.</td>
+      </tr>
+      <tr>
+        <td style="padding: 10px;"><strong>Wavelet Decomp.</strong></td>
+        <td style="padding: 10px;">Discrete wavelet transform separates price into frequency bands: daily noise, weekly cycles, monthly trends. ML models get decomposed signals instead of raw price — cleaner input.</td>
+      </tr>
+    </table>
+  </div>
+
+  <div class="section">
+    <h3>5. Regime-Aware Routing (the key innovation)</h3>
+    <div style="background: #1a1a2e; padding: 16px; border-radius: 8px; font-family: monospace; font-size: 12px; color: #0f0;">
+      <pre>
+HMM says: BULL regime (78% probability)
+  → Increase momentum model weight
+  → Decrease mean-reversion weight
+  → Kelly sizing: use 0.5× (confident regime)
+  → GARCH vol forecast: low → tighter targets OK
+
+HMM says: BEAR regime (85% probability)
+  → Increase mean-reversion weight
+  → Decrease momentum weight
+  → Kelly sizing: use 0.25× (conservative)
+  → GARCH vol forecast: high → widen stop targets
+
+HMM says: SIDEWAYS (60% probability)
+  → Pairs trading signals dominate
+  → Reduce overall signal count (low conviction)
+  → Kelly sizing: use 0.25× (uncertain)
+      </pre>
+    </div>
+  </div>
+</div>
