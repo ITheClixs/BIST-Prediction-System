@@ -8,7 +8,8 @@
       "Read(//opt/homebrew/bin/**)",
       "Read(//Users/dmr/**)",
       "Bash(/Users/dmr/venv/bin/uv sync:*)",
-      "Bash(/Users/dmr/venv/bin/uv run:*)"
+      "Bash(/Users/dmr/venv/bin/uv run:*)",
+      "Bash(/Users/dmr/venv/bin/uv pip:*)"
     ]
   }
 }
