@@ -118,6 +118,39 @@ def stocks() -> None:
 
 
 @main.command()
+@click.option("--ticker", default=None, help="Compute features for a single ticker")
+@click.option("--date", "target_date", default=None, help="Target date (YYYY-MM-DD), defaults to latest")
+def features(ticker: str | None, target_date: str | None) -> None:
+    """Compute features for latest data."""
+    from bist_predict.features.engine import FeatureEngine
+
+    config = load_config()
+    db = Database(config.db_path)
+    db.initialize()
+
+    engine = FeatureEngine(db)
+
+    if target_date is None:
+        target_date = date.today().isoformat()
+
+    tickers = [ticker] if ticker else BIST_100_SAMPLE
+
+    total_features = 0
+    for t in tickers:
+        latest = db.get_latest_date(t)
+        if latest is None:
+            click.echo(f"  {t}: no price data, skipping")
+            continue
+
+        click.echo(f"  {t}: computing features for {target_date}...")
+        feats = engine.compute_and_store(t, target_date)
+        total_features += len(feats)
+        click.echo(f"    → {len(feats)} features computed")
+
+    click.echo(f"\nTotal: {total_features} features computed and stored.")
+
+
+@main.command()
 def config() -> None:
     """Show current configuration."""
     cfg = load_config()
