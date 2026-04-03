@@ -9,7 +9,9 @@
       "Read(//Users/dmr/**)",
       "Bash(/Users/dmr/venv/bin/uv sync:*)",
       "Bash(/Users/dmr/venv/bin/uv run:*)",
-      "Bash(/Users/dmr/venv/bin/uv pip:*)"
+      "Bash(/Users/dmr/venv/bin/uv pip:*)",
+      "Bash(git add:*)",
+      "Bash(git commit -m ':*)"
     ]
   }
 }
