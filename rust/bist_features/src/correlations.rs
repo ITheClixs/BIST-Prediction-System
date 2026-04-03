@@ -8,7 +8,7 @@ pub fn compute_correlation_matrix(
 ) -> Py<PyArray2<f64>> {
     let n = returns.as_array().nrows();
     let flat = vec![0.0f64; n * n];
-    numpy::PyArray2::from_vec2(py, &flat.chunks(n).map(|c| c.to_vec()).collect::<Vec<_>>())
+    numpy::PyArray2::from_vec2_bound(py, &flat.chunks(n).map(|c| c.to_vec()).collect::<Vec<_>>())
         .unwrap()
         .into()
 }

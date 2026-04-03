@@ -44,6 +44,7 @@ dependencies = [
     { name = "click" },
     { name = "feedparser" },
     { name = "httpx" },
+    { name = "numpy" },
     { name = "yfinance" },
 ]
 
@@ -59,6 +60,7 @@ requires-dist = [
     { name = "click", specifier = ">=8.1" },
     { name = "feedparser", specifier = ">=6.0" },
     { name = "httpx", specifier = ">=0.27" },
+    { name = "numpy", specifier = ">=1.26" },
     { name = "tomli", marker = "python_full_version < '3.11'", specifier = ">=2.0" },
     { name = "yfinance", specifier = ">=0.2" },
 ]

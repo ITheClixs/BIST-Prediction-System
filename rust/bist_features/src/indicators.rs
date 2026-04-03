@@ -75,7 +75,7 @@ pub fn compute_rsi(py: Python<'_>, close: PyReadonlyArray1<f64>, period: usize) 
     let n = c.len();
     let mut out = nan_vec(n);
     if n <= period {
-        return PyArray1::from_vec(py, out).into();
+        return PyArray1::from_vec_bound(py, out).into();
     }
 
     // Price changes
@@ -112,7 +112,7 @@ pub fn compute_rsi(py: Python<'_>, close: PyReadonlyArray1<f64>, period: usize) 
         }
     }
 
-    PyArray1::from_vec(py, out).into()
+    PyArray1::from_vec_bound(py, out).into()
 }
 
 // ---------------------------------------------------------------------------
@@ -125,7 +125,7 @@ pub fn compute_sma(py: Python<'_>, close: PyReadonlyArray1<f64>, period: usize) 
     let n = c.len();
     let mut out = nan_vec(n);
     if n < period || period == 0 {
-        return PyArray1::from_vec(py, out).into();
+        return PyArray1::from_vec_bound(py, out).into();
     }
     let mut sum: f64 = c.iter().take(period).sum();
     out[period - 1] = sum / period as f64;
@@ -133,7 +133,7 @@ pub fn compute_sma(py: Python<'_>, close: PyReadonlyArray1<f64>, period: usize) 
         sum += c[i] - c[i - period];
         out[i] = sum / period as f64;
     }
-    PyArray1::from_vec(py, out).into()
+    PyArray1::from_vec_bound(py, out).into()
 }
 
 // ---------------------------------------------------------------------------
@@ -145,7 +145,7 @@ pub fn compute_ema(py: Python<'_>, close: PyReadonlyArray1<f64>, period: usize) 
     let c = close.as_array();
     let data: Vec<f64> = c.iter().copied().collect();
     let out = ema_series(&data, period);
-    PyArray1::from_vec(py, out).into()
+    PyArray1::from_vec_bound(py, out).into()
 }
 
 // ---------------------------------------------------------------------------
@@ -188,9 +188,9 @@ pub fn compute_macd(
     }
 
     (
-        PyArray1::from_vec(py, macd_line).into(),
-        PyArray1::from_vec(py, signal_line).into(),
-        PyArray1::from_vec(py, histogram).into(),
+        PyArray1::from_vec_bound(py, macd_line).into(),
+        PyArray1::from_vec_bound(py, signal_line).into(),
+        PyArray1::from_vec_bound(py, histogram).into(),
     )
 }
 
@@ -225,9 +225,9 @@ pub fn compute_bollinger_bands(
     }
 
     (
-        PyArray1::from_vec(py, upper).into(),
-        PyArray1::from_vec(py, middle).into(),
-        PyArray1::from_vec(py, lower).into(),
+        PyArray1::from_vec_bound(py, upper).into(),
+        PyArray1::from_vec_bound(py, middle).into(),
+        PyArray1::from_vec_bound(py, lower).into(),
     )
 }
 
@@ -268,8 +268,8 @@ pub fn compute_stochastic(
     let d_vals = sma_series(&k_vals, d_period);
 
     (
-        PyArray1::from_vec(py, k_vals).into(),
-        PyArray1::from_vec(py, d_vals).into(),
+        PyArray1::from_vec_bound(py, k_vals).into(),
+        PyArray1::from_vec_bound(py, d_vals).into(),
     )
 }
 
@@ -293,7 +293,7 @@ pub fn compute_atr(
     let mut out = nan_vec(n);
 
     if n <= period || period == 0 {
-        return PyArray1::from_vec(py, out).into();
+        return PyArray1::from_vec_bound(py, out).into();
     }
 
     // True Range
@@ -314,7 +314,7 @@ pub fn compute_atr(
         out[i] = atr;
     }
 
-    PyArray1::from_vec(py, out).into()
+    PyArray1::from_vec_bound(py, out).into()
 }
 
 // ---------------------------------------------------------------------------
@@ -333,7 +333,7 @@ pub fn compute_obv(
     let mut out = vec![0.0f64; n];
 
     if n == 0 {
-        return PyArray1::from_vec(py, out).into();
+        return PyArray1::from_vec_bound(py, out).into();
     }
 
     out[0] = v[0];
@@ -347,7 +347,7 @@ pub fn compute_obv(
         }
     }
 
-    PyArray1::from_vec(py, out).into()
+    PyArray1::from_vec_bound(py, out).into()
 }
 
 // ---------------------------------------------------------------------------
@@ -382,7 +382,7 @@ pub fn compute_vwap(
         }
     }
 
-    PyArray1::from_vec(py, out).into()
+    PyArray1::from_vec_bound(py, out).into()
 }
 
 // ---------------------------------------------------------------------------
@@ -405,7 +405,7 @@ pub fn compute_adx(
     let mut out = nan_vec(n);
 
     if n <= 2 * period || period == 0 {
-        return PyArray1::from_vec(py, out).into();
+        return PyArray1::from_vec_bound(py, out).into();
     }
 
     // True Range, +DM, -DM
@@ -469,7 +469,7 @@ pub fn compute_adx(
         out[i] = adx;
     }
 
-    PyArray1::from_vec(py, out).into()
+    PyArray1::from_vec_bound(py, out).into()
 }
 
 // ---------------------------------------------------------------------------
@@ -492,7 +492,7 @@ pub fn compute_cci(
     let mut out = nan_vec(n);
 
     if n < period || period == 0 {
-        return PyArray1::from_vec(py, out).into();
+        return PyArray1::from_vec_bound(py, out).into();
     }
 
     // Typical price
@@ -509,7 +509,7 @@ pub fn compute_cci(
         }
     }
 
-    PyArray1::from_vec(py, out).into()
+    PyArray1::from_vec_bound(py, out).into()
 }
 
 // ---------------------------------------------------------------------------
@@ -534,7 +534,7 @@ pub fn compute_mfi(
     let mut out = nan_vec(n);
 
     if n <= period || period == 0 {
-        return PyArray1::from_vec(py, out).into();
+        return PyArray1::from_vec_bound(py, out).into();
     }
 
     let tp: Vec<f64> = (0..n).map(|i| (h[i] + l[i] + c[i]) / 3.0).collect();
@@ -561,7 +561,7 @@ pub fn compute_mfi(
         }
     }
 
-    PyArray1::from_vec(py, out).into()
+    PyArray1::from_vec_bound(py, out).into()
 }
 
 // ---------------------------------------------------------------------------
@@ -584,7 +584,7 @@ pub fn compute_williams_r(
     let mut out = nan_vec(n);
 
     if n < period || period == 0 {
-        return PyArray1::from_vec(py, out).into();
+        return PyArray1::from_vec_bound(py, out).into();
     }
 
     for i in (period - 1)..n {
@@ -599,5 +599,5 @@ pub fn compute_williams_r(
         }
     }
 
-    PyArray1::from_vec(py, out).into()
+    PyArray1::from_vec_bound(py, out).into()
 }
