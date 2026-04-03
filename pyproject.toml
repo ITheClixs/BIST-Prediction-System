@@ -10,6 +10,12 @@ dependencies = [
     "feedparser>=6.0",
     "tomli>=2.0; python_version < '3.11'",
     "numpy>=1.26",
+    "scipy>=1.12",
+    "statsmodels>=0.14",
+    "hmmlearn>=0.3",
+    "arch>=7.0",
+    "PyWavelets>=1.5",
+    "scikit-learn>=1.4",
 ]
 
 [project.scripts]
