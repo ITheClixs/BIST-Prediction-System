@@ -71,3 +71,10 @@ class TestFeatureEngine:
         engine = FeatureEngine(db)
         features = engine.compute_for_ticker("NONEXISTENT", "2026-04-01")
         assert features == {}
+
+    def test_includes_quant_features(self, db: Database) -> None:
+        engine = FeatureEngine(db)
+        features = engine.compute_for_ticker("THYAO", "2026-04-01")
+        # With 30 data points, Kalman and O-U features should be present
+        assert "kalman_trend" in features
+        assert "ou_theta" in features
