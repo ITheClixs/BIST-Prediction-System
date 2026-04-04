@@ -48,15 +48,15 @@ class TestCrossSectionalMomentum:
 
 class TestTimeSeriesMomentum:
     def test_positive_excess_returns_long_signal(self) -> None:
-        # 252 days of positive returns → long signal
-        prices = np.cumsum(np.ones(252) * 0.5) + 100.0
+        # 253 prices (need period+1 for trailing return calculation)
+        prices = np.cumsum(np.ones(253) * 0.5) + 100.0
         result = compute_time_series_momentum(prices, period=252)
         assert result["tsmom_signal"] == 1.0
         assert result["tsmom_magnitude"] > 0
 
     def test_negative_excess_returns_short_signal(self) -> None:
-        # 252 days of negative returns → short signal
-        prices = 100.0 - np.cumsum(np.ones(252) * 0.5)
+        # 253 prices (need period+1 for trailing return calculation)
+        prices = 100.0 - np.cumsum(np.ones(253) * 0.5)
         result = compute_time_series_momentum(prices, period=252)
         assert result["tsmom_signal"] == -1.0
         assert result["tsmom_magnitude"] < 0
