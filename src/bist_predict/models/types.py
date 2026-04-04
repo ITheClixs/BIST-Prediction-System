@@ -1,0 +1,184 @@
+"""Model types — Prediction dataclass, PredictionModel protocol, dataset builders."""
+
+from __future__ import annotations
+
+from dataclasses import dataclass
+from typing import Protocol
+
+import numpy as np
+from numpy.typing import NDArray
+
+from bist_predict.features.store import FeatureStore
+from bist_predict.storage.database import Database
+
+
+@dataclass(frozen=True)
+class Prediction:
+    """A single stock prediction."""
+
+    ticker: str
+    direction: str  # "UP" or "DOWN"
+    confidence: float  # 0.0 to 1.0
+    predicted_pct_move: float
+    model_name: str
+
+    @property
+    def is_buy(self) -> bool:
+        return self.direction == "UP"
+
+    @property
+    def is_sell(self) -> bool:
+        return self.direction == "DOWN"
+
+    @property
+    def signal_tier(self) -> str:
+        if self.direction == "UP" and self.confidence >= 0.80:
+            return "STRONG BUY"
+        elif self.direction == "UP" and self.confidence >= 0.70:
+            return "BUY"
+        elif self.direction == "DOWN" and self.confidence >= 0.80:
+            return "STRONG SELL"
+        elif self.direction == "DOWN" and self.confidence >= 0.70:
+            return "SELL"
+        return "HOLD"
+
+
+class PredictionModel(Protocol):
+    """Protocol for all prediction models."""
+
+    @property
+    def name(self) -> str: ...
+
+    def train(
+        self,
+        X_train: NDArray[np.float64],
+        y_dir_train: NDArray[np.int64],
+        y_pct_train: NDArray[np.float64],
+        X_val: NDArray[np.float64] | None = None,
+        y_dir_val: NDArray[np.int64] | None = None,
+        y_pct_val: NDArray[np.float64] | None = None,
+    ) -> dict[str, float]: ...
+
+    def predict(
+        self, X: NDArray[np.float64]
+    ) -> tuple[NDArray[np.float64], NDArray[np.float64]]:
+        """Returns (direction_probabilities, predicted_pct_moves)."""
+        ...
+
+    def save(self, path: str) -> None: ...
+
+    def load(self, path: str) -> None: ...
+
+
+# Type alias for dataset tuples
+TrainDataset = tuple[NDArray[np.float64], NDArray[np.int64], NDArray[np.float64], list[str]]
+
+
+def build_tabular_dataset(
+    db: Database,
+    ticker: str,
+    min_features: int = 3,
+) -> tuple[NDArray[np.float64], NDArray[np.int64], NDArray[np.float64], list[str]]:
+    """Build feature matrix and labels from stored features and prices.
+
+    Labels: next-day direction (1=UP, 0=DOWN) and next-day percentage move.
+    """
+    store = FeatureStore(db)
+
+    with db.connect() as conn:
+        date_rows = conn.execute(
+            """SELECT DISTINCT date FROM features
+               WHERE ticker = ? ORDER BY date""",
+            (ticker,),
+        ).fetchall()
+
+    if not date_rows:
+        return np.empty((0, 0)), np.empty(0, dtype=np.int64), np.empty(0), []
+
+    all_dates = [r[0] for r in date_rows]
+
+    with db.connect() as conn:
+        price_rows = conn.execute(
+            """SELECT date, close FROM raw_prices
+               WHERE ticker = ? ORDER BY date""",
+            (ticker,),
+        ).fetchall()
+
+    price_map = {r[0]: r[1] for r in price_rows}
+
+    feature_rows = []
+    labels_dir = []
+    labels_pct = []
+    valid_dates = []
+    feature_names = None
+
+    for i, d in enumerate(all_dates[:-1]):
+        next_date = all_dates[i + 1]
+        if d not in price_map or next_date not in price_map:
+            continue
+
+        features = store.load(ticker, d)
+        if len(features) < min_features:
+            continue
+
+        if feature_names is None:
+            feature_names = sorted(features.keys())
+
+        row = [features.get(f, 0.0) for f in feature_names]
+        feature_rows.append(row)
+
+        current_price = price_map[d]
+        next_price = price_map[next_date]
+        pct_move = (next_price - current_price) / current_price if current_price > 0 else 0.0
+        direction = 1 if pct_move > 0 else 0
+
+        labels_dir.append(direction)
+        labels_pct.append(pct_move)
+        valid_dates.append(d)
+
+    if not feature_rows:
+        return np.empty((0, 0)), np.empty(0, dtype=np.int64), np.empty(0), []
+
+    X = np.array(feature_rows, dtype=np.float64)
+    X = np.nan_to_num(X, nan=0.0)
+    y_dir = np.array(labels_dir, dtype=np.int64)
+    y_pct = np.array(labels_pct, dtype=np.float64)
+
+    return X, y_dir, y_pct, valid_dates
+
+
+def build_sequence_dataset(
+    db: Database,
+    ticker: str,
+    seq_len: int = 30,
+    min_features: int = 3,
+) -> tuple[NDArray[np.float64], NDArray[np.int64], NDArray[np.float64], list[str]]:
+    """Build sequential dataset for LSTM/Transformer models."""
+    X_flat, y_dir_flat, y_pct_flat, dates_flat = build_tabular_dataset(
+        db, ticker, min_features=min_features,
+    )
+
+    if X_flat.shape[0] < seq_len + 1:
+        return (
+            np.empty((0, seq_len, 0)),
+            np.empty(0, dtype=np.int64),
+            np.empty(0),
+            [],
+        )
+
+    sequences = []
+    labels_dir = []
+    labels_pct = []
+    valid_dates = []
+
+    for i in range(seq_len, len(X_flat)):
+        sequences.append(X_flat[i - seq_len : i])
+        labels_dir.append(y_dir_flat[i])
+        labels_pct.append(y_pct_flat[i])
+        valid_dates.append(dates_flat[i])
+
+    X_seq = np.array(sequences, dtype=np.float64)
+    y_dir = np.array(labels_dir, dtype=np.int64)
+    y_pct = np.array(labels_pct, dtype=np.float64)
+
+    return X_seq, y_dir, y_pct, valid_dates
