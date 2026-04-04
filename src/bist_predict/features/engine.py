@@ -11,6 +11,9 @@ from bist_predict.features.macro_features import compute_macro_features
 from bist_predict.features.sentiment_features import compute_sentiment_features
 from bist_predict.features.store import FeatureStore
 from bist_predict.features.temporal_features import compute_temporal_features
+from bist_predict.quant.factors import compute_mean_reversion_ou, compute_time_series_momentum
+from bist_predict.quant.signal_quality import compute_hurst_exponent
+from bist_predict.quant.statistical import compute_garch_volatility, compute_kalman_trend
 from bist_predict.storage.database import Database
 
 logger = logging.getLogger(__name__)
@@ -57,6 +60,19 @@ class FeatureEngine:
 
         if HAS_RUST and len(close) > 0:
             features.update(self._compute_rust_features(open_, high, low, close, volume))
+
+        # Quant alpha features
+        if len(close) >= 30:
+            features.update(compute_kalman_trend(close))
+            features.update(compute_mean_reversion_ou(close))
+
+        if len(close) >= 100:
+            daily_returns = np.diff(close) / close[:-1]
+            features.update(compute_garch_volatility(daily_returns))
+            features.update(compute_hurst_exponent(close))
+
+        if len(close) >= 253:
+            features.update(compute_time_series_momentum(close, period=252))
 
         # Temporal features
         try:
