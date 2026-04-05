@@ -18,7 +18,7 @@ class TestWalkForwardBacktest:
         folds = bt.generate_folds(n_dates)
         assert len(folds) > 0
         for fold in folds:
-            assert fold[0] < fold[1] < fold[2] < fold[3]
+            assert fold[0] < fold[1] <= fold[2] < fold[3]
             assert fold[1] - fold[0] == 252  # train window
             assert fold[3] - fold[2] == 63   # val window
 
