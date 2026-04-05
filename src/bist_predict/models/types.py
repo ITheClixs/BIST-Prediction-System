@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import math
 from dataclasses import dataclass
 from typing import Protocol
 
@@ -72,6 +73,62 @@ class PredictionModel(Protocol):
 
 # Type alias for dataset tuples
 TrainDataset = tuple[NDArray[np.float64], NDArray[np.int64], NDArray[np.float64], list[str]]
+
+
+def _coerce_feature_value(value: object) -> float:
+    """Convert persisted feature values to model-friendly floats."""
+    if value is None:
+        return 0.0
+    if isinstance(value, (int, float)):
+        value = float(value)
+        return 0.0 if math.isnan(value) else value
+    try:
+        value = float(value)
+    except (TypeError, ValueError):
+        return 0.0
+    return 0.0 if math.isnan(value) else value
+
+
+def _get_training_feature_names(
+    db: Database,
+    ticker: str,
+    min_features: int = 3,
+) -> tuple[list[str], list[str], dict[str, float]]:
+    """Return canonical feature names and latest feature snapshot for inference."""
+    store = FeatureStore(db)
+
+    with db.connect() as conn:
+        date_rows = conn.execute(
+            """SELECT DISTINCT date FROM features
+               WHERE ticker = ? ORDER BY date""",
+            (ticker,),
+        ).fetchall()
+        price_rows = conn.execute(
+            """SELECT date, close FROM raw_prices
+               WHERE ticker = ? ORDER BY date""",
+            (ticker,),
+        ).fetchall()
+
+    if not date_rows:
+        return [], [], {}
+
+    all_dates = [r[0] for r in date_rows]
+    price_map = {r[0]: r[1] for r in price_rows}
+    feature_names: list[str] | None = None
+
+    for i, d in enumerate(all_dates[:-1]):
+        next_date = all_dates[i + 1]
+        if d not in price_map or next_date not in price_map:
+            continue
+        features = store.load(ticker, d)
+        if len(features) < min_features:
+            continue
+        feature_names = sorted(features.keys())
+        break
+
+    latest_date = all_dates[-1]
+    latest_features = store.load(ticker, latest_date)
+    return feature_names or sorted(latest_features.keys()), all_dates, latest_features
 
 
 def build_tabular_dataset(
@@ -182,3 +239,22 @@ def build_sequence_dataset(
     y_pct = np.array(labels_pct, dtype=np.float64)
 
     return X_seq, y_dir, y_pct, valid_dates
+
+
+def build_inference_row(
+    db: Database,
+    ticker: str,
+    min_features: int = 3,
+) -> tuple[NDArray[np.float64], str] | None:
+    """Build a single inference row from the latest stored feature snapshot."""
+    feature_names, all_dates, latest_features = _get_training_feature_names(
+        db, ticker, min_features=min_features,
+    )
+    if not all_dates or len(latest_features) < min_features:
+        return None
+
+    latest_date = all_dates[-1]
+    row = [_coerce_feature_value(latest_features.get(name)) for name in feature_names]
+    X = np.array([row], dtype=np.float64)
+    X = np.nan_to_num(X, nan=0.0)
+    return X, latest_date

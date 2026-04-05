@@ -10,6 +10,7 @@ import pytest
 from bist_predict.models.types import (
     Prediction,
     TrainDataset,
+    build_inference_row,
     build_tabular_dataset,
     build_sequence_dataset,
 )
@@ -114,3 +115,33 @@ class TestBuildSequenceDataset:
         assert X_seq.shape[0] > 0
         assert X_seq.shape[1] == 10
         assert X_seq.shape[2] >= 3
+
+
+class TestBuildInferenceRow:
+    def test_uses_latest_snapshot_with_numeric_training_columns(self, db: Database) -> None:
+        store = FeatureStore(db)
+        with db.connect() as conn:
+            for i, date_str in enumerate(["2026-04-01", "2026-04-02", "2026-04-03"]):
+                price = 100.0 + i
+                conn.execute(
+                    """INSERT INTO raw_prices
+                       (ticker, date, open, high, low, close, adj_close, volume, source)
+                       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+                    ("BIOEN", date_str, price, price, price, price, price, 1000, "test"),
+                )
+            conn.commit()
+
+        store.save("BIOEN", "2026-04-01", {"rsi_14": 50.0, "macd": 0.1, "volume_ratio": 1.1})
+        store.save("BIOEN", "2026-04-02", {"rsi_14": 51.0, "macd": 0.2, "volume_ratio": 1.2})
+        store.save(
+            "BIOEN",
+            "2026-04-03",
+            {"rsi_14": 52.0, "macd": 0.3, "volume_ratio": 1.3, "hurst_interpretation": "trending"},
+        )
+
+        result = build_inference_row(db, "BIOEN")
+        assert result is not None
+        X, latest_date = result
+        assert latest_date == "2026-04-03"
+        assert X.shape == (1, 3)
+        assert np.isfinite(X).all()

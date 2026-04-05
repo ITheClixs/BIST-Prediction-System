@@ -9,6 +9,13 @@ from typing import Generator
 
 SCHEMA_VERSION = 1
 
+DEFAULT_TRACKED_STOCKS = [
+    "THYAO", "GARAN", "AKBNK", "EREGL", "SISE", "TUPRS", "TCELL", "TOASO",
+    "VESTL", "SAHOL", "KCHOL", "HEKTS", "BIMAS", "ASELS", "SASA", "KOZAL",
+    "PETKM", "DOHOL", "FROTO", "ENKAI", "ARCLK", "ISCTR", "YKBNK", "VAKBN",
+    "HALKB", "TAVHL", "TTKOM", "EKGYO", "PGSUS", "MGROS",
+]
+
 SCHEMA_SQL = """
 CREATE TABLE IF NOT EXISTS schema_version (
     version INTEGER NOT NULL,
@@ -96,6 +103,16 @@ CREATE TABLE IF NOT EXISTS model_registry (
     is_active INTEGER NOT NULL DEFAULT 0,
     UNIQUE(model_name, version)
 );
+
+CREATE TABLE IF NOT EXISTS tracked_stocks (
+    ticker TEXT PRIMARY KEY,
+    market TEXT NOT NULL DEFAULT 'BIST',
+    is_active INTEGER NOT NULL DEFAULT 1,
+    source TEXT NOT NULL DEFAULT 'seed',
+    added_at TEXT NOT NULL DEFAULT (datetime('now'))
+);
+
+CREATE INDEX IF NOT EXISTS idx_tracked_stocks_active ON tracked_stocks(is_active, ticker);
 """
 
 
@@ -121,6 +138,7 @@ class Database:
                 conn.execute(
                     "INSERT INTO schema_version (version) VALUES (?)", (SCHEMA_VERSION,)
                 )
+            self._seed_default_tracked_stocks(conn)
             conn.commit()
 
     @contextmanager
@@ -142,3 +160,54 @@ class Database:
                 (ticker,),
             ).fetchone()
             return row[0] if row and row[0] else None
+
+    def list_tracked_stocks(self, active_only: bool = True) -> list[str]:
+        """Return tracked tickers from persistent DB state."""
+        query = "SELECT ticker FROM tracked_stocks"
+        params: tuple[object, ...] = ()
+        if active_only:
+            query += " WHERE is_active = ?"
+            params = (1,)
+        query += " ORDER BY ticker"
+
+        with self.connect() as conn:
+            rows = conn.execute(query, params).fetchall()
+        return [row[0] for row in rows]
+
+    def upsert_tracked_stock(
+        self,
+        ticker: str,
+        *,
+        market: str = "BIST",
+        active: bool = True,
+        source: str = "manual",
+    ) -> None:
+        """Create or reactivate a tracked ticker."""
+        with self.connect() as conn:
+            conn.execute(
+                """INSERT INTO tracked_stocks (ticker, market, is_active, source)
+                   VALUES (?, ?, ?, ?)
+                   ON CONFLICT(ticker) DO UPDATE SET
+                       market = excluded.market,
+                       is_active = excluded.is_active,
+                       source = excluded.source""",
+                (ticker, market, int(active), source),
+            )
+            conn.commit()
+
+    def deactivate_tracked_stock(self, ticker: str) -> None:
+        """Deactivate a tracked ticker without deleting history."""
+        with self.connect() as conn:
+            conn.execute(
+                "UPDATE tracked_stocks SET is_active = 0 WHERE ticker = ?",
+                (ticker,),
+            )
+            conn.commit()
+
+    def _seed_default_tracked_stocks(self, conn: sqlite3.Connection) -> None:
+        """Seed the default tracked stock universe."""
+        conn.executemany(
+            """INSERT OR IGNORE INTO tracked_stocks (ticker, market, is_active, source)
+               VALUES (?, 'BIST', 1, 'seed')""",
+            [(ticker,) for ticker in DEFAULT_TRACKED_STOCKS],
+        )

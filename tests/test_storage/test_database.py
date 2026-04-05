@@ -58,6 +58,15 @@ class TestDatabaseInit:
             )
             assert cursor.fetchone() is not None
 
+    def test_creates_tracked_stocks_table(self, tmp_db_path: Path) -> None:
+        db = Database(tmp_db_path)
+        db.initialize()
+        with db.connect() as conn:
+            cursor = conn.execute(
+                "SELECT name FROM sqlite_master WHERE type='table' AND name='tracked_stocks'"
+            )
+            assert cursor.fetchone() is not None
+
     def test_creates_schema_version_table(self, tmp_db_path: Path) -> None:
         db = Database(tmp_db_path)
         db.initialize()
@@ -138,3 +147,25 @@ class TestDatabaseOperations:
         db.initialize()
         latest = db.get_latest_date("THYAO")
         assert latest is None
+
+    def test_seeds_default_tracked_stocks(self, tmp_db_path: Path) -> None:
+        db = Database(tmp_db_path)
+        db.initialize()
+        tickers = db.list_tracked_stocks()
+        assert "THYAO" in tickers
+        assert "MGROS" in tickers
+        assert len(tickers) >= 30
+
+    def test_upsert_tracked_stock(self, tmp_db_path: Path) -> None:
+        db = Database(tmp_db_path)
+        db.initialize()
+        db.upsert_tracked_stock("BIOEN")
+        assert "BIOEN" in db.list_tracked_stocks()
+
+    def test_deactivate_tracked_stock(self, tmp_db_path: Path) -> None:
+        db = Database(tmp_db_path)
+        db.initialize()
+        db.upsert_tracked_stock("BIOEN")
+        db.deactivate_tracked_stock("BIOEN")
+        assert "BIOEN" not in db.list_tracked_stocks()
+        assert "BIOEN" in db.list_tracked_stocks(active_only=False)

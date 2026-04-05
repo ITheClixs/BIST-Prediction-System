@@ -42,6 +42,12 @@ class LightGBMModel:
     def name(self) -> str:
         return "lightgbm"
 
+    @property
+    def n_features(self) -> int | None:
+        if self._clf_booster is not None:
+            return self._clf_booster.num_feature()
+        return getattr(self._classifier, "n_features_in_", None)
+
     def train(
         self,
         X_train: NDArray[np.float64],
