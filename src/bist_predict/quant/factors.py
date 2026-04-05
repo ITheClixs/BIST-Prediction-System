@@ -10,7 +10,7 @@ from numpy.typing import NDArray
 
 def compute_cross_sectional_momentum(
     returns: NDArray[np.float64],
-    periods: list[int] | None = None,
+    periods: list[int] | None = None, # default: [63, 126, 252] ≈ 3/6/12 months
 ) -> dict[str, NDArray[np.float64]]:
     """Rank stocks by trailing cumulative returns over given periods.
 
@@ -24,7 +24,7 @@ def compute_cross_sectional_momentum(
     if periods is None:
         periods = [63, 126, 252]
 
-    n_days, n_stocks = returns.shape
+    n_days, n_stocks = returns.shape # Assumes returns are ordered oldest to newest (rows = time, cols = stocks)
     result: dict[str, NDArray[np.float64]] = {}
 
     for period in periods:
