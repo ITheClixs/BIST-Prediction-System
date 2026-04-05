@@ -16,13 +16,6 @@ from bist_predict.ingest.tcmb import TcmbClient, INDICATORS
 from bist_predict.ingest.yahoo import YahooFinanceClient
 from bist_predict.storage.database import Database
 
-BIST_100_SAMPLE = [
-    "THYAO", "GARAN", "AKBNK", "EREGL", "SISE", "TUPRS", "TCELL", "TOASO",
-    "VESTL", "SAHOL", "KCHOL", "HEKTS", "BIMAS", "ASELS", "SASA", "KOZAL",
-    "PETKM", "DOHOL", "FROTO", "ENKAI", "ARCLK", "ISCTR", "YKBNK", "VAKBN",
-    "HALKB", "TAVHL", "TTKOM", "EKGYO", "PGSUS", "MGROS",
-]
-
 
 @click.group()
 @click.option("--verbose", "-v", is_flag=True, help="Enable verbose logging")
@@ -30,6 +23,55 @@ def main(verbose: bool) -> None:
     """BIST-100 Stock Market Prediction System."""
     level = logging.DEBUG if verbose else logging.INFO
     logging.basicConfig(level=level, format="%(levelname)s: %(message)s")
+
+
+def _resolve_tickers(db: Database, ticker: str | None) -> list[str]:
+    """Resolve command ticker scope from DB state."""
+    if ticker:
+        db.upsert_tracked_stock(ticker, source="manual")
+        return [ticker]
+    return db.list_tracked_stocks()
+
+
+def _get_price_dates(db: Database, ticker: str) -> list[str]:
+    """Return all stored raw price dates for a ticker."""
+    with db.connect() as conn:
+        rows = conn.execute(
+            """SELECT date FROM raw_prices
+               WHERE ticker = ? ORDER BY date""",
+            (ticker,),
+        ).fetchall()
+    return [row[0] for row in rows]
+
+
+def _get_stored_feature_dates(db: Database, ticker: str) -> set[str]:
+    """Return raw feature dates already stored for a ticker."""
+    with db.connect() as conn:
+        rows = conn.execute(
+            """SELECT DISTINCT date FROM features
+               WHERE ticker = ? ORDER BY date""",
+            (ticker,),
+        ).fetchall()
+    return {row[0] for row in rows}
+
+
+def _get_feature_dates_to_compute(
+    db: Database, ticker: str, target_date: str | None
+) -> list[str]:
+    """Return feature dates to compute for a ticker.
+
+    If target_date is omitted, backfill all missing dates from raw_prices so newly
+    fetched tickers become trainable without a manual per-date loop.
+    """
+    if target_date is not None:
+        return [target_date]
+
+    price_dates = _get_price_dates(db, ticker)
+    if not price_dates:
+        return []
+
+    stored_feature_dates = _get_stored_feature_dates(db, ticker)
+    return [d for d in price_dates if d not in stored_feature_dates]
 
 
 @main.command()
@@ -58,7 +100,7 @@ async def _fetch(days: int, ticker: str | None) -> None:
     end_date = date.today()
     start_date = end_date - timedelta(days=days)
 
-    tickers = [ticker] if ticker else BIST_100_SAMPLE
+    tickers = _resolve_tickers(db, ticker)
 
     total_bars = 0
     for t in tickers:
@@ -109,12 +151,20 @@ async def _fetch(days: int, ticker: str | None) -> None:
 
 @main.command()
 def stocks() -> None:
-    """List tracked BIST-100 stocks."""
-    click.echo("BIST-100 Tracked Stocks:")
+    """List tracked stocks from the persistent DB universe."""
+    config = load_config()
+    db = Database(config.db_path)
+    db.initialize()
+
+    tickers = db.list_tracked_stocks(active_only=False)
+
+    click.echo("Tracked Stocks:")
     click.echo("=" * 40)
-    for i, ticker in enumerate(BIST_100_SAMPLE, 1):
-        click.echo(f"  {i:3d}. {ticker}")
-    click.echo(f"\nTotal: {len(BIST_100_SAMPLE)} stocks")
+    for i, ticker in enumerate(tickers, 1):
+        latest = db.get_latest_date(ticker)
+        status = latest if latest else "no price data"
+        click.echo(f"  {i:3d}. {ticker:8s} latest={status}")
+    click.echo(f"\nTotal: {len(tickers)} stocks")
 
 
 @main.command()
@@ -122,6 +172,11 @@ def stocks() -> None:
 @click.option("--date", "target_date", default=None, help="Target date (YYYY-MM-DD), defaults to latest")
 def features(ticker: str | None, target_date: str | None) -> None:
     """Compute features for latest data."""
+    _compute_features(ticker, target_date)
+
+
+def _compute_features(ticker: str | None, target_date: str | None) -> None:
+    """Compute features for one date or backfill missing history."""
     from bist_predict.features.engine import FeatureEngine
 
     config = load_config()
@@ -129,23 +184,35 @@ def features(ticker: str | None, target_date: str | None) -> None:
     db.initialize()
 
     engine = FeatureEngine(db)
-
-    if target_date is None:
-        target_date = date.today().isoformat()
-
-    tickers = [ticker] if ticker else BIST_100_SAMPLE
+    tickers = _resolve_tickers(db, ticker)
 
     total_features = 0
     for t in tickers:
-        latest = db.get_latest_date(t)
-        if latest is None:
+        price_dates = _get_price_dates(db, t)
+        if not price_dates:
             click.echo(f"  {t}: no price data, skipping")
             continue
 
-        click.echo(f"  {t}: computing features for {target_date}...")
-        feats = engine.compute_and_store(t, target_date)
-        total_features += len(feats)
-        click.echo(f"    → {len(feats)} features computed")
+        dates_to_compute = _get_feature_dates_to_compute(db, t, target_date)
+        if not dates_to_compute:
+            click.echo(f"  {t}: features up to date")
+            continue
+
+        if len(dates_to_compute) == 1:
+            click.echo(f"  {t}: computing features for {dates_to_compute[0]}...")
+        else:
+            click.echo(
+                f"  {t}: computing features for {len(dates_to_compute)} dates "
+                f"({dates_to_compute[0]} -> {dates_to_compute[-1]})..."
+            )
+
+        ticker_feature_count = 0
+        for feature_date in dates_to_compute:
+            feats = engine.compute_and_store(t, feature_date)
+            ticker_feature_count += len(feats)
+
+        total_features += ticker_feature_count
+        click.echo(f"    → {ticker_feature_count} features computed")
 
     click.echo(f"\nTotal: {total_features} features computed and stored.")
 
@@ -169,19 +236,24 @@ def config() -> None:
 @click.option("--ticker", default=None, help="Train for a single ticker")
 def train(ticker: str | None) -> None:
     """Train or retrain prediction models."""
+    _train_models(ticker)
+
+
+def _train_models(ticker: str | None) -> None:
+    """Train and activate models for the selected tickers."""
+    import numpy as np
+
     from bist_predict.models.xgboost_model import XGBoostModel
     from bist_predict.models.lightgbm_model import LightGBMModel
     from bist_predict.models.registry import ModelRegistry
     from bist_predict.models.types import build_tabular_dataset
-
-    import numpy as np
 
     config = load_config()
     db = Database(config.db_path)
     db.initialize()
     registry = ModelRegistry(db)
 
-    tickers = [ticker] if ticker else BIST_100_SAMPLE
+    tickers = _resolve_tickers(db, ticker)
     all_X, all_y_dir, all_y_pct = [], [], []
 
     for t in tickers:
@@ -196,9 +268,27 @@ def train(ticker: str | None) -> None:
         click.echo("No training data available. Run 'fetch' and 'features' first.")
         return
 
-    X = np.vstack(all_X)
-    y_dir = np.concatenate(all_y_dir)
-    y_pct = np.concatenate(all_y_pct)
+    # Use the most common feature count to keep a consistent schema
+    from collections import Counter
+    col_counts = Counter(x.shape[1] for x in all_X)
+    target_cols = col_counts.most_common(1)[0][0]
+
+    filtered_X, filtered_dir, filtered_pct = [], [], []
+    skipped = 0
+    for x, yd, yp in zip(all_X, all_y_dir, all_y_pct):
+        if x.shape[1] == target_cols:
+            filtered_X.append(x)
+            filtered_dir.append(yd)
+            filtered_pct.append(yp)
+        else:
+            skipped += 1
+
+    if skipped:
+        click.echo(f"  Skipped {skipped} ticker(s) with mismatched feature count")
+
+    X = np.vstack(filtered_X)
+    y_dir = np.concatenate(filtered_dir)
+    y_pct = np.concatenate(filtered_pct)
 
     split = int(len(X) * 0.8)
     X_train, X_val = X[:split], X[split:]
@@ -229,17 +319,22 @@ def train(ticker: str | None) -> None:
 @click.option("--detail", is_flag=True, help="Show detailed signal breakdown")
 def signals(ticker: str | None, detail: bool) -> None:
     """Get today's trading signals."""
+    _generate_signals(ticker, detail)
+
+
+def _generate_signals(ticker: str | None, detail: bool) -> None:
+    """Load active models and emit predictions."""
     from bist_predict.models.xgboost_model import XGBoostModel
     from bist_predict.models.lightgbm_model import LightGBMModel
     from bist_predict.models.registry import ModelRegistry
-    from bist_predict.models.types import Prediction, build_tabular_dataset
+    from bist_predict.models.types import Prediction, build_inference_row
 
     config = load_config()
     db = Database(config.db_path)
     db.initialize()
     registry = ModelRegistry(db)
 
-    tickers = [ticker] if ticker else BIST_100_SAMPLE
+    tickers = _resolve_tickers(db, ticker)
     predictions: list[Prediction] = []
 
     for ModelClass in [XGBoostModel, LightGBMModel]:
@@ -250,11 +345,15 @@ def signals(ticker: str | None, detail: bool) -> None:
             continue
         model.load(active["model_path"])
 
+        expected_features = model.n_features
+
         for t in tickers:
-            X, _, _, dates = build_tabular_dataset(db, t)
-            if X.shape[0] == 0:
+            inference = build_inference_row(db, t)
+            if inference is None:
                 continue
-            latest_X = X[-1:].copy()
+            latest_X, _ = inference
+            if expected_features is not None and latest_X.shape[1] != expected_features:
+                continue
             probs, pct = model.predict(latest_X)
             direction = "UP" if probs[0] > 0.5 else "DOWN"
             confidence = probs[0] if direction == "UP" else 1 - probs[0]
@@ -272,8 +371,36 @@ def signals(ticker: str | None, detail: bool) -> None:
             for p in sorted(tier_preds, key=lambda x: -x.confidence):
                 click.echo(f"  {p.ticker:8s} {p.confidence:5.1%} conf  {p.predicted_pct_move:+.2f}% target  ({p.model_name})")
 
+    if detail:
+        hold_preds = [p for p in predictions if p.signal_tier == "HOLD"]
+        if hold_preds:
+            click.echo(f"\n{'=' * 40}")
+            click.echo("  HOLD")
+            click.echo(f"{'=' * 40}")
+            for p in sorted(hold_preds, key=lambda x: -x.confidence):
+                click.echo(f"  {p.ticker:8s} {p.confidence:5.1%} conf  {p.predicted_pct_move:+.2f}% target  ({p.model_name})")
+
     if not predictions:
         click.echo("No signals. Run 'train' first.")
+
+
+@main.command()
+@click.option("--days", default=365, help="Number of days of history to fetch before training")
+@click.option("--ticker", default=None, help="Run the pipeline for a single ticker")
+@click.option("--detail", is_flag=True, help="Show detailed signal breakdown")
+def pipeline(days: int, ticker: str | None, detail: bool) -> None:
+    """Run fetch, feature generation, training, and signals end-to-end."""
+    click.echo("Step 1/4: Fetching latest data...")
+    asyncio.run(_fetch(days, ticker))
+
+    click.echo("\nStep 2/4: Computing feature history...")
+    _compute_features(ticker, target_date=None)
+
+    click.echo("\nStep 3/4: Training models...")
+    _train_models(ticker)
+
+    click.echo("\nStep 4/4: Generating signals...")
+    _generate_signals(ticker, detail)
 
 
 @main.command()
@@ -293,7 +420,7 @@ def accuracy(ticker: str | None) -> None:
     db.initialize()
     tracker = AccuracyTracker(db)
 
-    tickers = [ticker] if ticker else BIST_100_SAMPLE[:5]
+    tickers = [ticker] if ticker else db.list_tracked_stocks()[:5]
 
     for t in tickers:
         acc_30 = tracker.rolling_accuracy(t, window=30)

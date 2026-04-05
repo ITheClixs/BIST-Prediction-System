@@ -39,6 +39,10 @@ class XGBoostModel:
     def name(self) -> str:
         return "xgboost"
 
+    @property
+    def n_features(self) -> int | None:
+        return getattr(self._classifier, "n_features_in_", None)
+
     def train(
         self,
         X_train: NDArray[np.float64],
