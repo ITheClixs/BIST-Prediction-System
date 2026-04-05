@@ -163,3 +163,146 @@ def config() -> None:
     click.echo(f"  Min confidence: {cfg.signals.min_confidence}")
     click.echo(f"  Backtest commission: {cfg.backtest.commission}")
     click.echo(f"  Backtest slippage: {cfg.backtest.slippage}")
+
+
+@main.command()
+@click.option("--ticker", default=None, help="Train for a single ticker")
+def train(ticker: str | None) -> None:
+    """Train or retrain prediction models."""
+    from bist_predict.models.xgboost_model import XGBoostModel
+    from bist_predict.models.lightgbm_model import LightGBMModel
+    from bist_predict.models.registry import ModelRegistry
+    from bist_predict.models.types import build_tabular_dataset
+
+    import numpy as np
+
+    config = load_config()
+    db = Database(config.db_path)
+    db.initialize()
+    registry = ModelRegistry(db)
+
+    tickers = [ticker] if ticker else BIST_100_SAMPLE
+    all_X, all_y_dir, all_y_pct = [], [], []
+
+    for t in tickers:
+        X, y_dir, y_pct, _ = build_tabular_dataset(db, t)
+        if X.shape[0] > 0:
+            all_X.append(X)
+            all_y_dir.append(y_dir)
+            all_y_pct.append(y_pct)
+            click.echo(f"  {t}: {X.shape[0]} samples, {X.shape[1]} features")
+
+    if not all_X:
+        click.echo("No training data available. Run 'fetch' and 'features' first.")
+        return
+
+    X = np.vstack(all_X)
+    y_dir = np.concatenate(all_y_dir)
+    y_pct = np.concatenate(all_y_pct)
+
+    split = int(len(X) * 0.8)
+    X_train, X_val = X[:split], X[split:]
+    y_dir_train, y_dir_val = y_dir[:split], y_dir[split:]
+    y_pct_train, y_pct_val = y_pct[:split], y_pct[split:]
+
+    click.echo(f"\nTraining on {split} samples, validating on {len(X) - split}...")
+
+    for ModelClass in [XGBoostModel, LightGBMModel]:
+        model = ModelClass()
+        click.echo(f"\n  Training {model.name}...")
+        metrics = model.train(X_train, y_dir_train, y_pct_train, X_val, y_dir_val, y_pct_val)
+        click.echo(f"    Accuracy: {metrics.get('val_accuracy', 0):.3f}")
+        click.echo(f"    MAE: {metrics.get('val_mae', 0):.5f}")
+
+        version = date.today().isoformat()
+        model_path = str(config.db_path.parent / "models" / model.name / version)
+        model.save(model_path)
+        registry.register(model.name, version, model_path, metrics)
+        registry.activate(model.name, version)
+        click.echo(f"    Saved and activated: {model.name} {version}")
+
+    click.echo("\nTraining complete.")
+
+
+@main.command()
+@click.option("--ticker", default=None, help="Get signal for a single ticker")
+@click.option("--detail", is_flag=True, help="Show detailed signal breakdown")
+def signals(ticker: str | None, detail: bool) -> None:
+    """Get today's trading signals."""
+    from bist_predict.models.xgboost_model import XGBoostModel
+    from bist_predict.models.lightgbm_model import LightGBMModel
+    from bist_predict.models.registry import ModelRegistry
+    from bist_predict.models.types import Prediction, build_tabular_dataset
+
+    config = load_config()
+    db = Database(config.db_path)
+    db.initialize()
+    registry = ModelRegistry(db)
+
+    tickers = [ticker] if ticker else BIST_100_SAMPLE
+    predictions: list[Prediction] = []
+
+    for ModelClass in [XGBoostModel, LightGBMModel]:
+        model = ModelClass()
+        active = registry.get_active(model.name)
+        if active is None:
+            click.echo(f"  No active {model.name} model. Run 'train' first.")
+            continue
+        model.load(active["model_path"])
+
+        for t in tickers:
+            X, _, _, dates = build_tabular_dataset(db, t)
+            if X.shape[0] == 0:
+                continue
+            latest_X = X[-1:].copy()
+            probs, pct = model.predict(latest_X)
+            direction = "UP" if probs[0] > 0.5 else "DOWN"
+            confidence = probs[0] if direction == "UP" else 1 - probs[0]
+            predictions.append(Prediction(
+                ticker=t, direction=direction, confidence=float(confidence),
+                predicted_pct_move=float(pct[0]), model_name=model.name,
+            ))
+
+    for tier in ["STRONG BUY", "BUY", "SELL", "STRONG SELL"]:
+        tier_preds = [p for p in predictions if p.signal_tier == tier]
+        if tier_preds:
+            click.echo(f"\n{'=' * 40}")
+            click.echo(f"  {tier}")
+            click.echo(f"{'=' * 40}")
+            for p in sorted(tier_preds, key=lambda x: -x.confidence):
+                click.echo(f"  {p.ticker:8s} {p.confidence:5.1%} conf  {p.predicted_pct_move:+.2f}% target  ({p.model_name})")
+
+    if not predictions:
+        click.echo("No signals. Run 'train' first.")
+
+
+@main.command()
+def backtest() -> None:
+    """Run walk-forward backtest."""
+    click.echo("Backtesting not yet wired -- models + evaluation complete, integration pending.")
+
+
+@main.command()
+@click.option("--ticker", default=None, help="Show accuracy for a single ticker")
+def accuracy(ticker: str | None) -> None:
+    """Show prediction accuracy history."""
+    from bist_predict.evaluation.tracker import AccuracyTracker
+
+    config = load_config()
+    db = Database(config.db_path)
+    db.initialize()
+    tracker = AccuracyTracker(db)
+
+    tickers = [ticker] if ticker else BIST_100_SAMPLE[:5]
+
+    for t in tickers:
+        acc_30 = tracker.rolling_accuracy(t, window=30)
+        acc_90 = tracker.rolling_accuracy(t, window=90)
+        click.echo(f"  {t}: 30d={acc_30:.1%}  90d={acc_90:.1%}")
+
+    if ticker:
+        buckets = tracker.confidence_buckets(ticker)
+        if buckets:
+            click.echo(f"\nConfidence Bucket Analysis for {ticker}:")
+            for label, data in sorted(buckets.items()):
+                click.echo(f"  {label}%: {data['accuracy']:.1%} accuracy ({int(data['count'])} predictions)")
