@@ -24,4 +24,9 @@ data/
 
 # Project
 .superpowers/
+docs/superpowers/
 config.toml
+
+# Claude
+.claude/
+CLAUDE.md
