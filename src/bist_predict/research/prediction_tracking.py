@@ -292,10 +292,18 @@ def persist_run_signal_predictions(
                 ticker=str(row["ticker"]),
                 predicted_return=float(row["predicted_return"]),
                 predicted_probability=float(row["predicted_probability"]),
-                uncertainty_adjusted_return=float(row["uncertainty_adjusted_return"]),
+                expected_net_return=float(row["expected_net_return"]),
                 target_weight=float(row["target_weight"]),
                 eligible=bool(row["eligible"]),
                 rejection_reason=(None if pd.isna(rejection_reason) else str(rejection_reason)),
+                liquidity_reference_volume=(
+                    None
+                    if pd.isna(row["liquidity_reference_volume"])
+                    else float(row["liquidity_reference_volume"])
+                ),
+                liquidity_as_of=(
+                    None if pd.isna(row["liquidity_as_of"]) else str(row["liquidity_as_of"])
+                ),
             )
         )
     return persist_signal_predictions(

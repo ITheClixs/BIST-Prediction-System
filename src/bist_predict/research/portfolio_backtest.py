@@ -4,13 +4,13 @@ from __future__ import annotations
 
 import hashlib
 import math
-from dataclasses import asdict, dataclass, fields
+from dataclasses import asdict, dataclass, fields, replace
 from datetime import date
 from typing import Any, Iterable
 
 import pandas as pd
 
-from bist_predict.ingest.corporate_actions import CorporateAction
+from bist_predict.ingest.corporate_actions import CorporateAction, CorporateActionType
 from bist_predict.ingest.calendar import OfficialTradingCalendar
 from bist_predict.ingest.types import OHLCVBar, OpenQuality, VolumeQuality
 from bist_predict.research.predictions import validate_predictions
@@ -53,6 +53,7 @@ class StrategyConfig:
     decision_cost_rate: float = 0.003
     max_participation: float = 0.01
     min_trade_value: float = 100.0
+    liquidity_lookback_sessions: int = 20
 
     def __post_init__(self) -> None:
         if self.top_k <= 0:
@@ -63,6 +64,8 @@ class StrategyConfig:
             raise ValueError("max_participation must lie in (0, 1]")
         if self.min_trade_value < 0.0:
             raise ValueError("min_trade_value must be non-negative")
+        if self.liquidity_lookback_sessions <= 0:
+            raise ValueError("liquidity_lookback_sessions must be positive")
 
 
 @dataclass(frozen=True)
@@ -74,10 +77,12 @@ class Signal:
     ticker: str
     predicted_return: float
     predicted_probability: float
-    uncertainty_adjusted_return: float
+    expected_net_return: float
     target_weight: float
     eligible: bool
     rejection_reason: str | None
+    liquidity_reference_volume: float | None = None
+    liquidity_as_of: str | None = None
 
 
 @dataclass(frozen=True)
@@ -91,6 +96,8 @@ class Order:
     reference_price: float
     status: str
     rejection_reason: str | None
+    liquidity_reference_volume: float
+    liquidity_as_of: str
 
 
 @dataclass(frozen=True)
@@ -105,6 +112,8 @@ class Fill:
     fill_price: float
     notional: float
     participation_rate: float
+    liquidity_reference_volume: float
+    liquidity_as_of: str
 
 
 @dataclass(frozen=True)
@@ -165,6 +174,260 @@ class DailySnapshot:
 
 
 @dataclass(frozen=True)
+class CorporateActionRecord:
+    """Auditable result of applying one sourced action to a holding."""
+
+    action_id: str
+    timestamp: str
+    effective_date: str
+    ticker: str
+    action_type: str
+    status: str
+    quantity_before: int
+    quantity_after: int
+    cash_delta: float
+    resulting_ticker: str | None
+    reason: str | None
+    source: str
+    source_retrieved_at: str | None
+
+
+@dataclass(frozen=True)
+class CorporateActionApplication:
+    """Portfolio state after a deterministic corporate-action batch."""
+
+    positions: tuple[Position, ...]
+    cash: float
+    distributions: float
+    action_ledger: tuple[CorporateActionRecord, ...]
+    cash_ledger: tuple[CashLedger, ...]
+
+
+def _action_record(
+    action: CorporateAction,
+    *,
+    timestamp: str,
+    status: str,
+    quantity_before: int,
+    quantity_after: int,
+    cash_delta: float,
+    resulting_ticker: str | None,
+    reason: str | None,
+) -> CorporateActionRecord:
+    action_id = _identifier(
+        "corporate-action",
+        action.ticker,
+        action.effective_date,
+        action.action_type.value,
+        action.source,
+        action.ratio,
+        action.cash_amount,
+        action.currency,
+        action.subscription_price,
+        action.new_ticker,
+        action.delisting_price,
+    )
+    return CorporateActionRecord(
+        action_id=action_id,
+        timestamp=timestamp,
+        effective_date=action.effective_date.isoformat(),
+        ticker=action.ticker,
+        action_type=action.action_type.value,
+        status=status,
+        quantity_before=quantity_before,
+        quantity_after=quantity_after,
+        cash_delta=cash_delta,
+        resulting_ticker=resulting_ticker,
+        reason=reason,
+        source=action.source,
+        source_retrieved_at=(
+            action.source_retrieved_at.isoformat()
+            if action.source_retrieved_at is not None
+            else None
+        ),
+    )
+
+
+def apply_corporate_actions(
+    *,
+    actions: Iterable[CorporateAction],
+    positions: Iterable[Position],
+    cash: float,
+    timestamp: str,
+) -> CorporateActionApplication:
+    """Apply sourced actions without inventing rights or delisting policies.
+
+    Splits and bonus issues preserve position wealth while adjusting share count
+    and per-share basis. Dividends credit entitled shares. Rights issues fail
+    closed because exercising them requires an explicit capital-allocation
+    policy. Delistings require a sourced cash settlement price.
+    """
+    if cash < 0.0:
+        raise ValueError("cash cannot be negative")
+
+    holdings: dict[str, Position] = {}
+    for position in positions:
+        if position.quantity <= 0:
+            raise ValueError("corporate actions require open positions")
+        if position.ticker in holdings:
+            raise ValueError(f"duplicate open position: {position.ticker}")
+        holdings[position.ticker] = position
+
+    balance = cash
+    distributions = 0.0
+    action_ledger: list[CorporateActionRecord] = []
+    cash_ledger: list[CashLedger] = []
+    ordered_actions = sorted(
+        actions,
+        key=lambda action: (
+            action.effective_date,
+            action.ticker,
+            action.action_type.value,
+        ),
+    )
+    for action in ordered_actions:
+        current_position = holdings.get(action.ticker)
+        if current_position is None:
+            action_ledger.append(
+                _action_record(
+                    action,
+                    timestamp=timestamp,
+                    status="no_entitlement",
+                    quantity_before=0,
+                    quantity_after=0,
+                    cash_delta=0.0,
+                    resulting_ticker=action.new_ticker,
+                    reason="no_open_position",
+                )
+            )
+            continue
+
+        quantity_before = current_position.quantity
+        if action.action_type in {
+            CorporateActionType.STOCK_SPLIT,
+            CorporateActionType.BONUS_ISSUE,
+        }:
+            assert action.ratio is not None
+            adjusted_quantity = quantity_before * action.ratio
+            rounded_quantity = round(adjusted_quantity)
+            if not math.isclose(adjusted_quantity, rounded_quantity, abs_tol=1e-9):
+                raise ValueError("fractional shares require an explicit cash-in-lieu policy")
+            adjusted = replace(
+                current_position,
+                timestamp=timestamp,
+                quantity=rounded_quantity,
+                average_entry_price=current_position.average_entry_price / action.ratio,
+                market_price=current_position.market_price / action.ratio,
+            )
+            holdings[action.ticker] = adjusted
+            action_ledger.append(
+                _action_record(
+                    action,
+                    timestamp=timestamp,
+                    status="applied",
+                    quantity_before=quantity_before,
+                    quantity_after=adjusted.quantity,
+                    cash_delta=0.0,
+                    resulting_ticker=action.ticker,
+                    reason=None,
+                )
+            )
+            continue
+
+        if action.action_type is CorporateActionType.CASH_DIVIDEND:
+            assert action.cash_amount is not None
+            cash_delta = quantity_before * action.cash_amount
+            balance += cash_delta
+            distributions += cash_delta
+            record = _action_record(
+                action,
+                timestamp=timestamp,
+                status="applied",
+                quantity_before=quantity_before,
+                quantity_after=quantity_before,
+                cash_delta=cash_delta,
+                resulting_ticker=action.ticker,
+                reason=None,
+            )
+            action_ledger.append(record)
+            cash_ledger.append(
+                CashLedger(
+                    ledger_id=_identifier(record.action_id, "cash-dividend"),
+                    timestamp=timestamp,
+                    category="cash_dividend",
+                    amount=cash_delta,
+                    balance=balance,
+                    reference_id=record.action_id,
+                )
+            )
+            continue
+
+        if action.action_type is CorporateActionType.TICKER_CHANGE:
+            assert action.new_ticker is not None
+            if action.new_ticker in holdings:
+                raise ValueError(f"ticker change would collide with {action.new_ticker}")
+            remapped = replace(
+                current_position,
+                timestamp=timestamp,
+                ticker=action.new_ticker,
+            )
+            del holdings[action.ticker]
+            holdings[action.new_ticker] = remapped
+            action_ledger.append(
+                _action_record(
+                    action,
+                    timestamp=timestamp,
+                    status="applied",
+                    quantity_before=quantity_before,
+                    quantity_after=quantity_before,
+                    cash_delta=0.0,
+                    resulting_ticker=action.new_ticker,
+                    reason=None,
+                )
+            )
+            continue
+
+        if action.action_type is CorporateActionType.RIGHTS_ISSUE:
+            raise ValueError("rights issue requires an explicit exercise policy")
+
+        if action.action_type is CorporateActionType.DELISTING:
+            if action.delisting_price is None:
+                raise ValueError("delisting requires an explicit settlement price")
+            cash_delta = quantity_before * action.delisting_price
+            balance += cash_delta
+            del holdings[action.ticker]
+            record = _action_record(
+                action,
+                timestamp=timestamp,
+                status="applied",
+                quantity_before=quantity_before,
+                quantity_after=0,
+                cash_delta=cash_delta,
+                resulting_ticker=None,
+                reason="cash_settlement",
+            )
+            action_ledger.append(record)
+            cash_ledger.append(
+                CashLedger(
+                    ledger_id=_identifier(record.action_id, "delisting-proceeds"),
+                    timestamp=timestamp,
+                    category="delisting_proceeds",
+                    amount=cash_delta,
+                    balance=balance,
+                    reference_id=record.action_id,
+                )
+            )
+
+    return CorporateActionApplication(
+        positions=tuple(holdings[ticker] for ticker in sorted(holdings)),
+        cash=balance,
+        distributions=distributions,
+        action_ledger=tuple(action_ledger),
+        cash_ledger=tuple(cash_ledger),
+    )
+
+
+@dataclass(frozen=True)
 class PortfolioBacktestResult:
     signals: tuple[Signal, ...]
     orders: tuple[Order, ...]
@@ -174,6 +437,7 @@ class PortfolioBacktestResult:
     costs: tuple[CostRecord, ...]
     daily_snapshots: tuple[DailySnapshot, ...]
     portfolio: Portfolio
+    corporate_action_ledger: tuple[CorporateActionRecord, ...] = ()
 
     @property
     def ending_equity(self) -> float:
@@ -196,6 +460,7 @@ class PortfolioBacktestResult:
             "cash_ledger": frame(self.cash_ledger, CashLedger),
             "daily_equity": frame(self.daily_snapshots, DailySnapshot),
             "costs": frame(self.costs, CostRecord),
+            "corporate_action_ledger": frame(self.corporate_action_ledger, CorporateActionRecord),
         }
 
 
@@ -206,6 +471,8 @@ class _Candidate:
     execution_date: str | None
     score: float
     rejection_reason: str | None
+    liquidity_reference_volume: float | None
+    liquidity_as_of: str | None
 
 
 class PortfolioBacktester:
@@ -231,19 +498,42 @@ class PortfolioBacktester:
             None,
         )
 
+    def _lagged_liquidity(
+        self,
+        bars_by_ticker: dict[str, list[OHLCVBar]],
+        ticker: str,
+        signal_date: date,
+    ) -> tuple[float | None, str | None]:
+        known_bars = [
+            bar
+            for bar in bars_by_ticker.get(ticker, ())
+            if bar.date <= signal_date
+            and bar.volume > 0
+            and bar.volume_quality is not VolumeQuality.MISSING
+        ][-self._strategy.liquidity_lookback_sessions :]
+        if not known_bars:
+            return None, None
+        reference_volume = sum(bar.volume for bar in known_bars) / len(known_bars)
+        return reference_volume, known_bars[-1].date.isoformat()
+
     def _candidate(
         self,
         prediction: pd.Series,
         bars_by_ticker: dict[str, list[OHLCVBar]],
     ) -> _Candidate:
         signal_date = date.fromisoformat(str(prediction["date"]))
-        bar = self._next_bar(bars_by_ticker, str(prediction["ticker"]), signal_date)
-        certainty = 2.0 * abs(float(prediction["predicted_probability"]) - 0.5)
+        ticker = str(prediction["ticker"])
+        bar = self._next_bar(bars_by_ticker, ticker, signal_date)
+        liquidity_reference_volume, liquidity_as_of = self._lagged_liquidity(
+            bars_by_ticker,
+            ticker,
+            signal_date,
+        )
         estimated_cost_rate = max(
             self._strategy.decision_cost_rate,
             self._estimated_round_trip_cost_rate(self._strategy.max_participation),
         )
-        score = float(prediction["predicted_return"]) * certainty - estimated_cost_rate
+        score = float(prediction["predicted_return"]) - estimated_cost_rate
         reason: str | None = None
         if bar is None:
             reason = "missing_execution_price"
@@ -251,8 +541,8 @@ class PortfolioBacktester:
             reason = "proxy_open"
         elif bar.open_quality is not OpenQuality.OBSERVED or bar.open <= 0.0:
             reason = "missing_open"
-        elif bar.volume_quality is VolumeQuality.MISSING or bar.volume <= 0:
-            reason = "missing_volume"
+        elif liquidity_reference_volume is None:
+            reason = "missing_lagged_liquidity"
         elif score <= 0.0:
             reason = "non_positive_expected_net_return"
         return _Candidate(
@@ -261,6 +551,8 @@ class PortfolioBacktester:
             execution_date=bar.date.isoformat() if bar is not None else None,
             score=score,
             rejection_reason=reason,
+            liquidity_reference_volume=liquidity_reference_volume,
+            liquidity_as_of=liquidity_as_of,
         )
 
     def _cost_record(
@@ -295,15 +587,20 @@ class PortfolioBacktester:
         )
         return 2.0 * one_way + self._selection_costs.tax_rate
 
-    def _affordable_quantity(self, bar: OHLCVBar, budget: float) -> int:
-        volume_limit = math.floor(bar.volume * self._strategy.max_participation)
+    def _affordable_quantity(
+        self,
+        bar: OHLCVBar,
+        budget: float,
+        liquidity_reference_volume: float,
+    ) -> int:
+        volume_limit = math.floor(liquidity_reference_volume * self._strategy.max_participation)
         cash_limit = math.floor(budget / bar.open)
         low = 0
         high = min(volume_limit, cash_limit)
         while low < high:
             candidate = (low + high + 1) // 2
             notional = candidate * bar.open
-            participation = candidate / bar.volume
+            participation = candidate / liquidity_reference_volume
             estimated_cost = self._cost_record(
                 "buy-cost-estimate",
                 "buy",
@@ -346,7 +643,7 @@ class PortfolioBacktester:
             bars_by_ticker.setdefault(bar.ticker, []).append(bar)
         for bars in bars_by_ticker.values():
             bars.sort(key=lambda bar: bar.date)
-        action_dates = {action.effective_date for action in corporate_actions}
+        sourced_actions = tuple(corporate_actions)
 
         candidates = [
             self._candidate(row, bars_by_ticker) for _, row in selected_predictions.iterrows()
@@ -363,7 +660,30 @@ class PortfolioBacktester:
         cash_ledger: list[CashLedger] = []
         costs: list[CostRecord] = []
         snapshots: list[DailySnapshot] = []
+        corporate_action_ledger: list[CorporateActionRecord] = []
         cash = starting_equity
+
+        # This benchmark opens after the effective-date action processing point
+        # and liquidates at the same close, so it never carries an entitlement.
+        # Still process and persist every supplied event rather than silently
+        # discarding it; the public processor above handles actual holdings.
+        actions_by_date: dict[date, list[CorporateAction]] = {}
+        for action in sourced_actions:
+            actions_by_date.setdefault(action.effective_date, []).append(action)
+        for effective_date in sorted(actions_by_date):
+            if calendar is None:
+                action_timestamp = f"{effective_date.isoformat()}T10:00:00+03:00"
+            else:
+                action_timestamp = calendar.session_bounds(effective_date)[0].isoformat()
+            application = apply_corporate_actions(
+                actions=actions_by_date[effective_date],
+                positions=(),
+                cash=cash,
+                timestamp=action_timestamp,
+            )
+            if application.cash != cash or application.distributions != 0.0:
+                raise RuntimeError("flat strategy received an unexpected action entitlement")
+            corporate_action_ledger.extend(application.action_ledger)
 
         for execution_date in sorted(by_execution):
             execution_session = date.fromisoformat(execution_date)
@@ -409,10 +729,12 @@ class PortfolioBacktester:
                     ticker=str(prediction["ticker"]),
                     predicted_return=float(prediction["predicted_return"]),
                     predicted_probability=float(prediction["predicted_probability"]),
-                    uncertainty_adjusted_return=candidate.score,
+                    expected_net_return=candidate.score,
                     target_weight=target_weight if reason is None else 0.0,
                     eligible=reason is None,
                     rejection_reason=reason,
+                    liquidity_reference_volume=candidate.liquidity_reference_volume,
+                    liquidity_as_of=candidate.liquidity_as_of,
                 )
                 signals.append(signal)
                 candidate_signals[prediction_key] = signal
@@ -423,14 +745,11 @@ class PortfolioBacktester:
             day_costs = 0.0
             day_notional = 0.0
             entry_notionals: list[float] = []
-            # Corporate actions effective at the open are processed before entry.
-            # The benchmark carries no overnight position, so these events cannot
-            # create a distribution or alter an existing holding.
-            if execution_session in action_dates:
-                day_distributions += 0.0
 
             for candidate in selected:
                 assert candidate.bar is not None
+                assert candidate.liquidity_reference_volume is not None
+                assert candidate.liquidity_as_of is not None
                 bar = candidate.bar
                 prediction_key = (
                     str(candidate.prediction["date"]),
@@ -438,7 +757,11 @@ class PortfolioBacktester:
                 )
                 signal = candidate_signals[prediction_key]
                 allocation = min(cash, day_starting_equity * target_weight)
-                quantity = self._affordable_quantity(bar, allocation)
+                quantity = self._affordable_quantity(
+                    bar,
+                    allocation,
+                    candidate.liquidity_reference_volume,
+                )
                 buy_order_id = _identifier(signal.signal_id, "buy", execution_date)
                 if quantity <= 0 or quantity * bar.open < self._strategy.min_trade_value:
                     orders.append(
@@ -452,6 +775,8 @@ class PortfolioBacktester:
                             reference_price=bar.open,
                             status="rejected",
                             rejection_reason="below_minimum_trade",
+                            liquidity_reference_volume=candidate.liquidity_reference_volume,
+                            liquidity_as_of=candidate.liquidity_as_of,
                         )
                     )
                     continue
@@ -467,10 +792,12 @@ class PortfolioBacktester:
                         reference_price=bar.open,
                         status="filled",
                         rejection_reason=None,
+                        liquidity_reference_volume=candidate.liquidity_reference_volume,
+                        liquidity_as_of=candidate.liquidity_as_of,
                     )
                 )
                 buy_notional = quantity * bar.open
-                participation = quantity / bar.volume
+                participation = quantity / candidate.liquidity_reference_volume
                 buy_fill_id = _identifier(buy_order_id, "fill")
                 fills.append(
                     Fill(
@@ -484,6 +811,8 @@ class PortfolioBacktester:
                         fill_price=bar.open,
                         notional=buy_notional,
                         participation_rate=participation,
+                        liquidity_reference_volume=candidate.liquidity_reference_volume,
+                        liquidity_as_of=candidate.liquidity_as_of,
                     )
                 )
                 buy_cost = self._cost_record(buy_fill_id, "buy", buy_notional, participation)
@@ -538,6 +867,8 @@ class PortfolioBacktester:
                         reference_price=bar.close,
                         status="filled",
                         rejection_reason=None,
+                        liquidity_reference_volume=candidate.liquidity_reference_volume,
+                        liquidity_as_of=candidate.liquidity_as_of,
                     )
                 )
                 sell_fill_id = _identifier(sell_order_id, "fill")
@@ -553,6 +884,8 @@ class PortfolioBacktester:
                         fill_price=bar.close,
                         notional=sell_notional,
                         participation_rate=participation,
+                        liquidity_reference_volume=candidate.liquidity_reference_volume,
+                        liquidity_as_of=candidate.liquidity_as_of,
                     )
                 )
                 sell_cost = self._cost_record(sell_fill_id, "sell", sell_notional, participation)
@@ -646,10 +979,12 @@ class PortfolioBacktester:
                     ticker=prediction_key[1],
                     predicted_return=float(candidate.prediction["predicted_return"]),
                     predicted_probability=float(candidate.prediction["predicted_probability"]),
-                    uncertainty_adjusted_return=candidate.score,
+                    expected_net_return=candidate.score,
                     target_weight=0.0,
                     eligible=False,
                     rejection_reason=candidate.rejection_reason,
+                    liquidity_reference_volume=candidate.liquidity_reference_volume,
+                    liquidity_as_of=candidate.liquidity_as_of,
                 )
             )
 
@@ -669,4 +1004,5 @@ class PortfolioBacktester:
             costs=tuple(costs),
             daily_snapshots=tuple(snapshots),
             portfolio=portfolio,
+            corporate_action_ledger=tuple(corporate_action_ledger),
         )

@@ -54,6 +54,18 @@ def _bar(*, close: float = 102.0, quality: OpenQuality = OpenQuality.OBSERVED) -
     )
 
 
+def _liquidity_history_bar() -> OHLCVBar:
+    return replace(
+        _bar(close=99.0),
+        date=date(2024, 1, 2),
+        open=98.0,
+        high=100.0,
+        low=97.0,
+        adj_close=99.0,
+        provider_record_id="yahoo:THYAO:2024-01-02",
+    )
+
+
 def test_prediction_record_is_create_only_and_binds_original_model(tmp_path) -> None:
     store = ImmutablePredictionStore(tmp_path)
 
@@ -168,7 +180,12 @@ def test_actionable_signal_generation_persists_original_prediction(tmp_path) -> 
     result = PortfolioBacktester(
         strategy=StrategyConfig(top_k=1, decision_cost_rate=0.001),
         costs=CostModel(0.0, 0.0, 0.0, 0.0, 0.0),
-    ).run(predictions, [_bar()], model_name="ridge", starting_equity=100_000.0)
+    ).run(
+        predictions,
+        [_liquidity_history_bar(), _bar()],
+        model_name="ridge",
+        starting_equity=100_000.0,
+    )
     store = ImmutablePredictionStore(tmp_path)
 
     paths = persist_signal_predictions(
