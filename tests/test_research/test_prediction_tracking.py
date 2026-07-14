@@ -2,11 +2,13 @@
 
 from __future__ import annotations
 
-from datetime import UTC, date, datetime
+from dataclasses import replace
+from datetime import UTC, date, datetime, time
 
 import pandas as pd
 import pytest
 
+from bist_predict.ingest.calendar import OfficialTradingCalendar
 from bist_predict.ingest.types import OHLCVBar, OpenQuality
 from bist_predict.research.prediction_tracking import (
     ImmutablePredictionStore,
@@ -63,6 +65,25 @@ def test_prediction_record_is_create_only_and_binds_original_model(tmp_path) -> 
         store.persist(_record())
 
 
+def test_store_keeps_same_artifact_prediction_id_from_distinct_model_runs(tmp_path) -> None:
+    store = ImmutablePredictionStore(tmp_path)
+    first = _record()
+    second = PredictionRecord(
+        **{
+            **first.__dict__,
+            "model_run_id": "20240103T180000Z-def5678-cafeba",
+        }
+    )
+
+    store.persist(first)
+    store.persist(second)
+
+    assert {(item.model_run_id, item.prediction_id) for item in store.records()} == {
+        (first.model_run_id, first.prediction_id),
+        (second.model_run_id, second.prediction_id),
+    }
+
+
 def test_maturation_waits_for_target_close_and_requires_observed_open(tmp_path) -> None:
     store = ImmutablePredictionStore(tmp_path)
     store.persist(_record())
@@ -95,6 +116,34 @@ def test_maturation_freezes_exact_realized_target_and_accuracy_uses_it(tmp_path)
         "directional_accuracy": 1.0,
         "mae": pytest.approx(0.0),
     }
+
+
+def test_maturation_uses_official_half_day_close(tmp_path) -> None:
+    store = ImmutablePredictionStore(tmp_path)
+    store.persist(
+        replace(
+            _record(),
+            signal_date="2026-03-18",
+            execution_date="2026-03-19",
+            target_date="2026-03-19",
+        )
+    )
+    bar = replace(_bar(), date=date(2026, 3, 19))
+    calendar = OfficialTradingCalendar(
+        index_name="XIST",
+        sessions=(date(2026, 3, 19),),
+        source="official-test",
+        source_retrieved_at=datetime(2026, 1, 1, tzinfo=UTC),
+        session_close_overrides={date(2026, 3, 19): time(13, 0)},
+    )
+
+    outcomes = store.mature(
+        as_of=datetime(2026, 3, 19, 10, 1, tzinfo=UTC),
+        prices=[bar],
+        calendar=calendar,
+    )
+
+    assert len(outcomes) == 1
 
 
 def test_actionable_signal_generation_persists_original_prediction(tmp_path) -> None:

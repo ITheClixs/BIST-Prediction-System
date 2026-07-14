@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import hashlib
 import json
 import math
 from dataclasses import asdict, dataclass
@@ -13,6 +14,7 @@ from zoneinfo import ZoneInfo
 import numpy as np
 import pandas as pd
 
+from bist_predict.ingest.calendar import OfficialTradingCalendar
 from bist_predict.ingest.types import OHLCVBar, OpenQuality
 from bist_predict.research.portfolio_backtest import Signal, prediction_identifier
 from bist_predict.research.predictions import validate_predictions
@@ -87,14 +89,25 @@ class ImmutablePredictionStore:
     @staticmethod
     def _write_new(path: Path, payload: dict[str, object]) -> Path:
         rendered = json.dumps(payload, sort_keys=True, separators=(",", ":")) + "\n"
+        path.parent.mkdir(parents=True, exist_ok=True)
         with path.open("x") as handle:
             handle.write(rendered)
         return path
 
+    @staticmethod
+    def _record_path(root: Path, model_run_id: str, prediction_id: str) -> Path:
+        run_key = hashlib.sha256(model_run_id.encode()).hexdigest()
+        prediction_key = hashlib.sha256(prediction_id.encode()).hexdigest()
+        return root / run_key / f"{prediction_key}.json"
+
     def persist(self, prediction: PredictionRecord) -> Path:
         """Persist a signal-time record without upsert or model substitution."""
         return self._write_new(
-            self._records / f"{prediction.prediction_id}.json",
+            self._record_path(
+                self._records,
+                prediction.model_run_id,
+                prediction.prediction_id,
+            ),
             asdict(prediction),
         )
 
@@ -104,18 +117,20 @@ class ImmutablePredictionStore:
 
     def records(self) -> tuple[PredictionRecord, ...]:
         return tuple(
-            self._read(path, PredictionRecord) for path in sorted(self._records.glob("*.json"))
+            self._read(path, PredictionRecord) for path in sorted(self._records.rglob("*.json"))
         )
 
     def outcomes(self) -> tuple[PredictionOutcome, ...]:
         return tuple(
-            self._read(path, PredictionOutcome) for path in sorted(self._outcomes.glob("*.json"))
+            self._read(path, PredictionOutcome) for path in sorted(self._outcomes.rglob("*.json"))
         )
 
     def unresolved(self) -> tuple[PredictionRecord, ...]:
-        resolved = {outcome.prediction_id for outcome in self.outcomes()}
+        resolved = {(outcome.model_run_id, outcome.prediction_id) for outcome in self.outcomes()}
         return tuple(
-            prediction for prediction in self.records() if prediction.prediction_id not in resolved
+            prediction
+            for prediction in self.records()
+            if (prediction.model_run_id, prediction.prediction_id) not in resolved
         )
 
     def mature(
@@ -123,6 +138,7 @@ class ImmutablePredictionStore:
         *,
         as_of: datetime,
         prices: Iterable[OHLCVBar],
+        calendar: OfficialTradingCalendar | None = None,
     ) -> tuple[PredictionOutcome, ...]:
         """Freeze outcomes whose declared open-to-close interval has completed."""
         if as_of.tzinfo is None:
@@ -137,7 +153,10 @@ class ImmutablePredictionStore:
         matured: list[PredictionOutcome] = []
         for prediction in self.unresolved():
             target_date = date.fromisoformat(prediction.target_date)
-            target_close = datetime.combine(target_date, TARGET_CLOSE, tzinfo=ISTANBUL)
+            if calendar is None:
+                target_close = datetime.combine(target_date, TARGET_CLOSE, tzinfo=ISTANBUL)
+            else:
+                _, target_close = calendar.session_bounds(target_date)
             if as_of < target_close:
                 continue
             target_bar = by_key.get((prediction.ticker, target_date))
@@ -167,20 +186,29 @@ class ImmutablePredictionStore:
                 matured_at=as_of.isoformat(),
             )
             self._write_new(
-                self._outcomes / f"{prediction.prediction_id}.json",
+                self._record_path(
+                    self._outcomes,
+                    prediction.model_run_id,
+                    prediction.prediction_id,
+                ),
                 asdict(outcome),
             )
             matured.append(outcome)
         return tuple(matured)
 
-    def accuracy_metrics(self) -> dict[str, int | float]:
+    def accuracy_metrics(self, *, ticker: str | None = None) -> dict[str, int | float]:
         """Compute accuracy only from paired immutable predictions and outcomes."""
-        predictions = {item.prediction_id: item for item in self.records()}
-        outcomes = self.outcomes()
+        predictions = {(item.model_run_id, item.prediction_id): item for item in self.records()}
+        outcomes = tuple(
+            item for item in self.outcomes() if ticker is None or item.ticker == ticker
+        )
         if not outcomes:
             return {"resolved_predictions": 0, "directional_accuracy": 0.0, "mae": 0.0}
         predicted_returns = np.asarray(
-            [predictions[item.prediction_id].predicted_return for item in outcomes],
+            [
+                predictions[(item.model_run_id, item.prediction_id)].predicted_return
+                for item in outcomes
+            ],
             dtype=np.float64,
         )
         realized_returns = np.asarray([item.realized_return for item in outcomes], dtype=np.float64)
@@ -241,3 +269,38 @@ def persist_signal_predictions(
             )
         )
     return tuple(paths)
+
+
+def persist_run_signal_predictions(
+    run_path: Path,
+    store: ImmutablePredictionStore,
+) -> tuple[Path, ...]:
+    """Persist actionable signals from one immutable accepted-run bundle."""
+    run_manifest = json.loads((run_path / "run_manifest.json").read_text())
+    predictions = pd.read_parquet(run_path / "predictions.parquet")
+    signal_frame = pd.read_parquet(run_path / "signals.parquet")
+    signals: list[Signal] = []
+    for row in signal_frame.to_dict(orient="records"):
+        execution_date = row["execution_date"]
+        rejection_reason = row["rejection_reason"]
+        signals.append(
+            Signal(
+                signal_id=str(row["signal_id"]),
+                prediction_id=str(row["prediction_id"]),
+                signal_date=str(row["signal_date"]),
+                execution_date=(None if pd.isna(execution_date) else str(execution_date)),
+                ticker=str(row["ticker"]),
+                predicted_return=float(row["predicted_return"]),
+                predicted_probability=float(row["predicted_probability"]),
+                uncertainty_adjusted_return=float(row["uncertainty_adjusted_return"]),
+                target_weight=float(row["target_weight"]),
+                eligible=bool(row["eligible"]),
+                rejection_reason=(None if pd.isna(rejection_reason) else str(rejection_reason)),
+            )
+        )
+    return persist_signal_predictions(
+        signals,
+        predictions,
+        store,
+        model_run_id=str(run_manifest["run_id"]),
+    )

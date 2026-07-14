@@ -11,6 +11,10 @@ from bist_predict.research.accepted_benchmark import (
     reproduce_run,
     run_accepted_benchmark,
 )
+from bist_predict.research.prediction_tracking import (
+    ImmutablePredictionStore,
+    persist_run_signal_predictions,
+)
 from bist_predict.research.run_artifacts import verify_artifact_hashes
 
 
@@ -58,6 +62,12 @@ def test_synthetic_methodology_smoke_runs_and_replays_from_bundled_inputs(
         "unexpected_sessions": [],
         "unexpected_weekend_rows": [],
     }
+
+    tracking_store = ImmutablePredictionStore(tmp_path / "tracking")
+    tracked = persist_run_signal_predictions(bundle.path, tracking_store)
+
+    assert tracked
+    assert {record.model_run_id for record in tracking_store.records()} == {bundle.run_id}
 
     replay = reproduce_run(bundle.path, scratch_root=tmp_path / "replay")
 

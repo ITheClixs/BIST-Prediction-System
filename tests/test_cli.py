@@ -106,6 +106,7 @@ def test_cli_exposes_accepted_benchmark_and_labels_legacy_research_experimental(
 
     assert help_result.exit_code == 0
     assert "benchmark" in help_result.output
+    assert "mature-predictions" in help_result.output
     assert "reproduce-smoke" in help_result.output
     assert "reproduce" in help_result.output
 
@@ -113,3 +114,11 @@ def test_cli_exposes_accepted_benchmark_and_labels_legacy_research_experimental(
         result = CliRunner().invoke(main, [command, "--help"])
         assert result.exit_code == 0
         assert "EXPERIMENTAL" in result.output
+
+
+def test_accuracy_command_reads_only_the_immutable_prediction_store(tmp_path) -> None:
+    result = CliRunner().invoke(main, ["accuracy", "--store", str(tmp_path)])
+
+    assert result.exit_code == 0
+    assert "Resolved predictions: 0" in result.output
+    assert "Directional accuracy: 0.0%" in result.output

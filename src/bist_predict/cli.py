@@ -5,7 +5,7 @@ from __future__ import annotations
 import asyncio
 import logging
 import tempfile
-from datetime import date, timedelta
+from datetime import date, datetime, timedelta
 from pathlib import Path
 
 import click
@@ -279,12 +279,23 @@ def reproduce_smoke(runs_root: Path) -> None:
     default=Path("runs"),
     show_default=True,
 )
-def benchmark(prices: Path, runs_root: Path) -> None:
+@click.option(
+    "--prediction-store",
+    type=click.Path(path_type=Path),
+    default=Path("prediction_tracking"),
+    show_default=True,
+    help="Create-only store for actionable signal-time prediction records.",
+)
+def benchmark(prices: Path, runs_root: Path, prediction_store: Path) -> None:
     """Run the accepted fixed-universe baseline benchmark on explicit inputs."""
     from bist_predict.research.accepted_benchmark import (
         AcceptedBenchmarkConfig,
         load_price_artifact,
         run_accepted_benchmark,
+    )
+    from bist_predict.research.prediction_tracking import (
+        ImmutablePredictionStore,
+        persist_run_signal_predictions,
     )
 
     bundle = run_accepted_benchmark(
@@ -293,8 +304,13 @@ def benchmark(prices: Path, runs_root: Path) -> None:
         config=AcceptedBenchmarkConfig(),
         command=f"bist-predict benchmark --prices {prices}",
     )
+    tracked = persist_run_signal_predictions(
+        bundle.path,
+        ImmutablePredictionStore(prediction_store),
+    )
     click.echo(f"Created {bundle.run_id}")
     click.echo(f"Artifacts: {bundle.path}")
+    click.echo(f"Persisted {len(tracked)} actionable prediction records: {prediction_store}")
 
 
 @main.command()
@@ -618,29 +634,65 @@ def backtest(
     click.echo(f"  Total return: {report.trading_metrics.get('total_return', 0):.2%}")
 
 
+@main.command("mature-predictions")
+@click.option(
+    "--store",
+    type=click.Path(path_type=Path),
+    default=Path("prediction_tracking"),
+    show_default=True,
+)
+@click.option(
+    "--prices",
+    type=click.Path(path_type=Path, exists=True, dir_okay=False),
+    required=True,
+    help="Provider-quality input_prices.parquet containing completed targets.",
+)
+@click.option(
+    "--as-of",
+    required=True,
+    help="Timezone-aware ISO timestamp after the target interval, for example 2026-04-03T18:10:00+03:00.",
+)
+def mature_predictions(store: Path, prices: Path, as_of: str) -> None:
+    """Freeze realized outcomes without retraining or replacing predictions."""
+    from bist_predict.ingest.calendar import borsa_istanbul_equity_calendar
+    from bist_predict.research.accepted_benchmark import load_price_artifact
+    from bist_predict.research.prediction_tracking import ImmutablePredictionStore
+
+    try:
+        as_of_timestamp = datetime.fromisoformat(as_of)
+    except ValueError as error:
+        raise click.ClickException("--as-of must be a valid ISO timestamp") from error
+    if as_of_timestamp.tzinfo is None:
+        raise click.ClickException("--as-of must include a timezone offset")
+    bars = load_price_artifact(prices)
+    if not bars:
+        raise click.ClickException("price artifact contains no rows")
+    calendar = borsa_istanbul_equity_calendar(
+        min(bar.date for bar in bars),
+        max(bar.date for bar in bars),
+        source_retrieved_at=as_of_timestamp,
+    )
+    outcomes = ImmutablePredictionStore(store).mature(
+        as_of=as_of_timestamp,
+        prices=bars,
+        calendar=calendar,
+    )
+    click.echo(f"Matured predictions: {len(outcomes)}")
+
+
 @main.command()
-@click.option("--ticker", default=None, help="Show accuracy for a single ticker")
-def accuracy(ticker: str | None) -> None:
-    """Show prediction accuracy history."""
-    from bist_predict.evaluation.tracker import AccuracyTracker
+@click.option("--ticker", default=None, help="Limit immutable outcomes to one ticker")
+@click.option(
+    "--store",
+    type=click.Path(path_type=Path),
+    default=Path("prediction_tracking"),
+    show_default=True,
+)
+def accuracy(ticker: str | None, store: Path) -> None:
+    """Report accuracy from frozen signal-time records and outcomes only."""
+    from bist_predict.research.prediction_tracking import ImmutablePredictionStore
 
-    config = load_config()
-    db = Database(config.db_path)
-    db.initialize()
-    tracker = AccuracyTracker(db)
-
-    tickers = [ticker] if ticker else db.list_tracked_stocks()[:5]
-
-    for t in tickers:
-        acc_30 = tracker.rolling_accuracy(t, window=30)
-        acc_90 = tracker.rolling_accuracy(t, window=90)
-        click.echo(f"  {t}: 30d={acc_30:.1%}  90d={acc_90:.1%}")
-
-    if ticker:
-        buckets = tracker.confidence_buckets(ticker)
-        if buckets:
-            click.echo(f"\nConfidence Bucket Analysis for {ticker}:")
-            for label, data in sorted(buckets.items()):
-                click.echo(
-                    f"  {label}%: {data['accuracy']:.1%} accuracy ({int(data['count'])} predictions)"
-                )
+    metrics = ImmutablePredictionStore(store).accuracy_metrics(ticker=ticker)
+    click.echo(f"Resolved predictions: {metrics['resolved_predictions']}")
+    click.echo(f"Directional accuracy: {metrics['directional_accuracy']:.1%}")
+    click.echo(f"MAE: {metrics['mae']:.6f}")
