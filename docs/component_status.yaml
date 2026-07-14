@@ -172,13 +172,15 @@ components:
     package: bist_features
     implemented: true
     integrated: partial
-    evaluated: false
+    evaluated: true
     production_inference: partial
     accepted_default: false
     evidence:
       - rust/bist_features/src/indicators.rs
       - src/bist_predict/features/engine.py
-    note: "Synthetic numerical tests exist; no Python equivalence or benchmark artifact."
+      - tests/test_features/test_rust_equivalence.py
+      - benchmarks/results/rust_indicator_benchmark.json
+    note: "Six representative indicators have independent normal/pathological equivalence tests and a machine-specific 1K-to-1M benchmark artifact; the family remains outside the accepted benchmark feature set."
 
   python_indicator_fallback:
     package: bist_predict.features

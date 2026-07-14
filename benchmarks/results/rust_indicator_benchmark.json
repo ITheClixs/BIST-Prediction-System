@@ -1,0 +1,101 @@
+{
+  "break_even_input_size": 1000,
+  "created_at": "2026-07-14T13:23:00.070314+00:00",
+  "dirty_working_tree": true,
+  "git_commit": "c3c05fd",
+  "indicators": [
+    "sma",
+    "ema",
+    "rsi",
+    "atr",
+    "obv",
+    "vwap"
+  ],
+  "logical_cpu_count": 10,
+  "machine": "arm64",
+  "platform": "macOS-26.0.1-arm64-arm-64bit-Mach-O",
+  "processor": "arm",
+  "pyo3_boundary_note": "One-element Rust SMA call minus NumPy copy; includes Rust output allocation and is an upper bound.",
+  "pyo3_boundary_overhead_upper_bound_ns": 42,
+  "python_version": "3.13.5",
+  "repetitions": 3,
+  "report_sha256": "41b5804a1a99df734a12bf64f11909e35ad48acdb4f5daf022ed14b6c9e22afe",
+  "results": [
+    {
+      "maximum_absolute_difference": 0.0,
+      "numpy_backed_python_reference": {
+        "memory_measurement": "fresh_process_peak_rss_including_inputs",
+        "peak_memory_bytes": 36519936,
+        "repetitions": 3,
+        "wall_clock_seconds": 0.0015845829620957375
+      },
+      "rust": {
+        "memory_measurement": "fresh_process_peak_rss_including_inputs",
+        "peak_memory_bytes": 36552704,
+        "repetitions": 3,
+        "wall_clock_seconds": 2.5791930966079235e-05
+      },
+      "size": 1000,
+      "speedup": 61.437158938573965
+    },
+    {
+      "maximum_absolute_difference": 1.1368683772161603e-13,
+      "numpy_backed_python_reference": {
+        "memory_measurement": "fresh_process_peak_rss_including_inputs",
+        "peak_memory_bytes": 37404672,
+        "repetitions": 3,
+        "wall_clock_seconds": 0.016460875049233437
+      },
+      "rust": {
+        "memory_measurement": "fresh_process_peak_rss_including_inputs",
+        "peak_memory_bytes": 37175296,
+        "repetitions": 3,
+        "wall_clock_seconds": 0.00021854194346815348
+      },
+      "size": 10000,
+      "speedup": 75.32135382346941
+    },
+    {
+      "maximum_absolute_difference": 0.0,
+      "numpy_backed_python_reference": {
+        "memory_measurement": "fresh_process_peak_rss_including_inputs",
+        "peak_memory_bytes": 51331072,
+        "repetitions": 3,
+        "wall_clock_seconds": 0.16355674993246794
+      },
+      "rust": {
+        "memory_measurement": "fresh_process_peak_rss_including_inputs",
+        "peak_memory_bytes": 49299456,
+        "repetitions": 3,
+        "wall_clock_seconds": 0.0022294590016826987
+      },
+      "size": 100000,
+      "speedup": 73.3616315926969
+    },
+    {
+      "maximum_absolute_difference": 0.0,
+      "numpy_backed_python_reference": {
+        "memory_measurement": "fresh_process_peak_rss_including_inputs",
+        "peak_memory_bytes": 173948928,
+        "repetitions": 3,
+        "wall_clock_seconds": 1.6141213329974562
+      },
+      "rust": {
+        "memory_measurement": "fresh_process_peak_rss_including_inputs",
+        "peak_memory_bytes": 165134336,
+        "repetitions": 3,
+        "wall_clock_seconds": 0.021178666967898607
+      },
+      "size": 1000000,
+      "speedup": 76.2144914712549
+    }
+  ],
+  "schema_version": 1,
+  "seed": 20260714,
+  "sizes": [
+    1000,
+    10000,
+    100000,
+    1000000
+  ]
+}
