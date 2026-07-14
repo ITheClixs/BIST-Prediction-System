@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import hashlib
 import math
-from dataclasses import asdict, dataclass
+from dataclasses import asdict, dataclass, fields
 from datetime import date
 from typing import Iterable
 
@@ -180,18 +180,20 @@ class PortfolioBacktestResult:
 
     def artifact_frames(self) -> dict[str, pd.DataFrame]:
         """Return the six required ledger tables with stable field names."""
+        def frame(items: tuple[object, ...], item_type: type[object]) -> pd.DataFrame:
+            return pd.DataFrame.from_records(
+                [asdict(item) for item in items],
+                columns=[field.name for field in fields(item_type)],
+            )
+
         return {
-            "signals": pd.DataFrame.from_records([asdict(item) for item in self.signals]),
-            "orders": pd.DataFrame.from_records([asdict(item) for item in self.orders]),
-            "fills": pd.DataFrame.from_records([asdict(item) for item in self.fills]),
-            "positions": pd.DataFrame.from_records([asdict(item) for item in self.positions]),
-            "cash_ledger": pd.DataFrame.from_records(
-                [asdict(item) for item in self.cash_ledger]
-            ),
-            "daily_equity": pd.DataFrame.from_records(
-                [asdict(item) for item in self.daily_snapshots]
-            ),
-            "costs": pd.DataFrame.from_records([asdict(item) for item in self.costs]),
+            "signals": frame(self.signals, Signal),
+            "orders": frame(self.orders, Order),
+            "fills": frame(self.fills, Fill),
+            "positions": frame(self.positions, Position),
+            "cash_ledger": frame(self.cash_ledger, CashLedger),
+            "daily_equity": frame(self.daily_snapshots, DailySnapshot),
+            "costs": frame(self.costs, CostRecord),
         }
 
 

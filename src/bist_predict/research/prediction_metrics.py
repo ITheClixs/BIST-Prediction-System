@@ -52,13 +52,23 @@ def _model_metrics(rows: pd.DataFrame) -> dict[str, float | int | None]:
         "pearson_ic": _correlation(target, predicted_return, rank=False),
         "spearman_ic": _correlation(target, predicted_return, rank=True),
         "directional_accuracy": float(np.mean(actual_direction == predicted_direction)),
-        "balanced_accuracy": float(
-            balanced_accuracy_score(actual_direction, predicted_direction)
+        "balanced_accuracy": (
+            float(balanced_accuracy_score(actual_direction, predicted_direction))
+            if len(np.unique(actual_direction)) == 2
+            else float(np.mean(actual_direction == predicted_direction))
         ),
         "log_loss": float(log_loss(actual_direction, probability, labels=[0, 1])),
         "brier_score": float(brier_score_loss(actual_direction, probability)),
-        "pr_auc": float(average_precision_score(actual_direction, probability)),
-        "mcc": float(matthews_corrcoef(actual_direction, predicted_direction)),
+        "pr_auc": (
+            float(average_precision_score(actual_direction, probability))
+            if np.any(actual_direction == 1)
+            else None
+        ),
+        "mcc": (
+            float(matthews_corrcoef(actual_direction, predicted_direction))
+            if len(np.unique(actual_direction)) == 2
+            else 0.0
+        ),
     }
 
 
@@ -71,4 +81,3 @@ def recompute_prediction_metrics(
         str(model_name): _model_metrics(rows)
         for model_name, rows in predictions.groupby("model_name", sort=True)
     }
-
