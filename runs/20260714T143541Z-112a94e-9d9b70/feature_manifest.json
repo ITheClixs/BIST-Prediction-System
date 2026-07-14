@@ -2,7 +2,7 @@
   "features": [
     {
       "availability_rule": "after_official_session_close",
-      "formula": "log(adj_close_t / adj_close_t_minus_1)",
+      "formula": "log(split_close_t / split_close_t_minus_1)",
       "formula_version": "1",
       "lookback": 2,
       "missing_value_policy": "preserve_with_reason",
@@ -11,7 +11,7 @@
     },
     {
       "availability_rule": "after_official_session_close",
-      "formula": "log(adj_close_t / adj_close_t_minus_5)",
+      "formula": "log(split_close_t / split_close_t_minus_5)",
       "formula_version": "1",
       "lookback": 6,
       "missing_value_policy": "preserve_with_reason",
@@ -20,7 +20,7 @@
     },
     {
       "availability_rule": "after_official_session_close",
-      "formula": "log(adj_close_t / adj_close_t_minus_20)",
+      "formula": "log(split_close_t / split_close_t_minus_20)",
       "formula_version": "1",
       "lookback": 21,
       "missing_value_policy": "preserve_with_reason",
@@ -29,7 +29,7 @@
     },
     {
       "availability_rule": "after_official_session_close",
-      "formula": "adj_close / mean_20(adj_close) - 1",
+      "formula": "split_close / mean_20(split_close) - 1",
       "formula_version": "1",
       "lookback": 20,
       "missing_value_policy": "preserve_with_reason",
@@ -38,7 +38,7 @@
     },
     {
       "availability_rule": "after_official_session_close",
-      "formula": "mean_20(adj_close) / mean_100(adj_close) - 1",
+      "formula": "mean_20(split_close) / mean_100(split_close) - 1",
       "formula_version": "1",
       "lookback": 100,
       "missing_value_policy": "preserve_with_reason",
@@ -47,7 +47,7 @@
     },
     {
       "availability_rule": "after_official_session_close",
-      "formula": "atr_14(adjusted_ohlc) / adj_close",
+      "formula": "atr_14(split_adjusted_ohlc) / split_close",
       "formula_version": "1",
       "lookback": 15,
       "missing_value_policy": "preserve_with_reason",
@@ -56,7 +56,7 @@
     },
     {
       "availability_rule": "after_official_session_close",
-      "formula": "vwap_20(adjusted_hlc, volume) / adj_close - 1",
+      "formula": "vwap_20(split_adjusted_hlc, raw_volume) / split_close - 1",
       "formula_version": "1",
       "lookback": 20,
       "missing_value_policy": "preserve_with_reason",
@@ -92,7 +92,7 @@
     },
     {
       "availability_rule": "after_official_session_close",
-      "formula": "(adjusted_high - adjusted_low) / adj_close",
+      "formula": "(split_high - split_low) / split_close",
       "formula_version": "1",
       "lookback": 1,
       "missing_value_policy": "preserve_with_reason",
@@ -101,7 +101,7 @@
     },
     {
       "availability_rule": "after_official_session_close",
-      "formula": "adjusted_open / prior_adj_close - 1",
+      "formula": "split_open / prior_split_close - 1",
       "formula_version": "1",
       "lookback": 2,
       "missing_value_policy": "preserve_with_reason",
@@ -110,7 +110,7 @@
     },
     {
       "availability_rule": "after_official_session_close",
-      "formula": "adj_close / max_20(adj_close) - 1",
+      "formula": "split_close / max_20(split_close) - 1",
       "formula_version": "1",
       "lookback": 20,
       "missing_value_policy": "preserve_with_reason",
@@ -172,6 +172,6 @@
       "normalization_policy": "none"
     }
   ],
-  "manifest_hash": "381fd4c4665488002fb97e5c8ebcfbf7793e63e7369dc41acc62f04a13345052",
-  "schema_version": "1.0.0"
+  "manifest_hash": "b0349ccf178ddaf18885ffadcf3685d71f845458b211792d82ccbc866c84cf71",
+  "schema_version": "2.0.0"
 }

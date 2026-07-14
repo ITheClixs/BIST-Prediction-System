@@ -8,6 +8,7 @@
     "logistic",
     "ridge"
   ],
+  "corporate_action_policy": "execution uses post-action observed opens and closes; positions carry no overnight entitlement",
   "fit_scope": "per-fold train rows only",
   "methodology_version": "accepted-baseline-v1",
   "portfolio_model": "ridge"
