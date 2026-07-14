@@ -8,7 +8,7 @@ import httpx
 import pytest
 import respx
 
-from bist_predict.ingest.sentiment import GoogleNewsSentiment
+from bist_predict.ingest.sentiment import GoogleNewsSentiment, _parse_rss_date
 from bist_predict.ingest.types import SentimentRecord
 
 SAMPLE_RSS = """<?xml version="1.0" encoding="UTF-8"?>
@@ -58,6 +58,12 @@ class TestGoogleNewsSentiment:
         collector = GoogleNewsSentiment()
         records = await collector.fetch("THYAO", date(2026, 3, 31), date(2026, 4, 1))
         assert records == []
+
+
+def test_rss_date_parser_supports_declared_formats_and_rejects_invalid_values() -> None:
+    assert _parse_rss_date("Tue, 01 Apr 2026 10:00:00 GMT") == date(2026, 4, 1)
+    assert _parse_rss_date("2026-04-01T10:00:00+03:00") == date(2026, 4, 1)
+    assert _parse_rss_date("not-a-date") is None
 
     @respx.mock
     @pytest.mark.asyncio

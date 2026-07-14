@@ -2,11 +2,14 @@
 
 from __future__ import annotations
 
+import logging
 import math
 import warnings
 
 import numpy as np
 from numpy.typing import NDArray
+
+logger = logging.getLogger(__name__)
 
 
 def compute_kalman_trend(
@@ -128,7 +131,8 @@ def compute_garch_volatility(
             "garch_alpha": float(params.get("alpha[1]", math.nan)),
             "garch_beta": float(params.get("beta[1]", math.nan)),
         }
-    except Exception:
+    except Exception as error:
+        logger.warning("GARCH feature calculation failed: %s", error)
         return {
             "garch_vol_forecast": math.nan,
             "garch_vol_surprise": math.nan,
@@ -201,7 +205,8 @@ def compute_hmm_regime(
             "regime_bear_prob": float(last_probs[bear_idx]),
             "regime_sideways_prob": float(last_probs[sideways_idx]),
         }
-    except Exception:
+    except Exception as error:
+        logger.warning("HMM feature calculation failed: %s", error)
         return {
             "regime_current": math.nan,
             "regime_bull_prob": math.nan,
@@ -268,7 +273,8 @@ def compute_cointegration(
             "spread_halflife": float(half_life),
             "hedge_ratio": float(hedge_ratio),
         }
-    except Exception:
+    except Exception as error:
+        logger.warning("cointegration feature calculation failed: %s", error)
         return {
             "coint_pvalue": math.nan,
             "spread_zscore": math.nan,

@@ -501,7 +501,10 @@ def _equal_weight_returns(panel: pd.DataFrame, execution_dates: list[str]) -> li
     working = panel.copy()
     working["execution_date"] = pd.to_datetime(working["target_start"]).dt.date.astype(str)
     by_date = working.groupby("execution_date")["target_return"].mean()
-    return [float(by_date.get(session, 0.0)) for session in execution_dates]
+    missing_dates = [session for session in execution_dates if session not in by_date.index]
+    if missing_dates:
+        raise ValueError(f"equal-weight benchmark is missing execution dates: {missing_dates}")
+    return [float(by_date.loc[session]) for session in execution_dates]
 
 
 def _cost_model(config: AcceptedBenchmarkConfig, multiplier: float = 1.0) -> CostModel:

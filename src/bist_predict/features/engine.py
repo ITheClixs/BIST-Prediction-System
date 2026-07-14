@@ -50,6 +50,8 @@ class FeatureEngine:
         Loads historical price data, computes technical indicators (via Rust),
         macro features, sentiment features, and temporal features.
         """
+        feature_date = date.fromisoformat(target_date)
+
         # Load price history
         prices = self._load_price_history(ticker, target_date, lookback=252)
         if len(prices) == 0:
@@ -81,11 +83,7 @@ class FeatureEngine:
             features.update(compute_time_series_momentum(close, period=252))
 
         # Temporal features
-        try:
-            dt = date.fromisoformat(target_date)
-            features.update(compute_temporal_features(dt))
-        except ValueError:
-            pass
+        features.update(compute_temporal_features(feature_date))
 
         # Macro features
         features.update(compute_macro_features(self._db, target_date))

@@ -81,6 +81,15 @@ class TestIsYatirimClient:
 
     @respx.mock
     @pytest.mark.asyncio
+    async def test_fetch_rejects_missing_rows_field(self) -> None:
+        respx.get(BASE_URL).mock(return_value=httpx.Response(200, json={"ok": True}))
+
+        client = IsYatirimClient()
+        with pytest.raises(ValueError, match="missing value"):
+            await client.fetch("THYAO", date(2026, 3, 31), date(2026, 4, 1))
+
+    @respx.mock
+    @pytest.mark.asyncio
     async def test_fetch_http_error_raises(self) -> None:
         respx.get(BASE_URL).mock(return_value=httpx.Response(500))
 

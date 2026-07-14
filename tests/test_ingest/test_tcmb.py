@@ -49,6 +49,17 @@ class TestTcmbClient:
         points = await client.fetch("USD_TRY", date(2026, 3, 31), date(2026, 4, 1))
         assert points == []
 
+    @respx.mock
+    @pytest.mark.asyncio
+    async def test_fetch_rejects_missing_items_field(self) -> None:
+        respx.get("https://evds2.tcmb.gov.tr/service/evds/series=TP.DK.USD.A.YTL").mock(
+            return_value=httpx.Response(200, json={"totalCount": 0})
+        )
+
+        client = TcmbClient(api_key="test-key")
+        with pytest.raises(ValueError, match="missing items"):
+            await client.fetch("USD_TRY", date(2026, 3, 31), date(2026, 4, 1))
+
     def test_indicators_mapping_exists(self) -> None:
         assert "USD_TRY" in INDICATORS
         assert "EUR_TRY" in INDICATORS

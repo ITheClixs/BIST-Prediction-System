@@ -44,28 +44,15 @@ class TestEnsembleCombiner:
         assert pct.shape == (100,)
         assert np.all(probs >= 0) and np.all(probs <= 1)
 
-    def test_with_regime_weights(self, model_predictions: dict) -> None:
-        rng = np.random.default_rng(42)
-        y_dir = rng.integers(0, 2, 100).astype(np.int64)
-        y_pct = rng.normal(0, 0.01, 100)
-
-        combiner = EnsembleCombiner()
-        combiner.train(model_predictions, y_dir, y_pct)
-
-        regime_weights = {"momentum_weight": 0.6, "mean_reversion_weight": 0.3, "pairs_weight": 0.1}
-        probs, pct = combiner.predict(model_predictions, regime_weights=regime_weights)
-        assert probs.shape == (100,)
-
-    def test_simple_average_fallback(self) -> None:
-        """Without training, falls back to simple average."""
+    def test_untrained_combiner_fails_instead_of_averaging(self) -> None:
         preds = {
             "m1": (np.array([0.8, 0.2]), np.array([0.01, -0.01])),
             "m2": (np.array([0.6, 0.4]), np.array([0.02, -0.02])),
         }
         combiner = EnsembleCombiner()
-        probs, pct = combiner.predict(preds)
-        np.testing.assert_array_almost_equal(probs, [0.7, 0.3])
-        np.testing.assert_array_almost_equal(pct, [0.015, -0.015])
+
+        with pytest.raises(RuntimeError, match="must be trained"):
+            combiner.predict(preds)
 
     def test_save_and_load_trained_combiner(self, model_predictions: dict, tmp_path) -> None:
         rng = np.random.default_rng(42)

@@ -70,6 +70,14 @@ class TestFeatureEngine:
         assert "day_of_week" in features
         assert "month" in features
 
+    def test_invalid_target_date_fails_instead_of_dropping_temporal_features(
+        self, db: Database
+    ) -> None:
+        engine = FeatureEngine(db)
+
+        with pytest.raises(ValueError, match="Invalid isoformat string"):
+            engine.compute_for_ticker("THYAO", "not-a-date")
+
     def test_compute_and_store(self, db: Database) -> None:
         engine = FeatureEngine(db)
         store = FeatureStore(db)

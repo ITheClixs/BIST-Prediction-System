@@ -42,7 +42,9 @@ class IsYatirimClient:
             desc = data.get("errorDescription", "unknown error")
             raise ValueError(f"IsYatirim API error: {desc}")
 
-        rows = data.get("value", [])
+        if "value" not in data or not isinstance(data["value"], list):
+            raise ValueError("IsYatirim API response is missing value rows")
+        rows = data["value"]
         retrieved_at = datetime.now(UTC)
 
         bars: list[OHLCVBar] = []

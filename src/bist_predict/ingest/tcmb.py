@@ -49,7 +49,9 @@ class TcmbClient:
             response.raise_for_status()
 
         data = response.json()
-        items = data.get("items", [])
+        if "items" not in data or not isinstance(data["items"], list):
+            raise ValueError("TCMB API response is missing items rows")
+        items = data["items"]
 
         points: list[MacroDataPoint] = []
         for item in items:

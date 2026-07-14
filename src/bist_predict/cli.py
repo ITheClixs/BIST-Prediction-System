@@ -422,8 +422,8 @@ def _train_models(
     click.echo(f"  Base models: {', '.join(report.base_models)}")
     click.echo(f"  Validation samples: {report.validation_samples}")
     click.echo(f"  Calibration: {report.calibration_status}")
-    click.echo(f"  Accuracy: {report.metrics.get('accuracy', 0):.3f}")
-    click.echo(f"  MAE: {report.metrics.get('mae', 0):.5f}")
+    click.echo(f"  Accuracy: {report.metrics['accuracy']:.3f}")
+    click.echo(f"  MAE: {report.metrics['mae']:.5f}")
 
 
 @main.command()
@@ -467,11 +467,8 @@ def _generate_signals(ticker: str | None, detail: bool) -> None:
             combiner.load(ensemble_path)
             calibrator = PlattCalibrator()
             calibrator.load(ensemble_path)
-            base_models = metadata.get(
-                "base_models",
-                parse_model_names(config.models.active_models),
-            )
-            seq_len = int(metadata.get("seq_len", config.models.seq_len))
+            base_models = metadata["base_models"]
+            seq_len = int(metadata["seq_len"])
 
             for t in tickers:
                 model_predictions = {}
@@ -511,8 +508,7 @@ def _generate_signals(ticker: str | None, detail: bool) -> None:
                     )
                 )
         except Exception as e:
-            click.echo(f"  Ensemble unavailable ({e}); falling back to base models.")
-            predictions = []
+            raise click.ClickException(f"registered ensemble is unusable: {e}") from e
 
     if not predictions:
         base_models = parse_model_names(config.models.active_models)
@@ -653,13 +649,13 @@ def backtest(
     if not report.prediction_metrics:
         click.echo("  Insufficient data for the configured windows.")
         return
-    click.echo(f"  Accuracy: {report.prediction_metrics.get('accuracy', 0):.3f}")
-    click.echo(f"  F1: {report.prediction_metrics.get('f1', 0):.3f}")
-    click.echo(f"  Brier: {report.prediction_metrics.get('brier_score', 0):.5f}")
-    click.echo(f"  MAE: {report.prediction_metrics.get('mae', 0):.5f}")
-    click.echo(f"  Sharpe: {report.trading_metrics.get('sharpe_ratio', 0):.3f}")
-    click.echo(f"  Max DD: {report.trading_metrics.get('max_drawdown', 0):.2%}")
-    click.echo(f"  Total return: {report.trading_metrics.get('total_return', 0):.2%}")
+    click.echo(f"  Accuracy: {report.prediction_metrics['accuracy']:.3f}")
+    click.echo(f"  F1: {report.prediction_metrics['f1']:.3f}")
+    click.echo(f"  Brier: {report.prediction_metrics['brier_score']:.5f}")
+    click.echo(f"  MAE: {report.prediction_metrics['mae']:.5f}")
+    click.echo(f"  Sharpe: {report.trading_metrics['sharpe_ratio']:.3f}")
+    click.echo(f"  Max DD: {report.trading_metrics['max_drawdown']:.2%}")
+    click.echo(f"  Total return: {report.trading_metrics['total_return']:.2%}")
 
 
 @main.command("mature-predictions")

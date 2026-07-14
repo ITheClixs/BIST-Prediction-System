@@ -119,8 +119,7 @@ def _parse_rss_date(date_str: str) -> date | None:
     try:
         return parsedate_to_datetime(date_str).date()
     except (ValueError, TypeError):
-        pass
-    try:
-        return datetime.fromisoformat(date_str).date()
-    except (ValueError, TypeError):
-        return None
+        try:
+            return datetime.fromisoformat(date_str).date()
+        except (ValueError, TypeError):
+            return None
