@@ -350,7 +350,7 @@ def benchmark(
     show_default=True,
 )
 def reproduce(run_id: str, runs_root: Path) -> None:
-    """Replay a run from bundled inputs and require exact artifact hashes."""
+    """Replay bundled inputs and require exact scientific artifact hashes."""
     from bist_predict.research.accepted_benchmark import reproduce_run
 
     run_path = runs_root / run_id
@@ -361,7 +361,10 @@ def reproduce(run_id: str, runs_root: Path) -> None:
     if failures:
         details = ", ".join(f"{name}={reason}" for name, reason in failures.items())
         raise click.ClickException(f"artifact reproduction failed: {details}")
-    click.echo(f"Reproduced {run_id}: all artifact hashes match.")
+    click.echo(
+        f"Reproduced {run_id}: all scientific artifact hashes match; "
+        "original environment provenance remains immutable."
+    )
 
 
 @main.command()
