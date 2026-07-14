@@ -10,7 +10,7 @@ from numpy.typing import NDArray
 
 def compute_cross_sectional_momentum(
     returns: NDArray[np.float64],
-    periods: list[int] | None = None, # default: [63, 126, 252] ≈ 3/6/12 months
+    periods: list[int] | None = None,  # default: [63, 126, 252] ≈ 3/6/12 months
 ) -> dict[str, NDArray[np.float64]]:
     """Rank stocks by trailing cumulative returns over given periods.
 
@@ -24,7 +24,9 @@ def compute_cross_sectional_momentum(
     if periods is None:
         periods = [63, 126, 252]
 
-    n_days, n_stocks = returns.shape # Assumes returns are ordered oldest to newest (rows = time, cols = stocks)
+    n_days, n_stocks = (
+        returns.shape
+    )  # Assumes returns are ordered oldest to newest (rows = time, cols = stocks)
     result: dict[str, NDArray[np.float64]] = {}
 
     for period in periods:
@@ -103,7 +105,16 @@ def compute_mean_reversion_ou(
     # OLS: dx = a + b * x
     x_mean = np.mean(x)
     dx_mean = np.mean(dx)
-    b = np.sum((x - x_mean) * (dx - dx_mean)) / np.sum((x - x_mean) ** 2)
+    centered_sum_squares = float(np.sum((x - x_mean) ** 2))
+    if centered_sum_squares == 0.0:
+        return {
+            "ou_theta": 0.0,
+            "ou_mu": float(x_mean),
+            "ou_sigma": 0.0,
+            "ou_deviation": 0.0,
+            "ou_signal": 0.0,
+        }
+    b = float(np.sum((x - x_mean) * (dx - dx_mean))) / centered_sum_squares
     a = dx_mean - b * x_mean
 
     theta = -b
@@ -111,7 +122,7 @@ def compute_mean_reversion_ou(
         # Not mean-reverting
         return {
             "ou_theta": 0.0,
-            "ou_mu": np.mean(prices),
+            "ou_mu": float(np.mean(prices)),
             "ou_sigma": float(np.std(dx)),
             "ou_deviation": 0.0,
             "ou_signal": 0.0,

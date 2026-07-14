@@ -90,16 +90,16 @@ def _validate_dates(
 
 
 def _validate_arrays(arrays: tuple[NDArray[np.generic], ...]) -> None:
-    X_train, y_dir_train, y_return_train, X_validation, y_dir_validation, y_return_validation = arrays
+    X_train, y_dir_train, y_return_train, X_validation, y_dir_validation, y_return_validation = (
+        arrays
+    )
     if X_train.ndim != 2 or X_validation.ndim != 2:
         raise ValueError("boosting feature arrays must be two-dimensional")
     if X_train.shape[1] != X_validation.shape[1]:
         raise ValueError("training and validation feature widths differ")
     if not (len(X_train) == len(y_dir_train) == len(y_return_train)):
         raise ValueError("training feature and target lengths differ")
-    if not (
-        len(X_validation) == len(y_dir_validation) == len(y_return_validation)
-    ):
+    if not (len(X_validation) == len(y_dir_validation) == len(y_return_validation)):
         raise ValueError("validation feature and target lengths differ")
 
 
@@ -205,8 +205,7 @@ def run_bounded_boosting_search(
     trials.sort(key=lambda trial: str(trial["trial_id"]))
     trials_path = output_dir / "trials.jsonl"
     rendered_trials = "".join(
-        json.dumps(trial, sort_keys=True, separators=(",", ":")) + "\n"
-        for trial in trials
+        json.dumps(trial, sort_keys=True, separators=(",", ":")) + "\n" for trial in trials
     )
     trials_path.write_text(rendered_trials)
     best = min(
@@ -239,4 +238,3 @@ def run_bounded_boosting_search(
         trials_path=str(trials_path),
         manifest_path=str(manifest_path),
     )
-

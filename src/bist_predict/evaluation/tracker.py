@@ -32,13 +32,24 @@ class AccuracyTracker:
                        direction = excluded.direction,
                        confidence = excluded.confidence,
                        predicted_pct_move = excluded.predicted_pct_move""",
-                (ticker, prediction_date, target_date, direction, confidence,
-                 predicted_pct_move, model_version),
+                (
+                    ticker,
+                    prediction_date,
+                    target_date,
+                    direction,
+                    confidence,
+                    predicted_pct_move,
+                    model_version,
+                ),
             )
             conn.commit()
 
     def record_actual(
-        self, ticker: str, target_date: str, actual_pct_move: float, model_version: str,
+        self,
+        ticker: str,
+        target_date: str,
+        actual_pct_move: float,
+        model_version: str,
     ) -> None:
         """Record the actual outcome for a previously logged prediction."""
         with self._db.connect() as conn:
@@ -50,7 +61,9 @@ class AccuracyTracker:
             conn.commit()
 
     def get_predictions(
-        self, ticker: str, limit: int = 100,
+        self,
+        ticker: str,
+        limit: int = 100,
     ) -> list[dict]:
         """Get recent predictions for a ticker."""
         with self._db.connect() as conn:
@@ -64,9 +77,14 @@ class AccuracyTracker:
 
         return [
             {
-                "ticker": r[0], "prediction_date": r[1], "target_date": r[2],
-                "direction": r[3], "confidence": r[4], "predicted_pct_move": r[5],
-                "actual_pct_move": r[6], "model_version": r[7],
+                "ticker": r[0],
+                "prediction_date": r[1],
+                "target_date": r[2],
+                "direction": r[3],
+                "confidence": r[4],
+                "predicted_pct_move": r[5],
+                "actual_pct_move": r[6],
+                "model_version": r[7],
             }
             for r in rows
         ]
@@ -85,13 +103,15 @@ class AccuracyTracker:
             return 0.0
 
         correct = sum(
-            1 for direction, actual in rows
+            1
+            for direction, actual in rows
             if (direction == "UP" and actual > 0) or (direction == "DOWN" and actual <= 0)
         )
         return correct / len(rows)
 
     def confidence_buckets(
-        self, ticker: str,
+        self,
+        ticker: str,
     ) -> dict[str, dict[str, float]]:
         """Analyze accuracy by confidence bucket.
 

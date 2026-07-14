@@ -17,9 +17,7 @@ class YahooFinanceClient:
         """Convert a BIST ticker to Yahoo Finance format."""
         return f"{ticker}.IS"
 
-    def fetch_sync(
-        self, ticker: str, start_date: date, end_date: date
-    ) -> list[OHLCVBar]:
+    def fetch_sync(self, ticker: str, start_date: date, end_date: date) -> list[OHLCVBar]:
         """Synchronous fetch — wraps yfinance which is sync-only."""
         yahoo_ticker = self._bist_ticker(ticker)
         df = yf.download(
@@ -57,8 +55,6 @@ class YahooFinanceClient:
 
         return bars
 
-    async def fetch(
-        self, ticker: str, start_date: date, end_date: date
-    ) -> list[OHLCVBar]:
+    async def fetch(self, ticker: str, start_date: date, end_date: date) -> list[OHLCVBar]:
         """Async wrapper — runs yfinance in a thread to avoid blocking."""
         return await asyncio.to_thread(self.fetch_sync, ticker, start_date, end_date)

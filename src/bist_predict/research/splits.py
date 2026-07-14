@@ -96,8 +96,7 @@ class ExpandingWindowSplitter:
 
         while validation_start_position + self.validation_dates <= len(trading_dates):
             validation_dates = trading_dates[
-                validation_start_position : validation_start_position
-                + self.validation_dates
+                validation_start_position : validation_start_position + self.validation_dates
             ]
             validation_rows = self._rows_for_dates(working, validation_dates)
             validation_feature_start = validation_rows["_feature_time"].min()

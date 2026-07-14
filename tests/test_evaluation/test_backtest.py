@@ -2,8 +2,6 @@
 
 from __future__ import annotations
 
-import numpy as np
-import pytest
 
 from bist_predict.evaluation.backtest import WalkForwardBacktest
 
@@ -12,15 +10,18 @@ class TestWalkForwardBacktest:
     def test_generates_folds(self) -> None:
         n_dates = 500
         bt = WalkForwardBacktest(
-            train_window=252, val_window=63, step_size=21,
-            commission=0.001, slippage=0.0005,
+            train_window=252,
+            val_window=63,
+            step_size=21,
+            commission=0.001,
+            slippage=0.0005,
         )
         folds = bt.generate_folds(n_dates)
         assert len(folds) > 0
         for fold in folds:
             assert fold[0] < fold[1] <= fold[2] < fold[3]
             assert fold[1] - fold[0] == 252  # train window
-            assert fold[3] - fold[2] == 63   # val window
+            assert fold[3] - fold[2] == 63  # val window
 
     def test_no_future_leakage(self) -> None:
         bt = WalkForwardBacktest(train_window=252, val_window=63, step_size=21)

@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import numpy as np
-import pytest
 
 import bist_features
 
@@ -33,11 +32,11 @@ class TestDetectPatterns:
 
     def test_output_lengths_match(self) -> None:
         n = 10
-        o = np.random.uniform(100, 110, n).astype(np.float64)
-        h = (o + np.random.uniform(0, 5, n)).astype(np.float64)
-        l = (o - np.random.uniform(0, 5, n)).astype(np.float64)
-        c = np.random.uniform(l, h).astype(np.float64)
+        opens = np.random.uniform(100, 110, n).astype(np.float64)
+        highs = (opens + np.random.uniform(0, 5, n)).astype(np.float64)
+        lows = (opens - np.random.uniform(0, 5, n)).astype(np.float64)
+        closes = np.random.uniform(lows, highs).astype(np.float64)
 
-        patterns = bist_features.detect_patterns(o, h, l, c)
+        patterns = bist_features.detect_patterns(opens, highs, lows, closes)
         for name, arr in patterns:
             assert len(arr) == n

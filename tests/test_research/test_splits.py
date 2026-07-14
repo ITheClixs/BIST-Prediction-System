@@ -75,9 +75,7 @@ def test_target_overlap_purges_the_entire_training_date() -> None:
     panel = _panel()
     overlapping_date = panel["date"].drop_duplicates().iloc[3]
     validation_start = panel["date"].drop_duplicates().iloc[4]
-    overlap_row = panel.index[
-        (panel["date"] == overlapping_date) & (panel["ticker"] == "AKBNK")
-    ][0]
+    overlap_row = panel.index[(panel["date"] == overlapping_date) & (panel["ticker"] == "AKBNK")][0]
     panel.loc[overlap_row, "target_end"] = pd.Timestamp(validation_start, tz="UTC") + (
         pd.Timedelta(hours=19)
     )
@@ -116,9 +114,7 @@ def test_fold_membership_is_invariant_to_ticker_and_row_order() -> None:
         embargo_dates=1,
     )
     original = splitter.split(panel)
-    reordered = splitter.split(
-        panel.sort_values(["ticker", "date"], ascending=[False, False])
-    )
+    reordered = splitter.split(panel.sort_values(["ticker", "date"], ascending=[False, False]))
     shuffled = splitter.split(panel.sample(frac=1.0, random_state=17))
 
     def signature(folds: list[WalkForwardFold]) -> list[tuple[object, ...]]:

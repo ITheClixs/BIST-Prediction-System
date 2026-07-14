@@ -27,10 +27,12 @@ class TestPlattCalibrator:
 
     def test_extreme_scores_stay_extreme(self) -> None:
         rng = np.random.default_rng(42)
-        raw_scores = np.concatenate([
-            rng.uniform(0.0, 0.1, 100),  # Clearly negative
-            rng.uniform(0.9, 1.0, 100),  # Clearly positive
-        ])
+        raw_scores = np.concatenate(
+            [
+                rng.uniform(0.0, 0.1, 100),  # Clearly negative
+                rng.uniform(0.9, 1.0, 100),  # Clearly positive
+            ]
+        )
         true_labels = np.concatenate([np.zeros(100), np.ones(100)]).astype(int)
 
         cal = PlattCalibrator()

@@ -5,7 +5,6 @@ from __future__ import annotations
 import math
 
 import numpy as np
-import pytest
 
 from bist_predict.quant.factors import (
     compute_cross_sectional_momentum,
@@ -92,7 +91,8 @@ class TestMeanReversionOU:
 
     def test_constant_series(self) -> None:
         x = np.ones(100) * 50.0
-        result = compute_mean_reversion_ou(x)
+        with np.errstate(all="raise"):
+            result = compute_mean_reversion_ou(x)
         assert abs(result["ou_deviation"]) < 0.01
 
 

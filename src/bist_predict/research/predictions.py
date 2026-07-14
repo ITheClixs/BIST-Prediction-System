@@ -53,9 +53,7 @@ def validate_predictions(predictions: pd.DataFrame) -> None:
         raise ValueError("predicted probabilities must lie in [0, 1]")
     if not predictions["prediction"].isin([0, 1]).all():
         raise ValueError("direction predictions must be binary")
-    if not predictions["feature_manifest_hash"].astype(str).str.fullmatch(
-        r"[0-9a-f]{64}"
-    ).all():
+    if not predictions["feature_manifest_hash"].astype(str).str.fullmatch(r"[0-9a-f]{64}").all():
         raise ValueError("feature manifest hashes must be SHA-256 values")
     if pd.to_datetime(predictions["date"], errors="coerce").isna().any():
         raise ValueError("prediction dates must be parseable")
@@ -90,4 +88,3 @@ def read_prediction_artifact(path: Path) -> pd.DataFrame:
     predictions = table.to_pandas()
     validate_predictions(predictions)
     return predictions
-

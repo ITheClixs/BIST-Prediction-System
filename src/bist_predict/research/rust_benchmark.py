@@ -109,9 +109,7 @@ def _measure_worker(implementation: str, size: int, repetitions: int) -> dict[st
     }
 
 
-def _subprocess_measure(
-    implementation: str, size: int, repetitions: int
-) -> dict[str, object]:
+def _subprocess_measure(implementation: str, size: int, repetitions: int) -> dict[str, object]:
     completed = subprocess.run(
         [
             sys.executable,
@@ -162,12 +160,8 @@ def _boundary_overhead_upper_bound_ns(repetitions: int = 500) -> int:
 
 def _git_state() -> tuple[str, bool | None]:
     try:
-        commit = subprocess.check_output(
-            ["git", "rev-parse", "--short", "HEAD"], text=True
-        ).strip()
-        dirty = bool(
-            subprocess.check_output(["git", "status", "--porcelain"], text=True).strip()
-        )
+        commit = subprocess.check_output(["git", "rev-parse", "--short", "HEAD"], text=True).strip()
+        dirty = bool(subprocess.check_output(["git", "status", "--porcelain"], text=True).strip())
         return commit, dirty
     except (OSError, subprocess.CalledProcessError):
         return "unknown", None
@@ -186,11 +180,15 @@ def run_benchmark(
     break_even: int | None = None
     for size in sizes:
         rust_result = _subprocess_measure("rust", size, repetitions)
-        numpy_result = _subprocess_measure(
-            "numpy_backed_python_reference", size, repetitions
-        )
-        rust_seconds = float(rust_result["wall_clock_seconds"])
-        numpy_seconds = float(numpy_result["wall_clock_seconds"])
+        numpy_result = _subprocess_measure("numpy_backed_python_reference", size, repetitions)
+        rust_seconds_value = rust_result["wall_clock_seconds"]
+        numpy_seconds_value = numpy_result["wall_clock_seconds"]
+        if not isinstance(rust_seconds_value, (int, float)) or not isinstance(
+            numpy_seconds_value, (int, float)
+        ):
+            raise TypeError("benchmark subprocess returned a non-numeric wall-clock time")
+        rust_seconds = float(rust_seconds_value)
+        numpy_seconds = float(numpy_seconds_value)
         if break_even is None and rust_seconds <= numpy_seconds:
             break_even = size
         results.append(

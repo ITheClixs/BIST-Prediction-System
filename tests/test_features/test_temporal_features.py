@@ -4,7 +4,6 @@ from __future__ import annotations
 
 from datetime import date
 
-import pytest
 
 from bist_predict.features.temporal_features import compute_temporal_features
 

@@ -13,7 +13,7 @@ import click
 from bist_predict.config import load_config
 from bist_predict.ingest.isyatirim import IsYatirimClient
 from bist_predict.ingest.scheduler import IngestionScheduler
-from bist_predict.ingest.sentiment import GoogleNewsSentiment, TurkishFinanceRSS
+from bist_predict.ingest.sentiment import GoogleNewsSentiment
 from bist_predict.ingest.tcmb import TcmbClient, INDICATORS
 from bist_predict.ingest.yahoo import YahooFinanceClient
 from bist_predict.storage.database import Database
@@ -57,9 +57,7 @@ def _get_stored_feature_dates(db: Database, ticker: str) -> set[str]:
     return {row[0] for row in rows}
 
 
-def _get_feature_dates_to_compute(
-    db: Database, ticker: str, target_date: str | None
-) -> list[str]:
+def _get_feature_dates_to_compute(db: Database, ticker: str, target_date: str | None) -> list[str]:
     """Return feature dates to compute for a ticker.
 
     If target_date is omitted, backfill all missing dates from raw_prices so newly
@@ -171,7 +169,9 @@ def stocks() -> None:
 
 @main.command()
 @click.option("--ticker", default=None, help="Compute features for a single ticker")
-@click.option("--date", "target_date", default=None, help="Target date (YYYY-MM-DD), defaults to latest")
+@click.option(
+    "--date", "target_date", default=None, help="Target date (YYYY-MM-DD), defaults to latest"
+)
 def features(ticker: str | None, target_date: str | None) -> None:
     """Compute features for latest data."""
     _compute_features(ticker, target_date)
@@ -424,7 +424,8 @@ def _generate_signals(ticker: str | None, detail: bool) -> None:
             calibrator = PlattCalibrator()
             calibrator.load(ensemble_path)
             base_models = metadata.get(
-                "base_models", parse_model_names(config.models.active_models),
+                "base_models",
+                parse_model_names(config.models.active_models),
             )
             seq_len = int(metadata.get("seq_len", config.models.seq_len))
 
@@ -456,13 +457,15 @@ def _generate_signals(ticker: str | None, detail: bool) -> None:
                     probs = calibrator.transform(probs)
                 direction = "UP" if probs[0] > 0.5 else "DOWN"
                 confidence = probs[0] if direction == "UP" else 1 - probs[0]
-                predictions.append(Prediction(
-                    ticker=t,
-                    direction=direction,
-                    confidence=float(confidence),
-                    predicted_pct_move=float(pct[0]),
-                    model_name="ensemble",
-                ))
+                predictions.append(
+                    Prediction(
+                        ticker=t,
+                        direction=direction,
+                        confidence=float(confidence),
+                        predicted_pct_move=float(pct[0]),
+                        model_name="ensemble",
+                    )
+                )
         except Exception as e:
             click.echo(f"  Ensemble unavailable ({e}); falling back to base models.")
             predictions = []
@@ -491,10 +494,15 @@ def _generate_signals(ticker: str | None, detail: bool) -> None:
                 probs, pct = model.predict(latest_X)
                 direction = "UP" if probs[0] > 0.5 else "DOWN"
                 confidence = probs[0] if direction == "UP" else 1 - probs[0]
-                predictions.append(Prediction(
-                    ticker=t, direction=direction, confidence=float(confidence),
-                    predicted_pct_move=float(pct[0]), model_name=model.name,
-                ))
+                predictions.append(
+                    Prediction(
+                        ticker=t,
+                        direction=direction,
+                        confidence=float(confidence),
+                        predicted_pct_move=float(pct[0]),
+                        model_name=model.name,
+                    )
+                )
 
     _print_predictions(predictions, detail)
 
@@ -508,7 +516,9 @@ def _print_predictions(predictions: list[object], detail: bool) -> None:
             click.echo(f"  {tier}")
             click.echo(f"{'=' * 40}")
             for p in sorted(tier_preds, key=lambda x: -x.confidence):
-                click.echo(f"  {p.ticker:8s} {p.confidence:5.1%} conf  {p.predicted_pct_move:+.2f}% target  ({p.model_name})")
+                click.echo(
+                    f"  {p.ticker:8s} {p.confidence:5.1%} conf  {p.predicted_pct_move:+.2f}% target  ({p.model_name})"
+                )
 
     if detail:
         hold_preds = [p for p in predictions if p.signal_tier == "HOLD"]
@@ -517,7 +527,9 @@ def _print_predictions(predictions: list[object], detail: bool) -> None:
             click.echo("  HOLD")
             click.echo(f"{'=' * 40}")
             for p in sorted(hold_preds, key=lambda x: -x.confidence):
-                click.echo(f"  {p.ticker:8s} {p.confidence:5.1%} conf  {p.predicted_pct_move:+.2f}% target  ({p.model_name})")
+                click.echo(
+                    f"  {p.ticker:8s} {p.confidence:5.1%} conf  {p.predicted_pct_move:+.2f}% target  ({p.model_name})"
+                )
 
     if not predictions:
         click.echo("No signals. Run 'train' first.")
@@ -629,4 +641,6 @@ def accuracy(ticker: str | None) -> None:
         if buckets:
             click.echo(f"\nConfidence Bucket Analysis for {ticker}:")
             for label, data in sorted(buckets.items()):
-                click.echo(f"  {label}%: {data['accuracy']:.1%} accuracy ({int(data['count'])} predictions)")
+                click.echo(
+                    f"  {label}%: {data['accuracy']:.1%} accuracy ({int(data['count'])} predictions)"
+                )

@@ -171,7 +171,7 @@ def compute_hmm_regime(
         from hmmlearn.hmm import GaussianHMM
 
         # Features: return and squared return (proxy for volatility)
-        X = np.column_stack([returns, returns ** 2])
+        X = np.column_stack([returns, returns**2])
 
         model = GaussianHMM(
             n_components=n_states,
@@ -184,7 +184,6 @@ def compute_hmm_regime(
             model.fit(X)
 
         # Get state probabilities for last observation
-        log_probs = model.score_samples(X)
         _, state_sequence = model.decode(X)
 
         # Posterior probabilities for last observation
@@ -260,7 +259,7 @@ def compute_cointegration(
         # Half-life via AR(1) on spread: spread(t) = phi * spread(t-1) + eps
         spread_lag = spread[:-1]
         spread_diff = np.diff(spread)
-        phi = np.sum(spread_lag * spread_diff) / np.sum(spread_lag ** 2)
+        phi = np.sum(spread_lag * spread_diff) / np.sum(spread_lag**2)
         half_life = -math.log(2) / phi if phi < 0 else math.nan
 
         return {

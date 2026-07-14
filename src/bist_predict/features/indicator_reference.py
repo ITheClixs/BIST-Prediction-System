@@ -42,9 +42,7 @@ def ema_reference(data: FloatArray, period: int) -> FloatArray:
     result[seed_index] = float(np.sum(values[first : first + period])) / period
     multiplier = 2.0 / (period + 1.0)
     for index in range(seed_index + 1, len(values)):
-        result[index] = (
-            values[index] * multiplier + result[index - 1] * (1.0 - multiplier)
-        )
+        result[index] = values[index] * multiplier + result[index - 1] * (1.0 - multiplier)
     return result
 
 
@@ -60,17 +58,13 @@ def rsi_reference(close: FloatArray, period: int = 14) -> FloatArray:
     average_gain = float(np.sum(gains[1 : period + 1])) / period
     average_loss = float(np.sum(losses[1 : period + 1])) / period
     result[period] = (
-        100.0
-        if average_loss == 0.0
-        else 100.0 - 100.0 / (1.0 + average_gain / average_loss)
+        100.0 if average_loss == 0.0 else 100.0 - 100.0 / (1.0 + average_gain / average_loss)
     )
     for index in range(period + 1, len(values)):
         average_gain = (average_gain * (period - 1.0) + gains[index]) / period
         average_loss = (average_loss * (period - 1.0) + losses[index]) / period
         result[index] = (
-            100.0
-            if average_loss == 0.0
-            else 100.0 - 100.0 / (1.0 + average_gain / average_loss)
+            100.0 if average_loss == 0.0 else 100.0 - 100.0 / (1.0 + average_gain / average_loss)
         )
     return result
 
@@ -141,9 +135,6 @@ def vwap_reference(
         cumulative_volume += volumes[index]
         cumulative_value += typical_price * volumes[index]
         result[index] = (
-            cumulative_value / cumulative_volume
-            if cumulative_volume > 0.0
-            else typical_price
+            cumulative_value / cumulative_volume if cumulative_volume > 0.0 else typical_price
         )
     return result
-

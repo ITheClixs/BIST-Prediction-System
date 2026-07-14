@@ -113,9 +113,7 @@ class SentimentRecord:
 class PriceCollector(Protocol):
     """Protocol for price data collectors."""
 
-    async def fetch(
-        self, ticker: str, start_date: date, end_date: date
-    ) -> list[OHLCVBar]: ...
+    async def fetch(self, ticker: str, start_date: date, end_date: date) -> list[OHLCVBar]: ...
 
 
 class MacroCollector(Protocol):

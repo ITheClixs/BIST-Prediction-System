@@ -37,9 +37,7 @@ def build_missingness_report(
             is_missing = bool(pd.isna(value))
             has_reason = not bool(pd.isna(reason_value))
             if is_missing and not has_reason:
-                raise ValueError(
-                    f"missing reason required for {feature} at sample {sample_index}"
-                )
+                raise ValueError(f"missing reason required for {feature} at sample {sample_index}")
             if not is_missing and has_reason:
                 raise ValueError(
                     f"observed feature has missing reason for {feature} at sample {sample_index}"
@@ -68,4 +66,3 @@ def build_missingness_report(
             "missing_reason",
         ],
     )
-

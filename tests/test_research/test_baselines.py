@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-from datetime import timedelta
 
 import numpy as np
 import pandas as pd
@@ -25,7 +24,9 @@ def _manifest() -> FeatureManifest:
         schema_version="1",
         features=(
             FeatureSpec("momentum", "synthetic", "1", 2, "after close", "preserve", "train_zscore"),
-            FeatureSpec("volatility", "synthetic", "1", 3, "after close", "preserve", "train_zscore"),
+            FeatureSpec(
+                "volatility", "synthetic", "1", 3, "after close", "preserve", "train_zscore"
+            ),
         ),
     )
 
@@ -81,11 +82,14 @@ def test_all_baselines_share_folds_features_targets_and_oos_rows() -> None:
     assert result.predictions["predicted_probability"].between(0.0, 1.0).all()
     counts = result.predictions.groupby(["fold_id", "model_name"]).size().unstack()
     assert counts.nunique(axis=1).eq(1).all()
-    assert all(fold.train_window.date_end == training_end for fold, training_end in zip(
-        result.folds,
-        result.predictions.groupby("fold_id", sort=True)["training_end"].first(),
-        strict=True,
-    ))
+    assert all(
+        fold.train_window.date_end == training_end
+        for fold, training_end in zip(
+            result.folds,
+            result.predictions.groupby("fold_id", sort=True)["training_end"].first(),
+            strict=True,
+        )
+    )
 
 
 def test_ticker_and_row_order_cannot_change_baseline_predictions() -> None:
@@ -128,9 +132,6 @@ def test_parquet_predictions_round_trip_and_recompute_metrics(tmp_path) -> None:
     assert artifact.row_count == len(result.predictions)
     assert len(artifact.sha256) == 64
     pdt.assert_frame_equal(loaded, result.predictions)
-    assert recompute_prediction_metrics(loaded) == recompute_prediction_metrics(
-        result.predictions
-    )
+    assert recompute_prediction_metrics(loaded) == recompute_prediction_metrics(result.predictions)
     with pytest.raises(FileExistsError):
         write_prediction_artifact(result.predictions, path)
-

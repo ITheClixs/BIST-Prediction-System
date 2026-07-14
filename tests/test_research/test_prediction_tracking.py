@@ -67,9 +67,7 @@ def test_maturation_waits_for_target_close_and_requires_observed_open(tmp_path) 
     store = ImmutablePredictionStore(tmp_path)
     store.persist(_record())
 
-    assert store.mature(
-        as_of=datetime(2024, 1, 3, 14, 59, tzinfo=UTC), prices=[_bar()]
-    ) == ()
+    assert store.mature(as_of=datetime(2024, 1, 3, 14, 59, tzinfo=UTC), prices=[_bar()]) == ()
     with pytest.raises(ValueError, match="observed open"):
         store.mature(
             as_of=datetime(2024, 1, 3, 15, 1, tzinfo=UTC),
@@ -81,9 +79,7 @@ def test_maturation_freezes_exact_realized_target_and_accuracy_uses_it(tmp_path)
     store = ImmutablePredictionStore(tmp_path)
     store.persist(_record())
 
-    outcomes = store.mature(
-        as_of=datetime(2024, 1, 3, 15, 1, tzinfo=UTC), prices=[_bar()]
-    )
+    outcomes = store.mature(as_of=datetime(2024, 1, 3, 15, 1, tzinfo=UTC), prices=[_bar()])
     repeated = store.mature(
         as_of=datetime(2024, 1, 4, 15, 1, tzinfo=UTC), prices=[_bar(close=50.0)]
     )

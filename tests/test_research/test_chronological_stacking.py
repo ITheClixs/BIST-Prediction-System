@@ -104,9 +104,7 @@ def test_test_labels_cannot_change_stacker_or_calibrator_outputs() -> None:
     stacking = _long_predictions("2024-01-02", 20, "stack")
     calibration = _long_predictions("2024-02-01", 20, "calibration")
     test = _long_predictions("2024-03-01", 20, "test")
-    expected = ChronologicalStackingPipeline(_periods()).fit_predict(
-        stacking, calibration, test
-    )
+    expected = ChronologicalStackingPipeline(_periods()).fit_predict(stacking, calibration, test)
     changed_test = test.copy()
     changed_test["target"] *= -100.0
     changed_test["target_direction"] = 1 - changed_test["target_direction"]
@@ -124,4 +122,3 @@ def test_test_labels_cannot_change_stacker_or_calibrator_outputs() -> None:
         expected.test_predictions["predicted_return"],
     )
     assert actual.calibration_metrics == expected.calibration_metrics
-

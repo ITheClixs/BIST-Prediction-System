@@ -30,28 +30,28 @@ def _market_arrays(size: int = 256) -> tuple[np.ndarray, ...]:
     ("rust_result", "reference_result"),
     [
         (
-            lambda h, l, c, v: bist_features.compute_sma(c, 14),
-            lambda h, l, c, v: sma_reference(c, 14),
+            lambda high, low, close, volume: bist_features.compute_sma(close, 14),
+            lambda high, low, close, volume: sma_reference(close, 14),
         ),
         (
-            lambda h, l, c, v: bist_features.compute_ema(c, 14),
-            lambda h, l, c, v: ema_reference(c, 14),
+            lambda high, low, close, volume: bist_features.compute_ema(close, 14),
+            lambda high, low, close, volume: ema_reference(close, 14),
         ),
         (
-            lambda h, l, c, v: bist_features.compute_rsi(c, period=14),
-            lambda h, l, c, v: rsi_reference(c, 14),
+            lambda high, low, close, volume: bist_features.compute_rsi(close, period=14),
+            lambda high, low, close, volume: rsi_reference(close, 14),
         ),
         (
-            lambda h, l, c, v: bist_features.compute_atr(h, l, c, period=14),
-            lambda h, l, c, v: atr_reference(h, l, c, 14),
+            lambda high, low, close, volume: bist_features.compute_atr(high, low, close, period=14),
+            lambda high, low, close, volume: atr_reference(high, low, close, 14),
         ),
         (
-            lambda h, l, c, v: bist_features.compute_obv(c, v),
-            lambda h, l, c, v: obv_reference(c, v),
+            lambda high, low, close, volume: bist_features.compute_obv(close, volume),
+            lambda high, low, close, volume: obv_reference(close, volume),
         ),
         (
-            lambda h, l, c, v: bist_features.compute_vwap(h, l, c, v),
-            lambda h, l, c, v: vwap_reference(h, l, c, v),
+            lambda high, low, close, volume: bist_features.compute_vwap(high, low, close, volume),
+            lambda high, low, close, volume: vwap_reference(high, low, close, volume),
         ),
     ],
 )
@@ -107,4 +107,3 @@ def test_short_inputs_match_reference_without_fabricating_values(size: int) -> N
         rsi_reference(close, 14),
         equal_nan=True,
     )
-

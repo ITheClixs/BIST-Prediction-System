@@ -75,9 +75,7 @@ def _ordered_bars(prices: Iterable[OHLCVBar]) -> dict[str, list[OHLCVBar]]:
 
 def _adjusted_ohlc(bar: OHLCVBar) -> tuple[float, float, float, float]:
     if bar.close <= 0.0 or bar.adj_close <= 0.0:
-        raise FeatureHistoryError(
-            f"non-positive price for {bar.ticker} on {bar.date.isoformat()}"
-        )
+        raise FeatureHistoryError(f"non-positive price for {bar.ticker} on {bar.date.isoformat()}")
     factor = bar.adj_close / bar.close
     values = (
         bar.open * factor,
@@ -154,14 +152,10 @@ def _ticker_values(bars: list[OHLCVBar], index: int) -> dict[str, float | None]:
         "close_over_sma20_minus_1": closes[index] / sma20 - 1.0,
         "sma20_over_sma100_minus_1": sma20 / sma100 - 1.0,
         "atr14_over_close": atr14 / closes[index],
-        "vwap20_over_close_minus_1": (
-            vwap20 / closes[index] - 1.0 if vwap20 is not None else None
-        ),
+        "vwap20_over_close_minus_1": (vwap20 / closes[index] - 1.0 if vwap20 is not None else None),
         "log_volume": math.log1p(volumes[index]),
         "volume_zscore_20": (
-            (volumes[index] - fmean(volume20)) / volume_std
-            if volume_std > 0.0
-            else 0.0
+            (volumes[index] - fmean(volume20)) / volume_std if volume_std > 0.0 else 0.0
         ),
         "realized_volatility_20": pstdev(daily_log_returns) * math.sqrt(252.0),
         "intraday_range_over_close": (highs[index] - lows[index]) / closes[index],
@@ -225,9 +219,7 @@ def build_stationary_snapshots(
                 for name, value in values.items()
                 if value is None
             }
-            ordered_values = {
-                name: values[name] for name in manifest.ordered_feature_names
-            }
+            ordered_values = {name: values[name] for name in manifest.ordered_feature_names}
             snapshots.append(
                 FeatureSnapshot(
                     date=session,

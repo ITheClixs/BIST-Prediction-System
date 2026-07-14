@@ -68,9 +68,7 @@ class PredictionModel(Protocol):
         y_pct_val: NDArray[np.float64] | None = None,
     ) -> dict[str, float]: ...
 
-    def predict(
-        self, X: NDArray[np.float64]
-    ) -> tuple[NDArray[np.float64], NDArray[np.float64]]:
+    def predict(self, X: NDArray[np.float64]) -> tuple[NDArray[np.float64], NDArray[np.float64]]:
         """Returns (direction_probabilities, predicted_pct_moves)."""
         ...
 
@@ -156,7 +154,9 @@ def build_tabular_dataset(
     Labels: next-day direction (1=UP, 0=DOWN) and next-day percentage move.
     """
     X, y_dir, y_pct, keys, _ = build_tabular_dataset_with_keys(
-        db, ticker, min_features=min_features,
+        db,
+        ticker,
+        min_features=min_features,
     )
     return X, y_dir, y_pct, [key.date for key in keys]
 
@@ -239,7 +239,9 @@ def build_sequence_dataset(
 ) -> tuple[NDArray[np.float64], NDArray[np.int64], NDArray[np.float64], list[str]]:
     """Build sequential dataset for LSTM/Transformer models."""
     X_seq, y_dir, y_pct, keys, _ = build_sequence_dataset_with_keys(
-        db, ticker, min_features=min_features,
+        db,
+        ticker,
+        min_features=min_features,
         seq_len=seq_len,
     )
     return X_seq, y_dir, y_pct, [key.date for key in keys]
@@ -253,7 +255,9 @@ def build_sequence_dataset_with_keys(
 ) -> KeyedTrainDataset:
     """Build sequential dataset with stable sample keys."""
     X_flat, y_dir_flat, y_pct_flat, keys_flat, feature_names = build_tabular_dataset_with_keys(
-        db, ticker, min_features=min_features,
+        db,
+        ticker,
+        min_features=min_features,
     )
 
     if X_flat.shape[0] < seq_len + 1:
@@ -291,7 +295,9 @@ def build_sequence_inference_row(
 ) -> tuple[NDArray[np.float64], str] | None:
     """Build a single latest sequence row from stored feature snapshots."""
     feature_names, all_dates, latest_features = _get_training_feature_names(
-        db, ticker, min_features=min_features,
+        db,
+        ticker,
+        min_features=min_features,
     )
     if not all_dates or len(latest_features) < min_features or len(all_dates) < seq_len:
         return None
@@ -316,7 +322,9 @@ def build_inference_row(
 ) -> tuple[NDArray[np.float64], str] | None:
     """Build a single inference row from the latest stored feature snapshot."""
     feature_names, all_dates, latest_features = _get_training_feature_names(
-        db, ticker, min_features=min_features,
+        db,
+        ticker,
+        min_features=min_features,
     )
     if not all_dates or len(latest_features) < min_features:
         return None

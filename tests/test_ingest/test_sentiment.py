@@ -62,9 +62,7 @@ class TestGoogleNewsSentiment:
     @respx.mock
     @pytest.mark.asyncio
     async def test_fetch_http_error_returns_empty(self) -> None:
-        respx.get("https://news.google.com/rss/search").mock(
-            return_value=httpx.Response(429)
-        )
+        respx.get("https://news.google.com/rss/search").mock(return_value=httpx.Response(429))
 
         collector = GoogleNewsSentiment()
         records = await collector.fetch("THYAO", date(2026, 3, 31), date(2026, 4, 1))

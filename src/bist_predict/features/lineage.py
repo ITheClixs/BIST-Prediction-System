@@ -72,7 +72,5 @@ def write_feature_artifact(
             artifact.write(encoded)
     except FileExistsError:
         if target.read_text(encoding="utf-8") != encoded:
-            raise RuntimeError(
-                f"feature artifact collision without overwrite: {target}"
-            ) from None
+            raise RuntimeError(f"feature artifact collision without overwrite: {target}") from None
     return target

@@ -10,7 +10,6 @@ import pytest
 from bist_predict.models.types import (
     DatasetKey,
     Prediction,
-    TrainDataset,
     build_inference_row,
     build_sequence_dataset_with_keys,
     build_sequence_inference_row,
@@ -74,22 +73,31 @@ class TestPrediction:
 
     def test_prediction_is_buy(self) -> None:
         pred = Prediction(
-            ticker="THYAO", direction="UP", confidence=0.78,
-            predicted_pct_move=1.5, model_name="xgboost",
+            ticker="THYAO",
+            direction="UP",
+            confidence=0.78,
+            predicted_pct_move=1.5,
+            model_name="xgboost",
         )
         assert pred.is_buy
         assert not pred.is_sell
 
     def test_prediction_signal_tier(self) -> None:
         strong_buy = Prediction(
-            ticker="THYAO", direction="UP", confidence=0.85,
-            predicted_pct_move=2.0, model_name="xgboost",
+            ticker="THYAO",
+            direction="UP",
+            confidence=0.85,
+            predicted_pct_move=2.0,
+            model_name="xgboost",
         )
         assert strong_buy.signal_tier == "STRONG BUY"
 
         buy = Prediction(
-            ticker="THYAO", direction="UP", confidence=0.75,
-            predicted_pct_move=1.0, model_name="xgboost",
+            ticker="THYAO",
+            direction="UP",
+            confidence=0.75,
+            predicted_pct_move=1.0,
+            model_name="xgboost",
         )
         assert buy.signal_tier == "BUY"
 
@@ -97,7 +105,9 @@ class TestPrediction:
 class TestBuildTabularDataset:
     def test_builds_feature_matrix(self, seeded_db: Database) -> None:
         X, y_dir, y_pct, dates = build_tabular_dataset(
-            seeded_db, "THYAO", min_features=3,
+            seeded_db,
+            "THYAO",
+            min_features=3,
         )
         assert X.shape[0] > 0
         assert X.shape[1] >= 3
@@ -106,13 +116,17 @@ class TestBuildTabularDataset:
 
     def test_labels_are_binary_direction(self, seeded_db: Database) -> None:
         X, y_dir, y_pct, dates = build_tabular_dataset(
-            seeded_db, "THYAO", min_features=3,
+            seeded_db,
+            "THYAO",
+            min_features=3,
         )
         assert set(np.unique(y_dir)).issubset({0, 1})
 
     def test_builds_keyed_feature_matrix(self, seeded_db: Database) -> None:
         X, y_dir, y_pct, keys, feature_names = build_tabular_dataset_with_keys(
-            seeded_db, "THYAO", min_features=3,
+            seeded_db,
+            "THYAO",
+            min_features=3,
         )
         assert X.shape[0] == len(keys)
         assert X.shape[1] == len(feature_names)
@@ -123,7 +137,10 @@ class TestBuildTabularDataset:
 class TestBuildSequenceDataset:
     def test_builds_sequences(self, seeded_db: Database) -> None:
         X_seq, y_dir, y_pct, dates = build_sequence_dataset(
-            seeded_db, "THYAO", seq_len=10, min_features=3,
+            seeded_db,
+            "THYAO",
+            seq_len=10,
+            min_features=3,
         )
         assert X_seq.shape[0] > 0
         assert X_seq.shape[1] == 10
@@ -131,7 +148,10 @@ class TestBuildSequenceDataset:
 
     def test_builds_keyed_sequences(self, seeded_db: Database) -> None:
         X_seq, y_dir, y_pct, keys, feature_names = build_sequence_dataset_with_keys(
-            seeded_db, "THYAO", seq_len=10, min_features=3,
+            seeded_db,
+            "THYAO",
+            seq_len=10,
+            min_features=3,
         )
         assert X_seq.shape[0] == len(keys)
         assert X_seq.shape[1] == 10

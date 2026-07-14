@@ -48,9 +48,13 @@ class StackingPeriods:
             pd.Timestamp(self.test_end),
         ]
         if not (
-            boundaries[0] < boundaries[1] <= boundaries[2]
-            < boundaries[3] <= boundaries[4]
-            < boundaries[5] <= boundaries[6]
+            boundaries[0]
+            < boundaries[1]
+            <= boundaries[2]
+            < boundaries[3]
+            <= boundaries[4]
+            < boundaries[5]
+            <= boundaries[6]
         ):
             raise ValueError("stacking periods must be strictly ordered and non-overlapping")
 
@@ -83,9 +87,7 @@ def _validated_long(frame: pd.DataFrame, periods: StackingPeriods) -> pd.DataFra
 
     working = frame.copy()
     working["_date"] = pd.to_datetime(working["date"], errors="coerce")
-    working["_training_end"] = pd.to_datetime(
-        working["base_model_training_end"], errors="coerce"
-    )
+    working["_training_end"] = pd.to_datetime(working["base_model_training_end"], errors="coerce")
     working["_prediction_time"] = pd.to_datetime(
         working["prediction_timestamp"], utc=True, errors="coerce"
     )
@@ -141,8 +143,7 @@ def _model_matrices(
 ]:
     metadata = (
         frame.sort_values(["_date", "ticker", "row_id", "base_model"], kind="stable")
-        .drop_duplicates("row_id")
-        [["row_id", "date", "ticker", "target", "target_direction"]]
+        .drop_duplicates("row_id")[["row_id", "date", "ticker", "target", "target_direction"]]
         .reset_index(drop=True)
     )
     row_ids = list(metadata["row_id"])
@@ -166,9 +167,7 @@ def _reliability_metrics(
     edges = np.linspace(0.0, 1.0, 11)
     for index, (lower, upper) in enumerate(zip(edges[:-1], edges[1:])):
         include_upper = index == len(edges) - 2
-        mask = (clipped >= lower) & (
-            (clipped <= upper) if include_upper else (clipped < upper)
-        )
+        mask = (clipped >= lower) & ((clipped <= upper) if include_upper else (clipped < upper))
         count = int(np.sum(mask))
         if count == 0:
             continue
@@ -235,11 +234,7 @@ class ChronologicalStackingPipeline:
         stacking_predictions, stacking_metadata = _model_matrices(stacking)
         calibration_predictions, calibration_metadata = _model_matrices(calibration)
         test_predictions, test_metadata = _model_matrices(test)
-        if not (
-            set(stacking_predictions)
-            == set(calibration_predictions)
-            == set(test_predictions)
-        ):
+        if not (set(stacking_predictions) == set(calibration_predictions) == set(test_predictions)):
             raise ValueError("base model identities must remain constant across periods")
 
         combiner = EnsembleCombiner()
@@ -250,18 +245,14 @@ class ChronologicalStackingPipeline:
         )
         raw_calibration_probability, _ = combiner.predict(calibration_predictions)
         calibrator = PlattCalibrator()
-        calibration_labels = calibration_metadata["target_direction"].to_numpy(
-            dtype=np.int64
-        )
+        calibration_labels = calibration_metadata["target_direction"].to_numpy(dtype=np.int64)
         calibrator.fit(raw_calibration_probability, calibration_labels)
         calibrated_probability = (
             calibrator.transform(raw_calibration_probability)
             if calibrator.is_fitted
             else raw_calibration_probability
         )
-        calibration_metrics = _reliability_metrics(
-            calibration_labels, calibrated_probability
-        )
+        calibration_metrics = _reliability_metrics(calibration_labels, calibrated_probability)
 
         raw_test_probability, test_return = combiner.predict(test_predictions)
         test_probability = (

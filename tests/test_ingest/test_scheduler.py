@@ -2,14 +2,13 @@
 
 from __future__ import annotations
 
-import sqlite3
 from datetime import date
 from pathlib import Path
 from unittest.mock import AsyncMock
 
 import pytest
 
-from bist_predict.config import Config, DataConfig
+from bist_predict.config import Config
 from bist_predict.ingest.scheduler import IngestionScheduler
 from bist_predict.ingest.types import (
     OHLCVBar,
@@ -30,9 +29,15 @@ def db(tmp_db_path: Path) -> Database:
 
 def _make_bar(ticker: str = "THYAO", d: date = date(2026, 4, 1)) -> OHLCVBar:
     return OHLCVBar(
-        ticker=ticker, date=d, open=310.0, high=315.0,
-        low=308.0, close=312.5, adj_close=312.5,
-        volume=1_000_000, source="isyatirim",
+        ticker=ticker,
+        date=d,
+        open=310.0,
+        high=315.0,
+        low=308.0,
+        close=312.5,
+        adj_close=312.5,
+        volume=1_000_000,
+        source="isyatirim",
         open_quality=OpenQuality.PROXY,
         volume_quality=VolumeQuality.RECONSTRUCTED,
         provider_symbol=ticker,
@@ -46,8 +51,12 @@ def _make_macro(d: date = date(2026, 4, 1)) -> MacroDataPoint:
 
 def _make_sentiment(ticker: str = "THYAO", d: date = date(2026, 4, 1)) -> SentimentRecord:
     return SentimentRecord(
-        ticker=ticker, date=d, source="google_news",
-        headline="Test headline", sentiment_score=None, raw_text="Test text",
+        ticker=ticker,
+        date=d,
+        source="google_news",
+        headline="Test headline",
+        sentiment_score=None,
+        raw_text="Test text",
     )
 
 
@@ -144,9 +153,7 @@ class TestIngestionScheduler:
             price_fallback=mock_fallback,
         )
 
-        bars = await scheduler.fetch_prices(
-            "THYAO", date(2026, 4, 1), date(2026, 4, 3)
-        )
+        bars = await scheduler.fetch_prices("THYAO", date(2026, 4, 1), date(2026, 4, 3))
 
         assert [bar.date for bar in bars] == [
             date(2026, 4, 1),

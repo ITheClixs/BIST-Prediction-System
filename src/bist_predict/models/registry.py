@@ -14,7 +14,11 @@ class ModelRegistry:
         self._db = db
 
     def register(
-        self, model_name: str, version: str, model_path: str, metrics: dict,
+        self,
+        model_name: str,
+        version: str,
+        model_path: str,
+        metrics: dict,
     ) -> None:
         """Register a trained model version."""
         metrics_json = json.dumps(metrics)
@@ -55,8 +59,11 @@ class ModelRegistry:
             return None
 
         return {
-            "model_name": row[0], "version": row[1], "model_path": row[2],
-            "metrics_json": row[3], "trained_at": row[4],
+            "model_name": row[0],
+            "version": row[1],
+            "model_path": row[2],
+            "metrics_json": row[3],
+            "trained_at": row[4],
         }
 
     def list_models(self, model_name: str | None = None) -> list[dict]:
@@ -76,8 +83,12 @@ class ModelRegistry:
 
         return [
             {
-                "model_name": r[0], "version": r[1], "model_path": r[2],
-                "metrics_json": r[3], "trained_at": r[4], "is_active": bool(r[5]),
+                "model_name": r[0],
+                "version": r[1],
+                "model_path": r[2],
+                "metrics_json": r[3],
+                "trained_at": r[4],
+                "is_active": bool(r[5]),
             }
             for r in rows
         ]

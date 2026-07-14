@@ -5,7 +5,6 @@ from __future__ import annotations
 import math
 
 import numpy as np
-import pytest
 
 from bist_predict.quant.statistical import (
     compute_cointegration,
@@ -33,10 +32,12 @@ class TestKalmanTrend:
     def test_adapts_to_level_shift(self) -> None:
         rng = np.random.default_rng(42)
         # Flat at 100, then jumps to 120
-        prices = np.concatenate([
-            100 + rng.normal(0, 1, 100),
-            120 + rng.normal(0, 1, 100),
-        ])
+        prices = np.concatenate(
+            [
+                100 + rng.normal(0, 1, 100),
+                120 + rng.normal(0, 1, 100),
+            ]
+        )
         result = compute_kalman_trend(prices)
         # After shift, trend should be near 120
         assert result["kalman_trend"] > 115.0
@@ -88,7 +89,9 @@ class TestHMMRegime:
         # Current regime should be one of 0, 1, 2
         assert result["regime_current"] in (0, 1, 2)
         # Probabilities should sum to ~1
-        prob_sum = result["regime_bull_prob"] + result["regime_bear_prob"] + result["regime_sideways_prob"]
+        prob_sum = (
+            result["regime_bull_prob"] + result["regime_bear_prob"] + result["regime_sideways_prob"]
+        )
         assert abs(prob_sum - 1.0) < 0.01
 
     def test_insufficient_data(self) -> None:

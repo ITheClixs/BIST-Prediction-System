@@ -26,11 +26,7 @@ def _sharpe(returns: np.ndarray) -> float:
     if len(returns) < 2:
         return 0.0
     volatility = float(np.std(returns, ddof=1))
-    return (
-        float(np.mean(returns)) / volatility * math.sqrt(252.0)
-        if volatility > 0.0
-        else 0.0
-    )
+    return float(np.mean(returns)) / volatility * math.sqrt(252.0) if volatility > 0.0 else 0.0
 
 
 def compute_portfolio_metrics(
@@ -41,27 +37,20 @@ def compute_portfolio_metrics(
     """Compute portfolio metrics entirely from the persisted event ledgers."""
     snapshots = result.daily_snapshots
     net_returns = np.asarray([item.net_return for item in snapshots], dtype=np.float64)
-    gross_returns = np.asarray(
-        [item.gross_return for item in snapshots], dtype=np.float64
-    )
+    gross_returns = np.asarray([item.gross_return for item in snapshots], dtype=np.float64)
     annualized = _annualized_return(net_returns)
     annualized_volatility = (
-        float(np.std(net_returns, ddof=1) * math.sqrt(252.0))
-        if len(net_returns) > 1
-        else 0.0
+        float(np.std(net_returns, ddof=1) * math.sqrt(252.0)) if len(net_returns) > 1 else 0.0
     )
     downside = net_returns[net_returns < 0.0]
-    downside_deviation = (
-        float(np.std(downside, ddof=1)) if len(downside) > 1 else 0.0
-    )
+    downside_deviation = float(np.std(downside, ddof=1)) if len(downside) > 1 else 0.0
     sortino = (
         float(np.mean(net_returns)) / downside_deviation * math.sqrt(252.0)
         if downside_deviation > 0.0
         else 0.0
     )
     equity = np.asarray(
-        [result.portfolio.starting_equity]
-        + [snapshot.ending_equity for snapshot in snapshots],
+        [result.portfolio.starting_equity] + [snapshot.ending_equity for snapshot in snapshots],
         dtype=np.float64,
     )
     running_peak = np.maximum.accumulate(equity)
@@ -86,17 +75,13 @@ def compute_portfolio_metrics(
         raise ValueError("benchmark return count must match portfolio sessions")
     benchmark_total = float(np.prod(1.0 + benchmark) - 1.0)
     active_returns = net_returns - benchmark
-    active_volatility = (
-        float(np.std(active_returns, ddof=1)) if len(active_returns) > 1 else 0.0
-    )
+    active_volatility = float(np.std(active_returns, ddof=1)) if len(active_returns) > 1 else 0.0
     information_ratio = (
         float(np.mean(active_returns)) / active_volatility * math.sqrt(252.0)
         if active_volatility > 0.0
         else 0.0
     )
-    net_total = (
-        result.portfolio.ending_equity / result.portfolio.starting_equity - 1.0
-    )
+    net_total = result.portfolio.ending_equity / result.portfolio.starting_equity - 1.0
     return {
         "gross_return": float(np.prod(1.0 + gross_returns) - 1.0),
         "net_return": net_total,
@@ -164,9 +149,7 @@ def block_bootstrap_intervals(
         }
 
     return {
-        "annualized_return": interval(
-            annualized_samples, _annualized_return(values)
-        ),
+        "annualized_return": interval(annualized_samples, _annualized_return(values)),
         "sharpe": interval(sharpe_samples, _sharpe(values)),
     }
 
@@ -213,4 +196,3 @@ def grouped_prediction_metrics(
             for value, group in enriched.groupby(column, sort=True)
         }
     return result
-

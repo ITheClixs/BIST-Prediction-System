@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import pytest
 
 from bist_predict.quant.regime import RegimeRouter
 
@@ -58,11 +57,14 @@ class TestRegimeRouter:
             regime_bear_prob=0.3,
             regime_sideways_prob=0.1,
         )
-        total = weights["momentum_weight"] + weights["mean_reversion_weight"] + weights["pairs_weight"]
+        total = (
+            weights["momentum_weight"] + weights["mean_reversion_weight"] + weights["pairs_weight"]
+        )
         assert abs(total - 1.0) < 0.01
 
     def test_nan_regime_returns_defaults(self) -> None:
         import math
+
         router = RegimeRouter()
         weights = router.get_weights(
             regime_bull_prob=math.nan,

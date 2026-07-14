@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import logging
-from datetime import date, datetime, timezone
+from datetime import date, datetime
 from email.utils import parsedate_to_datetime
 
 import feedparser
@@ -20,9 +20,7 @@ class GoogleNewsSentiment:
     def __init__(self, timeout: float = 15.0) -> None:
         self._timeout = timeout
 
-    async def fetch(
-        self, ticker: str, start_date: date, end_date: date
-    ) -> list[SentimentRecord]:
+    async def fetch(self, ticker: str, start_date: date, end_date: date) -> list[SentimentRecord]:
         """Fetch news headlines for a BIST ticker from Google News RSS."""
         query = f"{ticker} borsa hisse"
         url = "https://news.google.com/rss/search"
@@ -71,9 +69,7 @@ class TurkishFinanceRSS:
     def __init__(self, timeout: float = 15.0) -> None:
         self._timeout = timeout
 
-    async def fetch(
-        self, ticker: str, start_date: date, end_date: date
-    ) -> list[SentimentRecord]:
+    async def fetch(self, ticker: str, start_date: date, end_date: date) -> list[SentimentRecord]:
         """Fetch headlines mentioning the ticker from Turkish finance RSS feeds."""
         records: list[SentimentRecord] = []
         ticker_lower = ticker.lower()

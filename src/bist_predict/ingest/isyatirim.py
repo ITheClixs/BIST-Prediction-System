@@ -8,16 +8,12 @@ import httpx
 
 from bist_predict.ingest.types import OHLCVBar, OpenQuality, VolumeQuality
 
-BASE_URL = (
-    "https://www.isyatirim.com.tr/_layouts/15/Isyatirim.Website/"
-    "Common/Data.aspx/HisseTekil"
-)
+BASE_URL = "https://www.isyatirim.com.tr/_layouts/15/Isyatirim.Website/Common/Data.aspx/HisseTekil"
 
 HEADERS = {
     "X-Requested-With": "XMLHttpRequest",
     "Referer": (
-        "https://www.isyatirim.com.tr/tr-tr/analiz/hisse/"
-        "Sayfalar/Tarihsel-Fiyat-Bilgileri.aspx"
+        "https://www.isyatirim.com.tr/tr-tr/analiz/hisse/Sayfalar/Tarihsel-Fiyat-Bilgileri.aspx"
     ),
 }
 
@@ -28,9 +24,7 @@ class IsYatirimClient:
     def __init__(self, timeout: float = 30.0) -> None:
         self._timeout = timeout
 
-    async def fetch(
-        self, ticker: str, start_date: date, end_date: date
-    ) -> list[OHLCVBar]:
+    async def fetch(self, ticker: str, start_date: date, end_date: date) -> list[OHLCVBar]:
         """Fetch OHLCV bars for a ticker between start_date and end_date."""
         params = {
             "hisse": ticker,

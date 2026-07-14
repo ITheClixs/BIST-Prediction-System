@@ -118,9 +118,7 @@ class LSTMModel:
 
         return metrics
 
-    def predict(
-        self, X: NDArray[np.float64]
-    ) -> tuple[NDArray[np.float64], NDArray[np.float64]]:
+    def predict(self, X: NDArray[np.float64]) -> tuple[NDArray[np.float64], NDArray[np.float64]]:
         if self._net is None:
             raise RuntimeError("Model not trained or loaded")
 
@@ -129,7 +127,9 @@ class LSTMModel:
         with torch.no_grad():
             dir_probs, pct_preds = self._net(X_t)
 
-        return dir_probs.cpu().numpy().astype(np.float64), pct_preds.cpu().numpy().astype(np.float64)
+        return dir_probs.cpu().numpy().astype(np.float64), pct_preds.cpu().numpy().astype(
+            np.float64
+        )
 
     def save(self, path: str) -> None:
         p = Path(path)
@@ -148,7 +148,9 @@ class LSTMModel:
         p = Path(path)
         with open(p / "config.json") as f:
             config = json.load(f)
-        self._net = _LSTMNet(
-            config["input_size"], config["hidden_size"], config["num_layers"]
-        ).to(self._device)
-        self._net.load_state_dict(torch.load(str(p / "lstm.pt"), map_location=self._device, weights_only=True))
+        self._net = _LSTMNet(config["input_size"], config["hidden_size"], config["num_layers"]).to(
+            self._device
+        )
+        self._net.load_state_dict(
+            torch.load(str(p / "lstm.pt"), map_location=self._device, weights_only=True)
+        )

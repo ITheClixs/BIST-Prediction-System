@@ -25,7 +25,7 @@ class _PositionalEncoding(nn.Module):
         if d_model % 2 == 0:
             pe[:, 1::2] = torch.cos(position * div_term)
         else:
-            pe[:, 1::2] = torch.cos(position * div_term[:d_model // 2])
+            pe[:, 1::2] = torch.cos(position * div_term[: d_model // 2])
         pe = pe.unsqueeze(0)  # (1, max_len, d_model)
         self.register_buffer("pe", pe)
 
@@ -35,22 +35,34 @@ class _PositionalEncoding(nn.Module):
 
 class _TransformerNet(nn.Module):
     def __init__(
-        self, input_size: int, d_model: int = 64, nhead: int = 4,
-        num_layers: int = 2, dim_feedforward: int = 128,
+        self,
+        input_size: int,
+        d_model: int = 64,
+        nhead: int = 4,
+        num_layers: int = 2,
+        dim_feedforward: int = 128,
     ) -> None:
         super().__init__()
         self.input_projection = nn.Linear(input_size, d_model)
         self.pos_encoding = _PositionalEncoding(d_model)
         encoder_layer = nn.TransformerEncoderLayer(
-            d_model=d_model, nhead=nhead, dim_feedforward=dim_feedforward,
-            batch_first=True, dropout=0.1,
+            d_model=d_model,
+            nhead=nhead,
+            dim_feedforward=dim_feedforward,
+            batch_first=True,
+            dropout=0.1,
         )
         self.encoder = nn.TransformerEncoder(encoder_layer, num_layers=num_layers)
         self.direction_head = nn.Sequential(
-            nn.Linear(d_model, 32), nn.ReLU(), nn.Linear(32, 1), nn.Sigmoid(),
+            nn.Linear(d_model, 32),
+            nn.ReLU(),
+            nn.Linear(32, 1),
+            nn.Sigmoid(),
         )
         self.regression_head = nn.Sequential(
-            nn.Linear(d_model, 32), nn.ReLU(), nn.Linear(32, 1),
+            nn.Linear(d_model, 32),
+            nn.ReLU(),
+            nn.Linear(32, 1),
         )
 
     def forward(self, x: torch.Tensor) -> tuple[torch.Tensor, torch.Tensor]:
@@ -108,7 +120,10 @@ class TransformerModel:
         input_size = X_train.shape[2] if X_train.ndim == 3 else X_train.shape[1]
         self._input_size = input_size
         self._net = _TransformerNet(
-            input_size, self._d_model, self._nhead, self._num_layers,
+            input_size,
+            self._d_model,
+            self._nhead,
+            self._num_layers,
         ).to(self._device)
 
         X_t = torch.tensor(X_train, dtype=torch.float32)
@@ -141,16 +156,16 @@ class TransformerModel:
 
         return metrics
 
-    def predict(
-        self, X: NDArray[np.float64]
-    ) -> tuple[NDArray[np.float64], NDArray[np.float64]]:
+    def predict(self, X: NDArray[np.float64]) -> tuple[NDArray[np.float64], NDArray[np.float64]]:
         if self._net is None:
             raise RuntimeError("Model not trained or loaded")
         self._net.eval()
         X_t = torch.tensor(X, dtype=torch.float32).to(self._device)
         with torch.no_grad():
             dir_probs, pct_preds = self._net(X_t)
-        return dir_probs.cpu().numpy().astype(np.float64), pct_preds.cpu().numpy().astype(np.float64)
+        return dir_probs.cpu().numpy().astype(np.float64), pct_preds.cpu().numpy().astype(
+            np.float64
+        )
 
     def save(self, path: str) -> None:
         p = Path(path)
@@ -158,8 +173,10 @@ class TransformerModel:
         if self._net is not None:
             torch.save(self._net.state_dict(), str(p / "transformer.pt"))
             config = {
-                "input_size": self._input_size, "d_model": self._d_model,
-                "nhead": self._nhead, "num_layers": self._num_layers,
+                "input_size": self._input_size,
+                "d_model": self._d_model,
+                "nhead": self._nhead,
+                "num_layers": self._num_layers,
             }
             with open(p / "config.json", "w") as f:
                 json.dump(config, f)
@@ -169,6 +186,11 @@ class TransformerModel:
         with open(p / "config.json") as f:
             config = json.load(f)
         self._net = _TransformerNet(
-            config["input_size"], config["d_model"], config["nhead"], config["num_layers"],
+            config["input_size"],
+            config["d_model"],
+            config["nhead"],
+            config["num_layers"],
         ).to(self._device)
-        self._net.load_state_dict(torch.load(str(p / "transformer.pt"), map_location=self._device, weights_only=True))
+        self._net.load_state_dict(
+            torch.load(str(p / "transformer.pt"), map_location=self._device, weights_only=True)
+        )

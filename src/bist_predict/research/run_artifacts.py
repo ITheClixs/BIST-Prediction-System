@@ -73,9 +73,7 @@ def _write_json(path: Path, payload: object) -> None:
 def _current_git_state() -> tuple[str, bool]:
     try:
         sha = subprocess.check_output(["git", "rev-parse", "HEAD"], text=True).strip()
-        dirty = bool(
-            subprocess.check_output(["git", "status", "--porcelain"], text=True).strip()
-        )
+        dirty = bool(subprocess.check_output(["git", "status", "--porcelain"], text=True).strip())
         return sha, dirty
     except (OSError, subprocess.CalledProcessError):
         return "unknown", True
@@ -124,9 +122,7 @@ class RunBundleWriter:
         detected_sha, detected_dirty = _current_git_state()
         self._runs_root = runs_root
         self._git_sha = git_sha or detected_sha
-        self._dirty = (
-            detected_dirty if dirty_working_tree is None else dirty_working_tree
-        )
+        self._dirty = detected_dirty if dirty_working_tree is None else dirty_working_tree
         self._now = now or datetime.now(UTC)
         if self._now.tzinfo is None:
             raise ValueError("run timestamp must be timezone-aware")
@@ -173,8 +169,7 @@ class RunBundleWriter:
         _write_json(run_path / "data_manifest.json", dict(data_manifest))
         _write_json(run_path / "universe_manifest.json", dict(universe_manifest))
         (run_path / "feature_manifest.json").write_text(
-            json.dumps(json.loads(feature_manifest.to_json()), indent=2, sort_keys=True)
-            + "\n"
+            json.dumps(json.loads(feature_manifest.to_json()), indent=2, sort_keys=True) + "\n"
         )
         fold_payload = list(folds)
         _write_json(run_path / "folds.json", fold_payload)
@@ -188,9 +183,7 @@ class RunBundleWriter:
         _write_json(run_path / "model_artifact.json", dict(model_artifact))
 
         for name, frame in sorted(frames.items()):
-            frame.to_parquet(
-                run_path / f"{name}.parquet", index=False, compression="zstd"
-            )
+            frame.to_parquet(run_path / f"{name}.parquet", index=False, compression="zstd")
 
         for name, frame in portfolio.artifact_frames().items():
             frame.to_parquet(run_path / f"{name}.parquet", index=False, compression="zstd")
@@ -198,9 +191,7 @@ class RunBundleWriter:
         net_returns = [snapshot.net_return for snapshot in portfolio.daily_snapshots]
         metrics: dict[str, object] = {
             "prediction": recompute_prediction_metrics(predictions),
-            "portfolio": compute_portfolio_metrics(
-                portfolio, benchmark_returns=benchmark_returns
-            ),
+            "portfolio": compute_portfolio_metrics(portfolio, benchmark_returns=benchmark_returns),
             "bootstrap": (
                 block_bootstrap_intervals(
                     net_returns,
@@ -213,9 +204,7 @@ class RunBundleWriter:
             ),
         }
         if sample_metadata is not None:
-            metrics["grouped"] = grouped_prediction_metrics(
-                predictions, sample_metadata
-            )
+            metrics["grouped"] = grouped_prediction_metrics(predictions, sample_metadata)
         if additional_metrics is not None:
             overlap = set(metrics).intersection(additional_metrics)
             if overlap:
@@ -236,9 +225,7 @@ class RunBundleWriter:
             "dirty_working_tree": self._dirty,
             "config_hash": hashlib.sha256(_canonical_json(config).encode()).hexdigest(),
             "data_manifest_sha256": _sha256(run_path / "data_manifest.json"),
-            "universe_manifest_sha256": _sha256(
-                run_path / "universe_manifest.json"
-            ),
+            "universe_manifest_sha256": _sha256(run_path / "universe_manifest.json"),
             "feature_manifest_hash": feature_manifest.manifest_hash,
             "model_artifact_sha256": model_hash,
             "predictions_sha256": prediction_artifact.sha256,

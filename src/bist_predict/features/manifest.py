@@ -94,9 +94,7 @@ class FeatureManifest:
 
         missing = tuple(name for name in expected if name not in actual)
         if missing:
-            raise FeatureSchemaError(
-                f"missing required features: {', '.join(missing)}"
-            )
+            raise FeatureSchemaError(f"missing required features: {', '.join(missing)}")
 
         if actual != expected:
             raise FeatureSchemaError("feature order differs from manifest")

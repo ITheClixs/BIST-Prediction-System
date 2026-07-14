@@ -141,26 +141,18 @@ def build_canonical_panel(
     for snapshot in snapshots:
         key = (snapshot.ticker, snapshot.date)
         if key in snapshot_keys:
-            raise PanelBuildError(
-                f"duplicate feature snapshot: {snapshot.ticker} {snapshot.date}"
-            )
+            raise PanelBuildError(f"duplicate feature snapshot: {snapshot.ticker} {snapshot.date}")
         snapshot_keys.add(key)
         if snapshot.feature_available_at.tzinfo is None:
             raise PanelBuildError("feature_available_at must be timezone-aware")
 
         feature_values, missing_reasons = _normalized_features(snapshot, manifest)
         target_bar = next(
-            (
-                bar
-                for bar in prices_by_ticker.get(snapshot.ticker, ())
-                if bar.date > snapshot.date
-            ),
+            (bar for bar in prices_by_ticker.get(snapshot.ticker, ()) if bar.date > snapshot.date),
             None,
         )
         if target_bar is None:
-            raise PanelBuildError(
-                f"no future target session for {snapshot.ticker} {snapshot.date}"
-            )
+            raise PanelBuildError(f"no future target session for {snapshot.ticker} {snapshot.date}")
         if target_bar.open_quality is not OpenQuality.OBSERVED:
             raise PanelBuildError(
                 f"execution requires an observed open: {snapshot.ticker} {target_bar.date}"

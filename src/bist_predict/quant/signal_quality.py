@@ -134,10 +134,10 @@ def compute_wavelet_decomposition(
 
     for i, detail in enumerate(coeffs[1:], 1):
         result[f"wavelet_detail_{i}"] = detail
-        result[f"wavelet_energy_{i}"] = float(np.sum(detail ** 2))
+        result[f"wavelet_energy_{i}"] = float(np.sum(detail**2))
 
     # Energy ratio: high-frequency vs low-frequency
-    total_energy = sum(np.sum(c ** 2) for c in coeffs)
+    total_energy = sum(np.sum(c**2) for c in coeffs)
     if total_energy > 0:
         result["wavelet_noise_ratio"] = float(np.sum(coeffs[-1] ** 2) / total_energy)
     else:

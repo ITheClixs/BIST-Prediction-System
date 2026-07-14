@@ -93,9 +93,7 @@ def _close_returns(bars: dict[BarKey, OHLCVBar]) -> dict[BarKey, float]:
         ticker_bars.sort(key=lambda bar: bar.date)
         for previous, current in zip(ticker_bars, ticker_bars[1:]):
             if previous.close > 0.0:
-                returns[(current.ticker, current.date)] = (
-                    current.close / previous.close - 1.0
-                )
+                returns[(current.ticker, current.date)] = current.close / previous.close - 1.0
     return returns
 
 

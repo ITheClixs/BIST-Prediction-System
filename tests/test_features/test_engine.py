@@ -5,7 +5,6 @@ from __future__ import annotations
 from datetime import date, timedelta
 from pathlib import Path
 
-import numpy as np
 import pytest
 
 import bist_predict.features.engine as engine_module
@@ -29,9 +28,15 @@ def db(tmp_db_path: Path) -> Database:
                    (ticker, date, open, high, low, close, adj_close, volume, source)
                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)""",
                 (
-                    "THYAO", d.isoformat(),
-                    price - 1.0, price + 2.0, price - 2.0, price, price,
-                    1000000 + i * 10000, "isyatirim",
+                    "THYAO",
+                    d.isoformat(),
+                    price - 1.0,
+                    price + 2.0,
+                    price - 2.0,
+                    price,
+                    price,
+                    1000000 + i * 10000,
+                    "isyatirim",
                 ),
             )
         conn.commit()

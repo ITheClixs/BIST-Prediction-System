@@ -21,6 +21,7 @@ logger = logging.getLogger(__name__)
 # Import Rust module — may not be available if not compiled
 try:
     import bist_features as rust
+
     HAS_RUST = True
 except ImportError:
     HAS_RUST = False
@@ -101,9 +102,7 @@ class FeatureEngine:
             self._store.save(ticker, target_date, features)
         return features
 
-    def _load_price_history(
-        self, ticker: str, end_date: str, lookback: int = 252
-    ) -> list[tuple]:
+    def _load_price_history(self, ticker: str, end_date: str, lookback: int = 252) -> list[tuple]:
         """Load up to `lookback` days of price history ending at end_date."""
         with self._db.connect() as conn:
             rows = conn.execute(

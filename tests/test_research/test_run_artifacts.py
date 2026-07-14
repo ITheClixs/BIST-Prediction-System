@@ -144,9 +144,7 @@ def test_run_bundle_rejects_unsafe_or_reserved_input_artifact_names(tmp_path) ->
         "universe_manifest": {"universe_version": "fixed-v1", "tickers": ["THYAO"]},
         "feature_manifest": _manifest(),
         "folds": (),
-        "predictions": _predictions().assign(
-            feature_manifest_hash=_manifest().manifest_hash
-        ),
+        "predictions": _predictions().assign(feature_manifest_hash=_manifest().manifest_hash),
         "portfolio": _portfolio(),
         "model_artifact": {"accepted_models": ["zero_return"]},
         "trials": (),

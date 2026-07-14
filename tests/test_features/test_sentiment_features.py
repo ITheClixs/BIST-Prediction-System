@@ -51,6 +51,7 @@ class TestSentimentFeatures:
 
     def test_no_data_returns_defaults(self, db: Database) -> None:
         import math
+
         features = compute_sentiment_features(db, "GARAN", "2026-04-01")
         assert features["sentiment_count"] == 0
         assert math.isnan(features["sentiment_mean"])

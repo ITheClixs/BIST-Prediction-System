@@ -26,7 +26,9 @@ def _correlation(
 ) -> float | None:
     if len(actual) < 2 or np.ptp(actual) == 0.0 or np.ptp(predicted) == 0.0:
         return None
-    value = spearmanr(actual, predicted).statistic if rank else pearsonr(actual, predicted).statistic
+    value = (
+        spearmanr(actual, predicted).statistic if rank else pearsonr(actual, predicted).statistic
+    )
     return float(value) if math.isfinite(float(value)) else None
 
 
@@ -45,9 +47,7 @@ def _model_metrics(rows: pd.DataFrame) -> dict[str, float | int | None]:
         "mae": float(np.mean(np.abs(errors))),
         "rmse": float(np.sqrt(np.mean(np.square(errors)))),
         "zero_mean_r_squared": (
-            1.0 - float(np.sum(np.square(errors))) / denominator
-            if denominator > 0.0
-            else None
+            1.0 - float(np.sum(np.square(errors))) / denominator if denominator > 0.0 else None
         ),
         "pearson_ic": _correlation(target, predicted_return, rank=False),
         "spearman_ic": _correlation(target, predicted_return, rank=True),

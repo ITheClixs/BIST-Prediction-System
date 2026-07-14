@@ -51,9 +51,7 @@ class CorporateAction:
             if self.ratio is None or self.ratio <= 0:
                 raise ValueError("rights_issue requires a positive ratio")
             if self.subscription_price is None or self.subscription_price < 0:
-                raise ValueError(
-                    "rights_issue requires a non-negative subscription price"
-                )
+                raise ValueError("rights_issue requires a non-negative subscription price")
 
         if self.action_type is CorporateActionType.CASH_DIVIDEND:
             if self.cash_amount is None or self.cash_amount < 0:

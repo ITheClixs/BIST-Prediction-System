@@ -25,9 +25,7 @@ class _FakeBoostingModel:
         }
 
 
-def _factory(
-    model_name: str, parameters: dict[str, object], seed: int
-) -> _FakeBoostingModel:
+def _factory(model_name: str, parameters: dict[str, object], seed: int) -> _FakeBoostingModel:
     assert model_name in {"xgboost", "lightgbm"}
     return _FakeBoostingModel(parameters, seed)
 
@@ -111,4 +109,3 @@ def test_search_rejects_unbounded_candidates_and_seed_counts(tmp_path) -> None:
             output_dir=tmp_path / "too-many-seeds",
             model_factory=_factory,
         )
-

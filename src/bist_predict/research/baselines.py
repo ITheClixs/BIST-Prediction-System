@@ -56,7 +56,9 @@ def _point_in_time_baselines(
     validation: pd.DataFrame,
     fallback_return: float,
 ) -> dict[str, np.ndarray]:
-    predictions = {name: [] for name in ("previous_return", "market_direction", "rolling_mean")}
+    predictions: dict[str, list[float]] = {
+        name: [] for name in ("previous_return", "market_direction", "rolling_mean")
+    }
     for _, row in validation.iterrows():
         matured = panel.loc[panel["_target_time"] < row["_feature_time"]]
         ticker_history = matured.loc[matured["ticker"] == row["ticker"]].sort_values(
@@ -82,10 +84,7 @@ def _point_in_time_baselines(
         predictions["previous_return"].append(previous)
         predictions["market_direction"].append(market)
         predictions["rolling_mean"].append(rolling)
-    return {
-        name: np.asarray(values, dtype=np.float64)
-        for name, values in predictions.items()
-    }
+    return {name: np.asarray(values, dtype=np.float64) for name, values in predictions.items()}
 
 
 def _validated_panel(panel: pd.DataFrame, manifest: FeatureManifest) -> pd.DataFrame:
@@ -112,9 +111,7 @@ def _validated_panel(panel: pd.DataFrame, manifest: FeatureManifest) -> pd.DataF
     working["_feature_time"] = pd.to_datetime(
         working["feature_available_at"], utc=True, errors="coerce"
     )
-    working["_target_time"] = pd.to_datetime(
-        working["target_end"], utc=True, errors="coerce"
-    )
+    working["_target_time"] = pd.to_datetime(working["target_end"], utc=True, errors="coerce")
     if working[["_feature_time", "_target_time"]].isna().any().any():
         raise ValueError("panel timestamps must be valid")
     working = working.sort_values(["date", "ticker"], kind="stable").reset_index(drop=True)
@@ -245,8 +242,7 @@ def run_baseline_benchmark(
         else:
             logistic_probability = np.full(row_count, positive_prevalence)
         logistic_return = (
-            logistic_probability * positive_mean
-            + (1.0 - logistic_probability) * negative_mean
+            logistic_probability * positive_mean + (1.0 - logistic_probability) * negative_mean
         )
         records.extend(
             _prediction_rows(
@@ -263,9 +259,7 @@ def run_baseline_benchmark(
         regressor = Ridge(alpha=1.0)
         regressor.fit(prepared_train, y_train_return)
         ridge_return = regressor.predict(prepared_validation).astype(np.float64)
-        residual_scale = float(
-            np.std(y_train_return - regressor.predict(prepared_train))
-        )
+        residual_scale = float(np.std(y_train_return - regressor.predict(prepared_train)))
         records.extend(
             _prediction_rows(
                 validation,
@@ -285,4 +279,3 @@ def run_baseline_benchmark(
     ).reset_index(drop=True)
     validate_predictions(predictions)
     return BaselineBenchmarkResult(predictions=predictions, folds=folds)
-

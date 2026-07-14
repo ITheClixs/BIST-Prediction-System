@@ -66,7 +66,8 @@ def _prices(
 def _backtester(costs: CostModel | None = None) -> PortfolioBacktester:
     return PortfolioBacktester(
         strategy=StrategyConfig(top_k=2, decision_cost_rate=0.002, max_participation=0.01),
-        costs=costs or CostModel(
+        costs=costs
+        or CostModel(
             commission_rate=0.0002,
             bid_ask_spread_rate=0.001,
             slippage_rate=0.0003,
@@ -95,9 +96,13 @@ def test_backtest_persists_orders_fills_positions_cash_and_reconciles() -> None:
         - snapshot.transaction_costs
     )
     assert snapshot.ending_equity == pytest.approx(result.ending_equity)
-    assert all(cost.total_cost == pytest.approx(
-        cost.commission + cost.bid_ask_spread + cost.slippage + cost.market_impact + cost.taxes
-    ) for cost in result.costs)
+    assert all(
+        cost.total_cost
+        == pytest.approx(
+            cost.commission + cost.bid_ask_spread + cost.slippage + cost.market_impact + cost.taxes
+        )
+        for cost in result.costs
+    )
 
 
 def test_no_position_strategy_has_zero_return_turnover_and_cost() -> None:
@@ -129,12 +134,12 @@ def test_proxy_open_is_rejected_before_order_submission() -> None:
 
 
 def test_higher_realized_costs_cannot_improve_net_performance() -> None:
-    low = _backtester(
-        CostModel(0.0001, 0.0005, 0.0001, 0.00005, 0.0)
-    ).run(_predictions(), _prices(), model_name="ridge", starting_equity=100_000.0)
-    high = _backtester(
-        CostModel(0.001, 0.005, 0.002, 0.001, 0.001)
-    ).run(_predictions(), _prices(), model_name="ridge", starting_equity=100_000.0)
+    low = _backtester(CostModel(0.0001, 0.0005, 0.0001, 0.00005, 0.0)).run(
+        _predictions(), _prices(), model_name="ridge", starting_equity=100_000.0
+    )
+    high = _backtester(CostModel(0.001, 0.005, 0.002, 0.001, 0.001)).run(
+        _predictions(), _prices(), model_name="ridge", starting_equity=100_000.0
+    )
 
     assert len(low.fills) == len(high.fills)
     assert high.ending_equity <= low.ending_equity
@@ -149,4 +154,3 @@ def test_participation_limit_caps_filled_quantity() -> None:
     buy_fills = [fill for fill in result.fills if fill.side == "buy"]
     assert buy_fills
     assert all(fill.quantity <= 10_000 for fill in buy_fills)
-

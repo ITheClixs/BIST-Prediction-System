@@ -52,17 +52,11 @@ class OfficialTradingCalendar:
             missing_expected_sessions=tuple(
                 session.isoformat() for session in sorted(expected - observed)
             ),
-            unexpected_sessions=tuple(
-                session.isoformat() for session in sorted(unexpected)
-            ),
+            unexpected_sessions=tuple(session.isoformat() for session in sorted(unexpected)),
             unexpected_weekend_rows=tuple(
-                session.isoformat()
-                for session in sorted(unexpected)
-                if session.weekday() >= 5
+                session.isoformat() for session in sorted(unexpected) if session.weekday() >= 5
             ),
-            duplicate_sessions=tuple(
-                session.isoformat() for session in sorted(duplicate_dates)
-            ),
+            duplicate_sessions=tuple(session.isoformat() for session in sorted(duplicate_dates)),
             timezone=self.timezone,
         )
 

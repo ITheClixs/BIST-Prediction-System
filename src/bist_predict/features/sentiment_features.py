@@ -7,9 +7,7 @@ import math
 from bist_predict.storage.database import Database
 
 
-def compute_sentiment_features(
-    db: Database, ticker: str, date: str
-) -> dict[str, float]:
+def compute_sentiment_features(db: Database, ticker: str, date: str) -> dict[str, float]:
     """Compute aggregated sentiment features for a ticker on a date.
 
     Returns:

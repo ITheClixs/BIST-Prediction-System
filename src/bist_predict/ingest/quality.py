@@ -11,9 +11,16 @@ class ValidationError(Exception):
 
 def validate_bar(bar: OHLCVBar) -> bool:
     """Validate an OHLCV bar. Returns True if valid, raises ValidationError otherwise."""
-    for field_name, value in [("open", bar.open), ("high", bar.high), ("low", bar.low), ("close", bar.close)]:
+    for field_name, value in [
+        ("open", bar.open),
+        ("high", bar.high),
+        ("low", bar.low),
+        ("close", bar.close),
+    ]:
         if value < 0:
-            raise ValidationError(f"{bar.ticker} {bar.date_str}: {field_name} is negative ({value})")
+            raise ValidationError(
+                f"{bar.ticker} {bar.date_str}: {field_name} is negative ({value})"
+            )
 
     if bar.high < bar.low:
         raise ValidationError(
@@ -39,8 +46,6 @@ def validate_bar(bar: OHLCVBar) -> bool:
         )
 
     if bar.volume < 0:
-        raise ValidationError(
-            f"{bar.ticker} {bar.date_str}: volume is negative ({bar.volume})"
-        )
+        raise ValidationError(f"{bar.ticker} {bar.date_str}: volume is negative ({bar.volume})")
 
     return True

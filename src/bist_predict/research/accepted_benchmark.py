@@ -155,9 +155,7 @@ def _prices_from_frame(frame: pd.DataFrame) -> tuple[OHLCVBar, ...]:
                 adj_close=float(row["adj_close"]),
                 volume=int(row["volume"]),
                 source=str(row["source"]),
-                split_adjusted_prices=_optional_representation(
-                    row, "split_adjusted"
-                ),
+                split_adjusted_prices=_optional_representation(row, "split_adjusted"),
                 total_return_prices=_optional_representation(row, "total_return"),
                 open_quality=OpenQuality(str(row["open_quality"])),
                 volume_quality=VolumeQuality(str(row["volume_quality"])),
@@ -165,14 +163,10 @@ def _prices_from_frame(frame: pd.DataFrame) -> tuple[OHLCVBar, ...]:
                     None if pd.isna(row["provider_symbol"]) else str(row["provider_symbol"])
                 ),
                 provider_record_id=(
-                    None
-                    if pd.isna(row["provider_record_id"])
-                    else str(row["provider_record_id"])
+                    None if pd.isna(row["provider_record_id"]) else str(row["provider_record_id"])
                 ),
                 source_retrieved_at=(
-                    None
-                    if pd.isna(retrieved)
-                    else datetime.fromisoformat(str(retrieved))
+                    None if pd.isna(retrieved) else datetime.fromisoformat(str(retrieved))
                 ),
             )
         )
@@ -216,7 +210,13 @@ def _sample_metadata(panel: pd.DataFrame, prices: tuple[OHLCVBar, ...]) -> pd.Da
         )
     ordered = sorted(average_volume, key=lambda ticker: (average_volume[ticker], ticker))
     buckets = {
-        ticker: ("low" if index < len(ordered) / 3 else "medium" if index < 2 * len(ordered) / 3 else "high")
+        ticker: (
+            "low"
+            if index < len(ordered) / 3
+            else "medium"
+            if index < 2 * len(ordered) / 3
+            else "high"
+        )
         for index, ticker in enumerate(ordered)
     }
     regimes = (
@@ -272,9 +272,7 @@ def run_accepted_benchmark(
     bars = _prices_from_frame(price_frame)
     _validate_prices(bars)
     snapshots = build_stationary_snapshots(bars)
-    panel_rows = build_canonical_panel(
-        snapshots, bars, STATIONARY_FEATURE_MANIFEST
-    )
+    panel_rows = build_canonical_panel(snapshots, bars, STATIONARY_FEATURE_MANIFEST)
     panel = panel_to_frame(panel_rows, STATIONARY_FEATURE_MANIFEST)
     splitter = ExpandingWindowSplitter(
         min_train_dates=config.min_train_dates,
@@ -282,12 +280,8 @@ def run_accepted_benchmark(
         step_dates=config.step_dates,
         embargo_dates=config.embargo_dates,
     )
-    benchmark = run_baseline_benchmark(
-        panel, STATIONARY_FEATURE_MANIFEST, splitter
-    )
-    backtester = PortfolioBacktester(
-        strategy=_strategy(config), costs=_cost_model(config)
-    )
+    benchmark = run_baseline_benchmark(panel, STATIONARY_FEATURE_MANIFEST, splitter)
+    backtester = PortfolioBacktester(strategy=_strategy(config), costs=_cost_model(config))
     portfolio = backtester.run(
         benchmark.predictions,
         bars,
@@ -308,9 +302,7 @@ def run_accepted_benchmark(
         )
         sensitivity[f"{multiplier:.1f}x"] = {
             "cost_multiplier": multiplier,
-            "metrics": compute_portfolio_metrics(
-                result, benchmark_returns=equal_weight_returns
-            ),
+            "metrics": compute_portfolio_metrics(result, benchmark_returns=equal_weight_returns),
         }
 
     effective_now = now or datetime.now(UTC)

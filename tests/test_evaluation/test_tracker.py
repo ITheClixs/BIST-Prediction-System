@@ -21,8 +21,13 @@ class TestAccuracyTracker:
     def test_log_prediction(self, db: Database) -> None:
         tracker = AccuracyTracker(db)
         tracker.log_prediction(
-            ticker="THYAO", prediction_date="2026-04-01", target_date="2026-04-02",
-            direction="UP", confidence=0.78, predicted_pct_move=1.5, model_version="v1",
+            ticker="THYAO",
+            prediction_date="2026-04-01",
+            target_date="2026-04-02",
+            direction="UP",
+            confidence=0.78,
+            predicted_pct_move=1.5,
+            model_version="v1",
         )
         preds = tracker.get_predictions("THYAO")
         assert len(preds) == 1
@@ -31,8 +36,13 @@ class TestAccuracyTracker:
     def test_record_actual(self, db: Database) -> None:
         tracker = AccuracyTracker(db)
         tracker.log_prediction(
-            ticker="THYAO", prediction_date="2026-04-01", target_date="2026-04-02",
-            direction="UP", confidence=0.78, predicted_pct_move=1.5, model_version="v1",
+            ticker="THYAO",
+            prediction_date="2026-04-01",
+            target_date="2026-04-02",
+            direction="UP",
+            confidence=0.78,
+            predicted_pct_move=1.5,
+            model_version="v1",
         )
         tracker.record_actual("THYAO", "2026-04-02", actual_pct_move=1.2, model_version="v1")
 
@@ -45,9 +55,11 @@ class TestAccuracyTracker:
             direction = "UP" if i % 2 == 0 else "DOWN"
             actual = 0.01 if i % 2 == 0 else -0.01  # All correct
             tracker.log_prediction(
-                ticker="THYAO", prediction_date=f"2026-04-{i + 1:02d}",
+                ticker="THYAO",
+                prediction_date=f"2026-04-{i + 1:02d}",
                 target_date=f"2026-04-{i + 2:02d}",
-                direction=direction, confidence=0.75,
+                direction=direction,
+                confidence=0.75,
                 predicted_pct_move=0.01 if direction == "UP" else -0.01,
                 model_version="v1",
             )
@@ -68,9 +80,12 @@ class TestAccuracyTracker:
             direction = "UP"
             actual = 0.01 if i > 10 else -0.01
             tracker.log_prediction(
-                ticker="THYAO", prediction_date=f"2026-04-{i + 1:02d}",
+                ticker="THYAO",
+                prediction_date=f"2026-04-{i + 1:02d}",
                 target_date=f"2026-04-{i + 2:02d}",
-                direction=direction, confidence=conf, predicted_pct_move=0.01,
+                direction=direction,
+                confidence=conf,
+                predicted_pct_move=0.01,
                 model_version="v1",
             )
             tracker.record_actual("THYAO", f"2026-04-{i + 2:02d}", actual, "v1")

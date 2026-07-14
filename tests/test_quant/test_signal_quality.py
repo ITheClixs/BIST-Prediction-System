@@ -5,7 +5,6 @@ from __future__ import annotations
 import math
 
 import numpy as np
-import pytest
 
 from bist_predict.quant.signal_quality import (
     compute_hurst_exponent,

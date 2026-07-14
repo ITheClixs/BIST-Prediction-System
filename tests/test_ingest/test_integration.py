@@ -8,7 +8,7 @@ from unittest.mock import AsyncMock
 
 import pytest
 
-from bist_predict.config import Config, DataConfig
+from bist_predict.config import Config
 from bist_predict.ingest.scheduler import IngestionScheduler
 from bist_predict.ingest.types import OHLCVBar, MacroDataPoint, SentimentRecord
 from bist_predict.storage.database import Database
@@ -26,14 +26,21 @@ class TestFullPipeline:
     async def test_fetch_store_query_cycle(self, db: Database, config: Config) -> None:
         """Test: fetch → validate → store → query roundtrip."""
         bars = [
-            OHLCVBar("THYAO", date(2026, 4, 1), 310.0, 315.0, 308.0, 312.5, 312.5, 1_000_000, "isyatirim"),
-            OHLCVBar("THYAO", date(2026, 3, 31), 305.0, 311.0, 303.0, 310.0, 310.0, 900_000, "isyatirim"),
-            OHLCVBar("GARAN", date(2026, 4, 1), 85.0, 87.0, 84.5, 86.5, 86.5, 5_000_000, "isyatirim"),
+            OHLCVBar(
+                "THYAO", date(2026, 4, 1), 310.0, 315.0, 308.0, 312.5, 312.5, 1_000_000, "isyatirim"
+            ),
+            OHLCVBar(
+                "THYAO", date(2026, 3, 31), 305.0, 311.0, 303.0, 310.0, 310.0, 900_000, "isyatirim"
+            ),
+            OHLCVBar(
+                "GARAN", date(2026, 4, 1), 85.0, 87.0, 84.5, 86.5, 86.5, 5_000_000, "isyatirim"
+            ),
         ]
 
         mock_primary = AsyncMock(return_value=bars)
         scheduler = IngestionScheduler(
-            db=db, config=config,
+            db=db,
+            config=config,
             price_primary=mock_primary,
         )
 
@@ -56,8 +63,12 @@ class TestFullPipeline:
     async def test_invalid_bars_filtered_out(self, db: Database, config: Config) -> None:
         """Invalid bars should be skipped, valid ones stored."""
         bars = [
-            OHLCVBar("THYAO", date(2026, 4, 1), 310.0, 315.0, 308.0, 312.5, 312.5, 1_000_000, "isyatirim"),
-            OHLCVBar("BAD", date(2026, 4, 1), 310.0, 300.0, 308.0, 312.5, 312.5, 1_000_000, "isyatirim"),
+            OHLCVBar(
+                "THYAO", date(2026, 4, 1), 310.0, 315.0, 308.0, 312.5, 312.5, 1_000_000, "isyatirim"
+            ),
+            OHLCVBar(
+                "BAD", date(2026, 4, 1), 310.0, 300.0, 308.0, 312.5, 312.5, 1_000_000, "isyatirim"
+            ),
         ]
 
         scheduler = IngestionScheduler(db=db, config=config)

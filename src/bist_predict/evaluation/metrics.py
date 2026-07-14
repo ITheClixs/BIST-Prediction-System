@@ -52,9 +52,14 @@ def compute_trading_metrics(
     """Compute trading quality metrics from a series of daily returns."""
     if len(daily_returns) == 0:
         return {
-            "sharpe_ratio": 0.0, "sortino_ratio": 0.0, "max_drawdown": 0.0,
-            "win_rate": 0.0, "profit_factor": 0.0, "avg_win_loss_ratio": 0.0,
-            "calmar_ratio": 0.0, "total_return": 0.0,
+            "sharpe_ratio": 0.0,
+            "sortino_ratio": 0.0,
+            "max_drawdown": 0.0,
+            "win_rate": 0.0,
+            "profit_factor": 0.0,
+            "avg_win_loss_ratio": 0.0,
+            "calmar_ratio": 0.0,
+            "total_return": 0.0,
         }
 
     daily_rf = risk_free_rate / 252

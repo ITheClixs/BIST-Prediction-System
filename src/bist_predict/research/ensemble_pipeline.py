@@ -5,7 +5,6 @@ from __future__ import annotations
 import json
 from dataclasses import dataclass, field
 from datetime import date
-from pathlib import Path
 from typing import Callable
 
 import numpy as np
@@ -119,11 +118,16 @@ def _build_pooled_dataset(
     for ticker in tickers:
         if model_name in SEQUENCE_MODELS:
             X, y_dir, y_pct, keys, feature_names = build_sequence_dataset_with_keys(
-                db, ticker, seq_len=seq_len, min_features=min_features,
+                db,
+                ticker,
+                seq_len=seq_len,
+                min_features=min_features,
             )
         else:
             X, y_dir, y_pct, keys, feature_names = build_tabular_dataset_with_keys(
-                db, ticker, min_features=min_features,
+                db,
+                ticker,
+                min_features=min_features,
             )
         if X.shape[0] > 0:
             per_ticker.append((X, y_dir, y_pct, keys, len(feature_names)))
@@ -246,13 +250,18 @@ def train_calibrated_ensemble(
 
     for model_name in selected:
         dataset = _build_pooled_dataset(
-            db, tickers, model_name, config.seq_len, config.min_features,
+            db,
+            tickers,
+            model_name,
+            config.seq_len,
+            config.min_features,
         )
         if dataset.X.shape[0] < 2:
             continue
 
         train_slice, val_slice = _split_train_validation(
-            dataset.X.shape[0], config.validation_fraction,
+            dataset.X.shape[0],
+            config.validation_fraction,
         )
         model = model_factory(model_name, dataset.feature_count)
         metrics = model.train(
@@ -266,7 +275,9 @@ def train_calibrated_ensemble(
         probs, pct = model.predict(dataset.X[val_slice])
         val_keys = dataset.keys[val_slice]
         prediction_maps[model_name] = _predictions_by_key(val_keys, probs, pct)
-        label_map.update(_labels_by_key(val_keys, dataset.y_dir[val_slice], dataset.y_pct[val_slice]))
+        label_map.update(
+            _labels_by_key(val_keys, dataset.y_dir[val_slice], dataset.y_pct[val_slice])
+        )
 
         model_path = models_root / model_name / version
         model.save(str(model_path))
@@ -276,7 +287,9 @@ def train_calibrated_ensemble(
         base_metrics[model_name] = metrics
 
     stacked, y_dir, y_pct, common_keys = _align_predictions(
-        prediction_maps, label_map, config.min_common_validation,
+        prediction_maps,
+        label_map,
+        config.min_common_validation,
     )
 
     combiner = EnsembleCombiner()
@@ -324,7 +337,13 @@ def _fit_fold_ensemble(
     val_range: tuple[int, int],
     config: EnsembleBacktestConfig,
     model_factory: ModelFactory,
-) -> tuple[NDArray[np.int64], NDArray[np.float64], NDArray[np.float64], NDArray[np.float64], list[DatasetKey]]:
+) -> tuple[
+    NDArray[np.int64],
+    NDArray[np.float64],
+    NDArray[np.float64],
+    NDArray[np.float64],
+    list[DatasetKey],
+]:
     train_start, train_end = train_range
     val_start, val_end = val_range
     if train_end - train_start < 3:
@@ -355,14 +374,18 @@ def _fit_fold_ensemble(
         val_probs, val_pct = model.predict(dataset.X[val_idx])
         meta_prediction_maps[model_name] = _predictions_by_key(meta_keys, meta_probs, meta_pct)
         val_prediction_maps[model_name] = _predictions_by_key(val_keys, val_probs, val_pct)
-        label_map.update(_labels_by_key(
-            meta_keys + val_keys,
-            np.concatenate([dataset.y_dir[meta_idx], dataset.y_dir[val_idx]]),
-            np.concatenate([dataset.y_pct[meta_idx], dataset.y_pct[val_idx]]),
-        ))
+        label_map.update(
+            _labels_by_key(
+                meta_keys + val_keys,
+                np.concatenate([dataset.y_dir[meta_idx], dataset.y_dir[val_idx]]),
+                np.concatenate([dataset.y_pct[meta_idx], dataset.y_pct[val_idx]]),
+            )
+        )
 
     meta_stacked, meta_y_dir, meta_y_pct, _ = _align_predictions(
-        meta_prediction_maps, label_map, min_common=1,
+        meta_prediction_maps,
+        label_map,
+        min_common=1,
     )
     combiner = EnsembleCombiner()
     combiner.train(meta_stacked, meta_y_dir, meta_y_pct)
@@ -371,7 +394,9 @@ def _fit_fold_ensemble(
     calibrator.fit(meta_raw_probs, meta_y_dir)
 
     val_stacked, val_y_dir, val_y_pct, aligned_val_keys = _align_predictions(
-        val_prediction_maps, label_map, min_common=1,
+        val_prediction_maps,
+        label_map,
+        min_common=1,
     )
     raw_probs, pct_pred = combiner.predict(val_stacked)
     probs = _calibrated_probabilities(calibrator, raw_probs)
@@ -459,7 +484,11 @@ def run_walk_forward_backtest(
             model_factory,
         )
         daily_returns, fold_trades = _portfolio_returns(
-            val_keys, probs, y_pct, backtest, config.min_confidence,
+            val_keys,
+            probs,
+            y_pct,
+            backtest,
+            config.min_confidence,
         )
         all_y_dir.append(y_dir)
         all_y_pct.append(y_pct)
@@ -478,7 +507,10 @@ def run_walk_forward_backtest(
         folds=len(folds),
         trade_count=trade_count,
         prediction_metrics=compute_prediction_metrics(
-            y_dir_all, probs_all, y_pct_all, pct_pred_all,
+            y_dir_all,
+            probs_all,
+            y_pct_all,
+            pct_pred_all,
         ),
         trading_metrics=compute_trading_metrics(daily_returns_all),
     )

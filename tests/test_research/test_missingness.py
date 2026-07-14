@@ -81,4 +81,3 @@ def test_report_rejects_unexplained_missing_values() -> None:
             source_by_sample={0: "yahoo"},
             fold_by_sample={0: "fold_0001_validation"},
         )
-

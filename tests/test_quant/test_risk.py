@@ -2,10 +2,8 @@
 
 from __future__ import annotations
 
-import math
 
 import numpy as np
-import pytest
 
 from bist_predict.quant.risk import (
     compute_kelly_fraction,

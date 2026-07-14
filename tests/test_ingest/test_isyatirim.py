@@ -43,9 +43,7 @@ class TestIsYatirimClient:
     @respx.mock
     @pytest.mark.asyncio
     async def test_fetch_returns_ohlcv_bars(self) -> None:
-        respx.get(BASE_URL).mock(
-            return_value=httpx.Response(200, json=SAMPLE_RESPONSE)
-        )
+        respx.get(BASE_URL).mock(return_value=httpx.Response(200, json=SAMPLE_RESPONSE))
 
         client = IsYatirimClient()
         bars = await client.fetch("THYAO", date(2026, 3, 31), date(2026, 4, 1))
@@ -58,9 +56,7 @@ class TestIsYatirimClient:
     @respx.mock
     @pytest.mark.asyncio
     async def test_fetch_parses_prices_correctly(self) -> None:
-        respx.get(BASE_URL).mock(
-            return_value=httpx.Response(200, json=SAMPLE_RESPONSE)
-        )
+        respx.get(BASE_URL).mock(return_value=httpx.Response(200, json=SAMPLE_RESPONSE))
 
         client = IsYatirimClient()
         bars = await client.fetch("THYAO", date(2026, 3, 31), date(2026, 4, 1))
@@ -77,9 +73,7 @@ class TestIsYatirimClient:
     @respx.mock
     @pytest.mark.asyncio
     async def test_fetch_empty_response(self) -> None:
-        respx.get(BASE_URL).mock(
-            return_value=httpx.Response(200, json={"ok": True, "value": []})
-        )
+        respx.get(BASE_URL).mock(return_value=httpx.Response(200, json={"ok": True, "value": []}))
 
         client = IsYatirimClient()
         bars = await client.fetch("THYAO", date(2026, 3, 31), date(2026, 4, 1))
@@ -88,9 +82,7 @@ class TestIsYatirimClient:
     @respx.mock
     @pytest.mark.asyncio
     async def test_fetch_http_error_raises(self) -> None:
-        respx.get(BASE_URL).mock(
-            return_value=httpx.Response(500)
-        )
+        respx.get(BASE_URL).mock(return_value=httpx.Response(500))
 
         client = IsYatirimClient()
         with pytest.raises(httpx.HTTPStatusError):
@@ -100,11 +92,14 @@ class TestIsYatirimClient:
     @pytest.mark.asyncio
     async def test_fetch_api_error_raises(self) -> None:
         respx.get(BASE_URL).mock(
-            return_value=httpx.Response(200, json={
-                "ok": False,
-                "errorDescription": "Invalid ticker",
-                "value": [],
-            })
+            return_value=httpx.Response(
+                200,
+                json={
+                    "ok": False,
+                    "errorDescription": "Invalid ticker",
+                    "value": [],
+                },
+            )
         )
 
         client = IsYatirimClient()

@@ -5,7 +5,6 @@ from __future__ import annotations
 from datetime import date
 from unittest.mock import MagicMock, patch
 
-import pytest
 
 from bist_predict.ingest.yahoo import YahooFinanceClient
 from bist_predict.ingest.types import OHLCVBar, OpenQuality, VolumeQuality
@@ -30,10 +29,13 @@ class TestYahooFinanceClient:
                 "Adj Close": [312.5, 310.0],
                 "Volume": [1_000_000, 900_000],
             },
-            index=pd.DatetimeIndex([
-                pd.Timestamp("2026-04-01"),
-                pd.Timestamp("2026-03-31"),
-            ], name="Date"),
+            index=pd.DatetimeIndex(
+                [
+                    pd.Timestamp("2026-04-01"),
+                    pd.Timestamp("2026-03-31"),
+                ],
+                name="Date",
+            ),
         )
         mock_download.return_value = mock_df
 

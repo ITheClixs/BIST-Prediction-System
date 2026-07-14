@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import numpy as np
-import pytest
 
 import bist_features
 
@@ -48,5 +47,7 @@ class TestBeta:
         assert beta > 1.0
 
     def test_empty_returns_nan(self) -> None:
-        beta = bist_features.compute_beta(np.array([], dtype=np.float64), np.array([], dtype=np.float64))
+        beta = bist_features.compute_beta(
+            np.array([], dtype=np.float64), np.array([], dtype=np.float64)
+        )
         assert np.isnan(beta)

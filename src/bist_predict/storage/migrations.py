@@ -52,9 +52,7 @@ MIGRATIONS: dict[int, str] = {
 
 def get_current_version(conn: sqlite3.Connection) -> int:
     """Return the current schema version."""
-    row = conn.execute(
-        "SELECT MAX(version) FROM schema_version"
-    ).fetchone()
+    row = conn.execute("SELECT MAX(version) FROM schema_version").fetchone()
     return row[0] if row and row[0] else 0
 
 

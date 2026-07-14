@@ -73,9 +73,7 @@ class LightGBMModel:
         if any(value is not None for value in validation_values) and not has_validation:
             raise ValueError("validation features and both targets must be supplied together")
         if has_validation:
-            callbacks = [
-                lgb.early_stopping(self._early_stopping_rounds, verbose=False)
-            ]
+            callbacks = [lgb.early_stopping(self._early_stopping_rounds, verbose=False)]
             self._classifier.fit(
                 X_train,
                 y_dir_train,
@@ -88,9 +86,7 @@ class LightGBMModel:
                 y_pct_train,
                 eval_set=[(X_val, y_pct_val)],
                 eval_metric="l1",
-                callbacks=[
-                    lgb.early_stopping(self._early_stopping_rounds, verbose=False)
-                ],
+                callbacks=[lgb.early_stopping(self._early_stopping_rounds, verbose=False)],
             )
             self._best_iterations = {
                 "classifier": int(self._classifier.best_iteration_),
@@ -110,20 +106,18 @@ class LightGBMModel:
             pred_dir = (probs > 0.5).astype(int)
             metrics["val_accuracy"] = float(np.mean(pred_dir == y_dir_val))
             metrics["val_mae"] = float(np.mean(np.abs(pct_pred - y_pct_val)))
-            metrics["classifier_best_iteration"] = float(
-                self._best_iterations["classifier"]
-            )
-            metrics["regressor_best_iteration"] = float(
-                self._best_iterations["regressor"]
-            )
+            metrics["classifier_best_iteration"] = float(self._best_iterations["classifier"])
+            metrics["regressor_best_iteration"] = float(self._best_iterations["regressor"])
 
         return metrics
 
-    def predict(
-        self, X: NDArray[np.float64]
-    ) -> tuple[NDArray[np.float64], NDArray[np.float64]]:
-        clf_booster = self._clf_booster if self._clf_booster is not None else self._classifier.booster_
-        reg_booster = self._reg_booster if self._reg_booster is not None else self._regressor.booster_
+    def predict(self, X: NDArray[np.float64]) -> tuple[NDArray[np.float64], NDArray[np.float64]]:
+        clf_booster = (
+            self._clf_booster if self._clf_booster is not None else self._classifier.booster_
+        )
+        reg_booster = (
+            self._reg_booster if self._reg_booster is not None else self._regressor.booster_
+        )
 
         # LightGBM booster.predict() for binary classification already returns
         # probabilities (sigmoid applied internally). For regression, raw scores.

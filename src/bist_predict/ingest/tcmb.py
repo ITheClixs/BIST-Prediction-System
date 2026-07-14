@@ -27,9 +27,7 @@ class TcmbClient:
         self._api_key = api_key
         self._timeout = timeout
 
-    async def fetch(
-        self, indicator: str, start_date: date, end_date: date
-    ) -> list[MacroDataPoint]:
+    async def fetch(self, indicator: str, start_date: date, end_date: date) -> list[MacroDataPoint]:
         """Fetch macro data for an indicator between start_date and end_date."""
         if not self._api_key:
             raise ValueError("TCMB EVDS API key is required. Register free at evds2.tcmb.gov.tr")

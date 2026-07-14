@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import numpy as np
-import pytest
 
 from bist_predict.evaluation.metrics import (
     compute_prediction_metrics,
@@ -42,7 +41,9 @@ class TestPredictionMetrics:
 class TestTradingMetrics:
     def test_profitable_strategy(self) -> None:
         # Consistent small positive returns
-        daily_returns = np.array([0.01, 0.005, 0.008, -0.002, 0.012, 0.003, -0.001, 0.009, 0.004, 0.006])
+        daily_returns = np.array(
+            [0.01, 0.005, 0.008, -0.002, 0.012, 0.003, -0.001, 0.009, 0.004, 0.006]
+        )
         metrics = compute_trading_metrics(daily_returns)
         assert "sharpe_ratio" in metrics
         assert "sortino_ratio" in metrics

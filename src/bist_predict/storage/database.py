@@ -12,10 +12,36 @@ from bist_predict.storage.migrations import apply_pending_migrations
 SCHEMA_VERSION = 2
 
 DEFAULT_TRACKED_STOCKS = [
-    "THYAO", "GARAN", "AKBNK", "EREGL", "SISE", "TUPRS", "TCELL", "TOASO",
-    "VESTL", "SAHOL", "KCHOL", "HEKTS", "BIMAS", "ASELS", "SASA", "KOZAL",
-    "PETKM", "DOHOL", "FROTO", "ENKAI", "ARCLK", "ISCTR", "YKBNK", "VAKBN",
-    "HALKB", "TAVHL", "TTKOM", "EKGYO", "PGSUS", "MGROS",
+    "THYAO",
+    "GARAN",
+    "AKBNK",
+    "EREGL",
+    "SISE",
+    "TUPRS",
+    "TCELL",
+    "TOASO",
+    "VESTL",
+    "SAHOL",
+    "KCHOL",
+    "HEKTS",
+    "BIMAS",
+    "ASELS",
+    "SASA",
+    "KOZAL",
+    "PETKM",
+    "DOHOL",
+    "FROTO",
+    "ENKAI",
+    "ARCLK",
+    "ISCTR",
+    "YKBNK",
+    "VAKBN",
+    "HALKB",
+    "TAVHL",
+    "TTKOM",
+    "EKGYO",
+    "PGSUS",
+    "MGROS",
 ]
 
 SCHEMA_SQL = """
@@ -172,9 +198,7 @@ class Database:
                 "SELECT version FROM schema_version ORDER BY version DESC LIMIT 1"
             ).fetchone()
             if existing is None:
-                conn.execute(
-                    "INSERT INTO schema_version (version) VALUES (?)", (SCHEMA_VERSION,)
-                )
+                conn.execute("INSERT INTO schema_version (version) VALUES (?)", (SCHEMA_VERSION,))
                 conn.commit()
             else:
                 apply_pending_migrations(conn)

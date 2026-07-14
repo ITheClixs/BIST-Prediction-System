@@ -83,9 +83,7 @@ class TestDatabaseInit:
         db.initialize()
 
         with db.connect() as conn:
-            columns = {
-                row[1] for row in conn.execute("PRAGMA table_info(raw_prices)").fetchall()
-            }
+            columns = {row[1] for row in conn.execute("PRAGMA table_info(raw_prices)").fetchall()}
 
         assert {
             "open_quality",
@@ -111,8 +109,7 @@ class TestDatabaseInit:
 
         with db.connect() as conn:
             row = conn.execute(
-                "SELECT name FROM sqlite_master "
-                "WHERE type='table' AND name='corporate_actions'"
+                "SELECT name FROM sqlite_master WHERE type='table' AND name='corporate_actions'"
             ).fetchone()
 
         assert row is not None
@@ -122,9 +119,7 @@ class TestDatabaseInit:
         db.initialize()
         db.initialize()  # Should not raise
         with db.connect() as conn:
-            cursor = conn.execute(
-                "SELECT COUNT(*) FROM sqlite_master WHERE type='table'"
-            )
+            cursor = conn.execute("SELECT COUNT(*) FROM sqlite_master WHERE type='table'")
             count = cursor.fetchone()[0]
             assert count >= 5
 
@@ -147,7 +142,7 @@ class TestDatabaseOperations:
             ).fetchone()
             assert row is not None
             assert row[1] == "THYAO"  # ticker
-            assert row[6] == 312.5    # close
+            assert row[6] == 312.5  # close
 
     def test_unique_constraint_ticker_date(self, tmp_db_path: Path) -> None:
         db = Database(tmp_db_path)

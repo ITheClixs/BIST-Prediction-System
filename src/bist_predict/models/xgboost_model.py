@@ -69,9 +69,7 @@ class XGBoostModel:
             raise ValueError("validation features and both targets must be supplied together")
 
         if has_validation:
-            self._classifier.set_params(
-                early_stopping_rounds=self._early_stopping_rounds
-            )
+            self._classifier.set_params(early_stopping_rounds=self._early_stopping_rounds)
             self._regressor.set_params(early_stopping_rounds=self._early_stopping_rounds)
             self._classifier.fit(
                 X_train,
@@ -102,18 +100,12 @@ class XGBoostModel:
             pred_dir = (probs > 0.5).astype(int)
             metrics["val_accuracy"] = float(np.mean(pred_dir == y_dir_val))
             metrics["val_mae"] = float(np.mean(np.abs(pct_pred - y_pct_val)))
-            metrics["classifier_best_iteration"] = float(
-                self._best_iterations["classifier"]
-            )
-            metrics["regressor_best_iteration"] = float(
-                self._best_iterations["regressor"]
-            )
+            metrics["classifier_best_iteration"] = float(self._best_iterations["classifier"])
+            metrics["regressor_best_iteration"] = float(self._best_iterations["regressor"])
 
         return metrics
 
-    def predict(
-        self, X: NDArray[np.float64]
-    ) -> tuple[NDArray[np.float64], NDArray[np.float64]]:
+    def predict(self, X: NDArray[np.float64]) -> tuple[NDArray[np.float64], NDArray[np.float64]]:
         probs = self._classifier.predict_proba(X)[:, 1]
         pct = self._regressor.predict(X)
         return probs.astype(np.float64), pct.astype(np.float64)

@@ -48,8 +48,7 @@ class PredictionRecord:
         if not self.prediction_id or not self.model_run_id or not self.ticker:
             raise ValueError("prediction identity fields must not be empty")
         if len(self.feature_manifest_hash) != 64 or any(
-            character not in "0123456789abcdef"
-            for character in self.feature_manifest_hash
+            character not in "0123456789abcdef" for character in self.feature_manifest_hash
         ):
             raise ValueError("feature manifest hash must be a lowercase SHA-256 value")
         if not math.isfinite(self.predicted_return):
@@ -105,22 +104,18 @@ class ImmutablePredictionStore:
 
     def records(self) -> tuple[PredictionRecord, ...]:
         return tuple(
-            self._read(path, PredictionRecord)
-            for path in sorted(self._records.glob("*.json"))
+            self._read(path, PredictionRecord) for path in sorted(self._records.glob("*.json"))
         )
 
     def outcomes(self) -> tuple[PredictionOutcome, ...]:
         return tuple(
-            self._read(path, PredictionOutcome)
-            for path in sorted(self._outcomes.glob("*.json"))
+            self._read(path, PredictionOutcome) for path in sorted(self._outcomes.glob("*.json"))
         )
 
     def unresolved(self) -> tuple[PredictionRecord, ...]:
         resolved = {outcome.prediction_id for outcome in self.outcomes()}
         return tuple(
-            prediction
-            for prediction in self.records()
-            if prediction.prediction_id not in resolved
+            prediction for prediction in self.records() if prediction.prediction_id not in resolved
         )
 
     def mature(
@@ -145,30 +140,30 @@ class ImmutablePredictionStore:
             target_close = datetime.combine(target_date, TARGET_CLOSE, tzinfo=ISTANBUL)
             if as_of < target_close:
                 continue
-            bar = by_key.get((prediction.ticker, target_date))
-            if bar is None:
+            target_bar = by_key.get((prediction.ticker, target_date))
+            if target_bar is None:
                 raise ValueError(
                     f"missing exact target price for {prediction.ticker} {target_date}"
                 )
-            if bar.open_quality is not OpenQuality.OBSERVED:
+            if target_bar.open_quality is not OpenQuality.OBSERVED:
                 raise ValueError("prediction maturation requires an observed open")
-            if bar.open <= 0.0:
+            if target_bar.open <= 0.0:
                 raise ValueError("prediction maturation requires a positive open")
-            if not bar.provider_record_id:
+            if not target_bar.provider_record_id:
                 raise ValueError("prediction maturation requires source record provenance")
-            realized = bar.close / bar.open - 1.0
+            realized = target_bar.close / target_bar.open - 1.0
             outcome = PredictionOutcome(
                 prediction_id=prediction.prediction_id,
                 model_run_id=prediction.model_run_id,
                 feature_manifest_hash=prediction.feature_manifest_hash,
                 ticker=prediction.ticker,
                 target_date=prediction.target_date,
-                target_open=bar.open,
-                target_close=bar.close,
+                target_open=target_bar.open,
+                target_close=target_bar.close,
                 realized_return=realized,
                 realized_direction=int(realized > 0.0),
-                source=bar.source,
-                source_record_id=bar.provider_record_id,
+                source=target_bar.source,
+                source_record_id=target_bar.provider_record_id,
                 matured_at=as_of.isoformat(),
             )
             self._write_new(
@@ -188,9 +183,7 @@ class ImmutablePredictionStore:
             [predictions[item.prediction_id].predicted_return for item in outcomes],
             dtype=np.float64,
         )
-        realized_returns = np.asarray(
-            [item.realized_return for item in outcomes], dtype=np.float64
-        )
+        realized_returns = np.asarray([item.realized_return for item in outcomes], dtype=np.float64)
         return {
             "resolved_predictions": len(outcomes),
             "directional_accuracy": float(
@@ -230,9 +223,7 @@ def persist_signal_predictions(
         if prediction is None:
             raise ValueError(f"signal has no immutable prediction: {signal.signal_id}")
         signal_date = date.fromisoformat(signal.signal_date)
-        created_at = datetime.combine(
-            signal_date, time(18, 10), tzinfo=ISTANBUL
-        ).isoformat()
+        created_at = datetime.combine(signal_date, time(18, 10), tzinfo=ISTANBUL).isoformat()
         paths.append(
             store.persist(
                 PredictionRecord(
@@ -242,13 +233,9 @@ def persist_signal_predictions(
                     target_date=signal.execution_date,
                     ticker=signal.ticker,
                     model_run_id=model_run_id,
-                    feature_manifest_hash=str(
-                        prediction["feature_manifest_hash"]
-                    ),
+                    feature_manifest_hash=str(prediction["feature_manifest_hash"]),
                     predicted_return=float(prediction["predicted_return"]),
-                    predicted_probability=float(
-                        prediction["predicted_probability"]
-                    ),
+                    predicted_probability=float(prediction["predicted_probability"]),
                     created_at=created_at,
                 )
             )

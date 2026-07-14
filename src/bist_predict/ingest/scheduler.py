@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import asyncio
 import logging
 import sqlite3
 from datetime import date
@@ -48,9 +47,7 @@ class IngestionScheduler:
         """Return diagnostics from the most recent provider merge."""
         return self._last_reconciliation
 
-    async def fetch_prices(
-        self, ticker: str, start_date: date, end_date: date
-    ) -> list[OHLCVBar]:
+    async def fetch_prices(self, ticker: str, start_date: date, end_date: date) -> list[OHLCVBar]:
         """Fetch both providers and use fallback observations to fill partial gaps."""
         primary_bars: list[OHLCVBar] = []
         if self._price_primary is not None:
@@ -94,8 +91,15 @@ class IngestionScheduler:
                            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?,
                                    ?, ?, ?, ?, ?, ?, ?, ?)""",
                         (
-                            bar.ticker, bar.date_str, bar.open, bar.high,
-                            bar.low, bar.close, bar.adj_close, bar.volume, bar.source,
+                            bar.ticker,
+                            bar.date_str,
+                            bar.open,
+                            bar.high,
+                            bar.low,
+                            bar.close,
+                            bar.adj_close,
+                            bar.volume,
+                            bar.source,
                             bar.open_quality.value,
                             bar.volume_quality.value,
                             bar.provider_symbol,
@@ -160,8 +164,12 @@ class IngestionScheduler:
                        (ticker, date, source, headline, sentiment_score, raw_text)
                        VALUES (?, ?, ?, ?, ?, ?)""",
                     (
-                        record.ticker, record.date_str, record.source,
-                        record.headline, record.sentiment_score, record.raw_text,
+                        record.ticker,
+                        record.date_str,
+                        record.source,
+                        record.headline,
+                        record.sentiment_score,
+                        record.raw_text,
                     ),
                 )
                 stored += 1

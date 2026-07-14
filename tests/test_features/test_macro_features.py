@@ -55,5 +55,6 @@ class TestMacroFeatures:
 
     def test_missing_data_returns_nan(self, db: Database) -> None:
         import math
+
         features = compute_macro_features(db, "2026-01-01")  # No data
         assert math.isnan(features.get("usd_try_delta", float("nan")))

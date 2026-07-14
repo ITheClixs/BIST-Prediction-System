@@ -79,9 +79,7 @@ def test_nominal_price_scale_cannot_identify_a_ticker() -> None:
     assert len(original) == len(scaled)
     for left, right in zip(original, scaled, strict=True):
         assert (left.date, left.ticker) == (right.date, right.ticker)
-        assert tuple(right.values.values()) == pytest.approx(
-            tuple(left.values.values()), abs=1e-12
-        )
+        assert tuple(right.values.values()) == pytest.approx(tuple(left.values.values()), abs=1e-12)
 
 
 def test_every_enabled_feature_is_observed_on_eligible_samples() -> None:
@@ -108,4 +106,3 @@ def test_requested_lookback_and_target_horizon_must_fit_each_ticker() -> None:
             [bar for bar in _bars(sessions=100) if bar.ticker == "THYAO"],
             target_horizon_sessions=1,
         )
-
