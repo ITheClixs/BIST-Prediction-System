@@ -82,6 +82,25 @@ class AcceptedBenchmarkConfig:
         return cls(**payload)  # type: ignore[arg-type]
 
 
+@dataclass(frozen=True)
+class CorporateActionCoverage:
+    """Sourced assertion that one ticker/date interval was checked for actions."""
+
+    ticker: str
+    start: date
+    end: date
+    source: str
+    source_retrieved_at: datetime
+
+    def __post_init__(self) -> None:
+        if not self.ticker or not self.source:
+            raise ValueError("corporate-action coverage requires ticker and source")
+        if self.start > self.end:
+            raise ValueError("corporate-action coverage start must not exceed end")
+        if self.source_retrieved_at.tzinfo is None:
+            raise ValueError("corporate-action coverage retrieval time must be timezone-aware")
+
+
 _CORPORATE_ACTION_COLUMNS = (
     "ticker",
     "effective_date",
@@ -93,6 +112,13 @@ _CORPORATE_ACTION_COLUMNS = (
     "subscription_price",
     "new_ticker",
     "delisting_price",
+    "source_retrieved_at",
+)
+_CORPORATE_ACTION_COVERAGE_COLUMNS = (
+    "ticker",
+    "start",
+    "end",
+    "source",
     "source_retrieved_at",
 )
 
@@ -261,6 +287,49 @@ def load_corporate_action_artifact(path: Path) -> tuple[CorporateAction, ...]:
     return _corporate_actions_from_frame(pd.read_parquet(path))
 
 
+def _corporate_action_coverage_frame(
+    coverage: Iterable[CorporateActionCoverage],
+) -> pd.DataFrame:
+    records = [
+        {
+            "ticker": item.ticker,
+            "start": item.start.isoformat(),
+            "end": item.end.isoformat(),
+            "source": item.source,
+            "source_retrieved_at": item.source_retrieved_at.isoformat(),
+        }
+        for item in coverage
+    ]
+    return pd.DataFrame.from_records(
+        records,
+        columns=_CORPORATE_ACTION_COVERAGE_COLUMNS,
+    ).sort_values(["ticker"], kind="stable", ignore_index=True)
+
+
+def _corporate_action_coverage_from_frame(
+    frame: pd.DataFrame,
+) -> tuple[CorporateActionCoverage, ...]:
+    if tuple(frame.columns) != _CORPORATE_ACTION_COVERAGE_COLUMNS:
+        raise ValueError("corporate-action coverage artifact schema mismatch")
+    return tuple(
+        CorporateActionCoverage(
+            ticker=str(row["ticker"]),
+            start=date.fromisoformat(str(row["start"])),
+            end=date.fromisoformat(str(row["end"])),
+            source=str(row["source"]),
+            source_retrieved_at=datetime.fromisoformat(str(row["source_retrieved_at"])),
+        )
+        for row in frame.to_dict(orient="records")
+    )
+
+
+def load_corporate_action_coverage_artifact(
+    path: Path,
+) -> tuple[CorporateActionCoverage, ...]:
+    """Load sourced no-event/event coverage for every accepted ticker."""
+    return _corporate_action_coverage_from_frame(pd.read_parquet(path))
+
+
 def _validate_prices(prices: tuple[OHLCVBar, ...]) -> None:
     if not prices:
         raise ValueError("accepted benchmark requires price observations")
@@ -317,6 +386,40 @@ def _validate_corporate_actions(
         if action.source_retrieved_at.tzinfo is None:
             raise ValueError("corporate action retrieval time must be timezone-aware")
     return tuple(sorted(actions, key=lambda item: (item.effective_date, item.ticker)))
+
+
+def _validate_corporate_action_coverage(
+    coverage: tuple[CorporateActionCoverage, ...] | None,
+    bars: tuple[OHLCVBar, ...],
+    config: AcceptedBenchmarkConfig,
+    *,
+    source_retrieved_at: datetime,
+) -> tuple[CorporateActionCoverage, ...]:
+    tickers = sorted({bar.ticker for bar in bars})
+    start = min(bar.date for bar in bars)
+    end = max(bar.date for bar in bars)
+    if coverage is None and config.experiment_scope == "synthetic_methodology_smoke":
+        return tuple(
+            CorporateActionCoverage(
+                ticker=ticker,
+                start=start,
+                end=end,
+                source="synthetic_methodology_smoke_actions",
+                source_retrieved_at=source_retrieved_at,
+            )
+            for ticker in tickers
+        )
+    if coverage is None:
+        raise ValueError("accepted market benchmark requires corporate-action coverage")
+    by_ticker = {item.ticker: item for item in coverage}
+    if len(by_ticker) != len(coverage):
+        raise ValueError("duplicate corporate-action coverage ticker")
+    if sorted(by_ticker) != tickers:
+        raise ValueError("corporate-action coverage must match the accepted universe")
+    for item in coverage:
+        if item.start > start or item.end < end:
+            raise ValueError("corporate-action coverage does not span the dataset interval")
+    return tuple(sorted(coverage, key=lambda item: item.ticker))
 
 
 def _calendar_for_run(
@@ -424,6 +527,7 @@ def run_accepted_benchmark(
     prices: Iterable[OHLCVBar],
     *,
     corporate_actions: Iterable[CorporateAction] | None = None,
+    corporate_action_coverage: Iterable[CorporateActionCoverage] | None = None,
     runs_root: Path,
     config: AcceptedBenchmarkConfig,
     now: datetime | None = None,
@@ -439,6 +543,16 @@ def run_accepted_benchmark(
     supplied_actions = None if corporate_actions is None else tuple(corporate_actions)
     action_records = _validate_corporate_actions(supplied_actions, bars, config)
     action_frame = _corporate_action_frame(action_records)
+    supplied_coverage = (
+        None if corporate_action_coverage is None else tuple(corporate_action_coverage)
+    )
+    action_coverage = _validate_corporate_action_coverage(
+        supplied_coverage,
+        bars,
+        config,
+        source_retrieved_at=effective_now,
+    )
+    action_coverage_frame = _corporate_action_coverage_frame(action_coverage)
     calendar = _calendar_for_run(bars, config, source_retrieved_at=effective_now)
     calendar_validation = calendar.validate_bars(bars)
     calendar_issues = {
@@ -500,6 +614,7 @@ def run_accepted_benchmark(
             {bar.source for bar in bars}
             | {calendar.source}
             | {action.source for action in action_records}
+            | {item.source for item in action_coverage}
         ),
         "universe_version": config.experiment_scope,
         "start": min(bar.date for bar in bars).isoformat(),
@@ -519,6 +634,7 @@ def run_accepted_benchmark(
             "corporate_action_types": sorted(
                 {action.action_type.value for action in action_records}
             ),
+            "corporate_action_coverage_tickers": [item.ticker for item in action_coverage],
             "corporate_action_policy": (
                 "positions open after effective-open actions; no pre-open entitlement is credited"
             ),
@@ -559,6 +675,7 @@ def run_accepted_benchmark(
         seeds=(config.seed,),
         command=command,
         input_frames={
+            "corporate_action_coverage": action_coverage_frame,
             "corporate_actions": action_frame,
             "input_prices": price_frame,
             "official_calendar": calendar_frame,
@@ -591,9 +708,13 @@ def reproduce_run(run_path: Path, *, scratch_root: Path) -> dict[str, str]:
     corporate_actions = _corporate_actions_from_frame(
         pd.read_parquet(run_path / "corporate_actions.parquet")
     )
+    corporate_action_coverage = _corporate_action_coverage_from_frame(
+        pd.read_parquet(run_path / "corporate_action_coverage.parquet")
+    )
     replay = run_accepted_benchmark(
         prices,
         corporate_actions=corporate_actions,
+        corporate_action_coverage=corporate_action_coverage,
         runs_root=scratch_root,
         config=config,
         now=datetime.fromisoformat(run_manifest["created_at"]),

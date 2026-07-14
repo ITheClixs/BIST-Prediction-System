@@ -286,6 +286,12 @@ def reproduce_smoke(runs_root: Path) -> None:
     help="Sourced corporate_actions.parquet covering the input interval.",
 )
 @click.option(
+    "--corporate-action-coverage",
+    type=click.Path(path_type=Path, exists=True, dir_okay=False),
+    required=True,
+    help="Sourced per-ticker action-query coverage for the input interval.",
+)
+@click.option(
     "--prediction-store",
     type=click.Path(path_type=Path),
     default=Path("prediction_tracking"),
@@ -296,11 +302,13 @@ def benchmark(
     prices: Path,
     runs_root: Path,
     corporate_actions: Path,
+    corporate_action_coverage: Path,
     prediction_store: Path,
 ) -> None:
     """Run the accepted fixed-universe baseline benchmark on explicit inputs."""
     from bist_predict.research.accepted_benchmark import (
         AcceptedBenchmarkConfig,
+        load_corporate_action_coverage_artifact,
         load_corporate_action_artifact,
         load_price_artifact,
         run_accepted_benchmark,
@@ -313,10 +321,15 @@ def benchmark(
     bundle = run_accepted_benchmark(
         load_price_artifact(prices),
         corporate_actions=load_corporate_action_artifact(corporate_actions),
+        corporate_action_coverage=load_corporate_action_coverage_artifact(
+            corporate_action_coverage
+        ),
         runs_root=runs_root,
         config=AcceptedBenchmarkConfig(),
         command=(
-            f"bist-predict benchmark --prices {prices} --corporate-actions {corporate_actions}"
+            f"bist-predict benchmark --prices {prices} "
+            f"--corporate-actions {corporate_actions} "
+            f"--corporate-action-coverage {corporate_action_coverage}"
         ),
     )
     tracked = persist_run_signal_predictions(

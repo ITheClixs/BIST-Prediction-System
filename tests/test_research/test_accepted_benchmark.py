@@ -56,6 +56,7 @@ def test_synthetic_methodology_smoke_runs_and_replays_from_bundled_inputs(
         "market_regime",
     }
     assert (bundle.path / "input_prices.parquet").exists()
+    assert (bundle.path / "corporate_action_coverage.parquet").exists()
     assert (bundle.path / "corporate_actions.parquet").exists()
     assert (bundle.path / "official_calendar.parquet").exists()
     assert (bundle.path / "panel.parquet").exists()
@@ -114,6 +115,17 @@ def test_market_benchmark_requires_corporate_action_snapshot(tmp_path) -> None:
     with pytest.raises(ValueError, match="corporate-action snapshot"):
         run_accepted_benchmark(
             generate_synthetic_prices(),
+            runs_root=tmp_path / "runs",
+            config=config,
+            now=datetime(2024, 4, 5, 12, 0, tzinfo=UTC),
+            git_sha="abcdef123456",
+            dirty_working_tree=False,
+        )
+
+    with pytest.raises(ValueError, match="corporate-action coverage"):
+        run_accepted_benchmark(
+            generate_synthetic_prices(),
+            corporate_actions=(),
             runs_root=tmp_path / "runs",
             config=config,
             now=datetime(2024, 4, 5, 12, 0, tzinfo=UTC),
