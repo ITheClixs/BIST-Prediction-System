@@ -1,4 +1,4 @@
-.PHONY: reproduce-smoke reproduce benchmark test research-invariants lint format-check typecheck coverage rust-test rust-equivalence provider-smoke
+.PHONY: reproduce-smoke reproduce benchmark readme-results test research-invariants lint format-check typecheck coverage rust-test rust-equivalence provider-smoke
 
 UV_RUN = UV_CACHE_DIR=/tmp/bist-uv-cache PYTHONPATH=src uv run
 RUNS_ROOT ?= runs
@@ -15,6 +15,10 @@ benchmark:
 	@test -n "$(ACTIONS)" || (echo "ACTIONS is required" && exit 2)
 	@test -n "$(ACTION_COVERAGE)" || (echo "ACTION_COVERAGE is required" && exit 2)
 	$(UV_RUN) bist-predict benchmark --prices $(INPUT) --corporate-actions $(ACTIONS) --corporate-action-coverage $(ACTION_COVERAGE) --runs-root $(RUNS_ROOT)
+
+readme-results:
+	@test -n "$(RUN_ID)" || (echo "RUN_ID is required" && exit 2)
+	$(UV_RUN) python -m bist_predict.research.readme_results --readme README.md --run $(RUNS_ROOT)/$(RUN_ID)
 
 test:
 	$(UV_RUN) pytest -q
