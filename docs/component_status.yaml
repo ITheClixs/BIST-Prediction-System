@@ -1,6 +1,6 @@
 schema_version: 1
 scope: fixed_bist_large_cap_prototype
-generated_from_commit: 721ab35
+generated_from_commit: c35eafa
 status_definitions:
   implemented: "Executable code exists; scaffold and partial identify incomplete contracts."
   integrated: "The component participates in the current default CLI path."
@@ -331,48 +331,42 @@ components:
     note: "Opt-in and sequence alignment differs between training and inference."
 
   stacking:
-    package: bist_predict.models
-    implemented: partial
-    integrated: true
-    evaluated: false
-    production_inference: true
-    accepted_default: false
-    evidence:
-      - src/bist_predict/models/ensemble.py
-      - src/bist_predict/research/ensemble_pipeline.py
-    note: "No persisted OOF lineage; not accepted until strict OOF proof exists."
-
-  probability_calibration:
-    package: bist_predict.models
-    implemented: partial
-    integrated: true
-    evaluated: false
-    production_inference: true
-    accepted_default: false
-    evidence:
-      - src/bist_predict/models/calibration.py
-      - src/bist_predict/research/ensemble_pipeline.py
-    note: "Fitted on the same meta block as the stacker; no separate calibration period."
-
-  immutable_oos_predictions:
     package: bist_predict.research
-    implemented: false
+    implemented: true
     integrated: false
     evaluated: false
     production_inference: false
     accepted_default: false
-    evidence: []
+    evidence:
+      - src/bist_predict/models/ensemble.py
+      - src/bist_predict/research/chronological_stacking.py
+      - tests/test_research/test_chronological_stacking.py
+    note: "The strict path rejects in-sample base predictions and persists row/model/training-end/fold/timestamp lineage; legacy ensemble integration remains unaccepted."
 
-  prediction_metrics:
-    package: bist_predict.evaluation
-    implemented: partial
-    integrated: true
+  probability_calibration:
+    package: bist_predict.research
+    implemented: true
+    integrated: false
     evaluated: false
     production_inference: false
     accepted_default: false
     evidence:
-      - src/bist_predict/evaluation/metrics.py
-    note: "Missing IC, zero-mean R2, PR-AUC, MCC, and grouped/bootstrap reports."
+      - src/bist_predict/models/calibration.py
+      - src/bist_predict/research/chronological_stacking.py
+      - tests/test_research/test_chronological_stacking.py
+    note: "Calibration is fit after stacking and before final test; Brier, log loss, ECE, slope, intercept, and reliability buckets are recorded."
+
+  prediction_metrics:
+    package: bist_predict.research
+    implemented: true
+    integrated: false
+    evaluated: false
+    production_inference: false
+    accepted_default: false
+    evidence:
+      - src/bist_predict/research/prediction_metrics.py
+      - tests/test_research/test_baselines.py
+    note: "Core prediction metrics recompute from immutable OOS rows; grouped and block-bootstrap reports remain pending."
 
   portfolio_backtest:
     package: bist_predict.evaluation
