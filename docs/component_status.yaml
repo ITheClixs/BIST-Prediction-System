@@ -91,13 +91,16 @@ components:
   trading_calendar:
     package: bist_predict.ingest
     implemented: true
-    integrated: false
+    integrated: true
     evaluated: false
     production_inference: false
-    accepted_default: false
+    accepted_default: true
     evidence:
       - src/bist_predict/ingest/calendar.py
-    note: "Sourced immutable session snapshots validate holidays, weekends, duplicates, and timezone."
+      - src/bist_predict/research/accepted_benchmark.py
+      - tests/test_ingest/test_calendar.py
+      - tests/test_research/test_accepted_benchmark.py
+    note: "The accepted runner validates bars against the sourced 2025-2026 Borsa schedule, persists the schedule, and uses official half-day closes for target timestamps."
 
   immutable_data_manifests:
     package: bist_predict.research

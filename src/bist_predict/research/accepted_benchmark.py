@@ -12,6 +12,10 @@ from typing import Iterable, Mapping
 import numpy as np
 import pandas as pd
 
+from bist_predict.ingest.calendar import (
+    OfficialTradingCalendar,
+    borsa_istanbul_equity_calendar,
+)
 from bist_predict.ingest.types import (
     OHLCVBar,
     OpenQuality,
@@ -197,6 +201,47 @@ def _validate_prices(prices: tuple[OHLCVBar, ...]) -> None:
         raise ValueError("all accepted-universe tickers must share identical sessions")
 
 
+def _calendar_for_run(
+    bars: tuple[OHLCVBar, ...],
+    config: AcceptedBenchmarkConfig,
+    *,
+    source_retrieved_at: datetime,
+) -> OfficialTradingCalendar:
+    start = min(bar.date for bar in bars)
+    end = max(bar.date for bar in bars)
+    if config.experiment_scope == "synthetic_methodology_smoke":
+        sessions = tuple(sorted({bar.date for bar in bars}))
+        return OfficialTradingCalendar(
+            index_name="SYNTHETIC",
+            sessions=sessions,
+            source="synthetic_methodology_smoke_calendar",
+            source_retrieved_at=source_retrieved_at,
+        )
+    return borsa_istanbul_equity_calendar(
+        start,
+        end,
+        source_retrieved_at=source_retrieved_at,
+    )
+
+
+def _calendar_frame(calendar: OfficialTradingCalendar) -> pd.DataFrame:
+    records: list[dict[str, object]] = []
+    for session in calendar.sessions:
+        session_open, session_close = calendar.session_bounds(session)
+        records.append(
+            {
+                "date": session.isoformat(),
+                "session_open": session_open,
+                "session_close": session_close,
+                "is_half_day": session in calendar.session_close_overrides,
+                "index_name": calendar.index_name,
+                "source": calendar.source,
+                "source_retrieved_at": calendar.source_retrieved_at,
+            }
+        )
+    return pd.DataFrame.from_records(records)
+
+
 def _canonical_frame_hash(frame: pd.DataFrame) -> str:
     encoded = frame.to_json(orient="records", date_format="iso", double_precision=15)
     return hashlib.sha256(encoded.encode()).hexdigest()
@@ -268,11 +313,28 @@ def run_accepted_benchmark(
     command: str = "bist-predict benchmark",
 ) -> RunBundle:
     """Run all accepted baselines, one cost-aware portfolio, and persist evidence."""
+    effective_now = now or datetime.now(UTC)
     price_frame = _price_frame(tuple(prices))
     bars = _prices_from_frame(price_frame)
     _validate_prices(bars)
+    calendar = _calendar_for_run(bars, config, source_retrieved_at=effective_now)
+    calendar_validation = calendar.validate_bars(bars)
+    calendar_issues = {
+        "missing_expected_sessions": list(calendar_validation.missing_expected_sessions),
+        "unexpected_sessions": list(calendar_validation.unexpected_sessions),
+        "unexpected_weekend_rows": list(calendar_validation.unexpected_weekend_rows),
+        "duplicate_sessions": list(calendar_validation.duplicate_sessions),
+    }
+    if any(calendar_issues.values()):
+        raise ValueError(f"price data violates official trading calendar: {calendar_issues}")
+    calendar_frame = _calendar_frame(calendar)
     snapshots = build_stationary_snapshots(bars)
-    panel_rows = build_canonical_panel(snapshots, bars, STATIONARY_FEATURE_MANIFEST)
+    panel_rows = build_canonical_panel(
+        snapshots,
+        bars,
+        STATIONARY_FEATURE_MANIFEST,
+        calendar=calendar,
+    )
     panel = panel_to_frame(panel_rows, STATIONARY_FEATURE_MANIFEST)
     splitter = ExpandingWindowSplitter(
         min_train_dates=config.min_train_dates,
@@ -305,22 +367,24 @@ def run_accepted_benchmark(
             "metrics": compute_portfolio_metrics(result, benchmark_returns=equal_weight_returns),
         }
 
-    effective_now = now or datetime.now(UTC)
     tickers = sorted({bar.ticker for bar in bars})
     data_manifest = {
         "dataset_id": f"{config.experiment_scope}-{_canonical_frame_hash(price_frame)[:12]}",
-        "sources": sorted({bar.source for bar in bars}),
+        "sources": sorted({bar.source for bar in bars} | {calendar.source}),
         "universe_version": config.experiment_scope,
         "start": min(bar.date for bar in bars).isoformat(),
         "end": max(bar.date for bar in bars).isoformat(),
         "row_count": len(bars),
         "sha256": _canonical_frame_hash(price_frame),
         "created_at": effective_now.astimezone(UTC).isoformat(),
-        "missing_sessions": [],
+        "missing_sessions": list(calendar_validation.missing_expected_sessions),
         "quality_summary": {
             "open_quality": {"observed": len(bars)},
             "volume_quality": {"observed": len(bars)},
             "identical_ticker_sessions": True,
+            "calendar_source": calendar.source,
+            "calendar_sha256": _canonical_frame_hash(calendar_frame),
+            "calendar_validation": calendar_issues,
         },
     }
     universe_manifest = {
@@ -356,6 +420,7 @@ def run_accepted_benchmark(
         command=command,
         input_frames={
             "input_prices": price_frame,
+            "official_calendar": calendar_frame,
             "panel": panel,
             "sample_metadata": metadata,
         },

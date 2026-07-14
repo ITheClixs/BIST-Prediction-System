@@ -2,11 +2,14 @@
 
 from __future__ import annotations
 
-from datetime import UTC, date, datetime
+from datetime import UTC, date, datetime, time
 
 import pytest
 
-from bist_predict.ingest.calendar import OfficialTradingCalendar
+from bist_predict.ingest.calendar import (
+    OfficialTradingCalendar,
+    borsa_istanbul_equity_calendar,
+)
 from bist_predict.ingest.types import OHLCVBar
 
 
@@ -66,3 +69,19 @@ def test_calendar_refuses_weekends_in_official_snapshot() -> None:
             source="official",
             source_retrieved_at=datetime(2026, 3, 1, tzinfo=UTC),
         )
+
+
+def test_borsa_calendar_uses_official_full_and_half_day_schedule() -> None:
+    calendar = borsa_istanbul_equity_calendar(
+        date(2025, 6, 4),
+        date(2026, 3, 20),
+        source_retrieved_at=datetime(2026, 7, 14, tzinfo=UTC),
+    )
+
+    assert date(2025, 6, 6) not in calendar.sessions
+    assert date(2026, 3, 20) not in calendar.sessions
+    assert calendar.session_bounds(date(2025, 6, 5))[1].timetz().replace(tzinfo=None) == time(13, 0)
+    assert calendar.session_bounds(date(2026, 3, 19))[1].timetz().replace(tzinfo=None) == time(
+        13, 0
+    )
+    assert "borsaistanbul.com/en/official-holidays" in calendar.source

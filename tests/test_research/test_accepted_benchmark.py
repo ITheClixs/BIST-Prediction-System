@@ -49,7 +49,15 @@ def test_synthetic_methodology_smoke_runs_and_replays_from_bundled_inputs(
         "market_regime",
     }
     assert (bundle.path / "input_prices.parquet").exists()
+    assert (bundle.path / "official_calendar.parquet").exists()
     assert (bundle.path / "panel.parquet").exists()
+    data_manifest = json.loads((bundle.path / "data_manifest.json").read_text())
+    assert data_manifest["quality_summary"]["calendar_validation"] == {
+        "duplicate_sessions": [],
+        "missing_expected_sessions": [],
+        "unexpected_sessions": [],
+        "unexpected_weekend_rows": [],
+    }
 
     replay = reproduce_run(bundle.path, scratch_root=tmp_path / "replay")
 

@@ -15,6 +15,7 @@ from bist_predict.features.manifest import (
     FeatureManifest,
     FeatureSchemaError,
 )
+from bist_predict.ingest.calendar import OfficialTradingCalendar
 from bist_predict.ingest.types import OHLCVBar, OpenQuality
 
 ISTANBUL = ZoneInfo("Europe/Istanbul")
@@ -117,6 +118,8 @@ def build_canonical_panel(
     snapshots: Iterable[FeatureSnapshot],
     prices: Iterable[OHLCVBar],
     manifest: FeatureManifest,
+    *,
+    calendar: OfficialTradingCalendar | None = None,
 ) -> tuple[CanonicalPanelRow, ...]:
     """Build a sorted panel using observed next-session opens and closes.
 
@@ -160,8 +163,14 @@ def build_canonical_panel(
         if target_bar.open <= 0.0:
             raise PanelBuildError("execution open must be positive")
 
-        target_start = _session_timestamp(target_bar.date, SESSION_OPEN)
-        target_end = _session_timestamp(target_bar.date, SESSION_CLOSE)
+        if calendar is None:
+            target_start = _session_timestamp(target_bar.date, SESSION_OPEN)
+            target_end = _session_timestamp(target_bar.date, SESSION_CLOSE)
+        else:
+            try:
+                target_start, target_end = calendar.session_bounds(target_bar.date)
+            except ValueError as error:
+                raise PanelBuildError(str(error)) from error
         signal_generated_at = snapshot.feature_available_at + timedelta(minutes=1)
         if not snapshot.feature_available_at < target_start:
             raise PanelBuildError("feature availability must precede execution")

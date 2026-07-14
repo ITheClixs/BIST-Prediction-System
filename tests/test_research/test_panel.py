@@ -8,6 +8,7 @@ from zoneinfo import ZoneInfo
 import pytest
 
 from bist_predict.features.manifest import FeatureManifest, FeatureSpec
+from bist_predict.ingest.calendar import OfficialTradingCalendar
 from bist_predict.ingest.types import OHLCVBar, OpenQuality, VolumeQuality
 from bist_predict.research.panel import (
     FeatureSnapshot,
@@ -196,3 +197,26 @@ def test_panel_frame_keeps_timestamps_targets_and_manifest_order(
     ]
     assert frame.loc[0, "target_return"] == pytest.approx(0.02)
     assert frame.loc[0, "feature_manifest_hash"] == manifest.manifest_hash
+
+
+def test_panel_uses_official_half_day_target_close(
+    manifest: FeatureManifest,
+) -> None:
+    feature_date = date(2026, 3, 18)
+    target_date = date(2026, 3, 19)
+    calendar = OfficialTradingCalendar(
+        index_name="XIST",
+        sessions=(feature_date, target_date),
+        source="official-test-snapshot",
+        source_retrieved_at=datetime(2026, 1, 1, tzinfo=ISTANBUL),
+        session_close_overrides={target_date: datetime.min.time().replace(hour=13)},
+    )
+
+    rows = build_canonical_panel(
+        [_snapshot("THYAO", feature_date, manifest)],
+        [_bar("THYAO", target_date, open_price=100.0, close=101.0)],
+        manifest,
+        calendar=calendar,
+    )
+
+    assert rows[0].target_end.isoformat() == "2026-03-19T13:00:00+03:00"
