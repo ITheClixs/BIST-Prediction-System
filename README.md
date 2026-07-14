@@ -1,8 +1,10 @@
-# BIST-Predict: A Hybrid Quantitative Machine Learning System for Daily BIST-100 Directional Forecasting
+# BIST-Predict: A Leakage-Controlled BIST Equity Forecasting Benchmark
 
-**Abstract.** This repository implements a CLI-operated research system for daily Borsa Istanbul equity forecasting. Given a stock universe $\mathcal{U}$, daily OHLCV observations, macroeconomic state variables, calendar variables, and news-derived sentiment, the system constructs a multi-modal feature tensor and estimates next-session directional probability $P(y_{i,t+1}=1 \mid \mathbf{x}_{i,t})$ together with a conditional percentage-return forecast $\hat{r}_{i,t+1}$. The implementation combines free market-data ingestion, a Rust/PyO3 technical-indicator engine, Python quantitative alpha modules, tabular gradient-boosted learners, sequential neural models, stacking, probability calibration, SQLite-backed model governance, walk-forward evaluation, and live accuracy tracking. The practical objective is not a single black-box classifier; it is an auditable research pipeline in which each transformation from raw market state to signal tier is represented as a typed, testable module.
+**Abstract.** BIST-Predict is a point-in-time equity-research benchmark for a fixed four-stock Borsa Istanbul prototype universe. The accepted path builds one canonical date-ticker panel, validates an immutable feature schema, creates an executable next-open-to-close target, evaluates seven baselines with date-grouped purged walk-forward folds, saves every out-of-sample prediction, and runs a transaction-cost-aware long-only portfolio simulation through explicit orders, fills, positions, cash, and cost ledgers. A committed provider-backed run is exactly reproducible from bundled inputs. Its results are negative: none of the fitted models beats the zero-return baseline on zero-mean out-of-sample $R^2$, and the selected ridge strategy loses money after costs. Those results are retained because methodological validity is the acceptance criterion; model novelty is not.
 
-**Keywords:** BIST-100, directional forecasting, XGBoost, LightGBM, LSTM, Transformer encoder, Platt calibration, Ornstein-Uhlenbeck process, GARCH(1,1), Hidden Markov Models, Kalman filtering, feature stores, walk-forward backtesting.
+**Keywords:** Borsa Istanbul, point-in-time research, executable return targets, feature manifests, walk-forward validation, out-of-sample predictions, transaction costs, reproducibility.
+
+> **Scope boundary.** This is not a historical BIST-100 study. The accepted experiment is named `fixed_bist_large_cap_prototype` and contains GARAN, ISCTR, KCHOL, and THYAO. See [`docs/component_status.yaml`](docs/component_status.yaml) for the machine-readable implementation and evidence boundary.
 
 ---
 
@@ -12,9 +14,9 @@
 - [2. System Architecture](#2-system-architecture)
 - [3. Data and Storage Model](#3-data-and-storage-model)
 - [4. Feature Construction](#4-feature-construction)
-- [5. Quantitative Alpha Derivations](#5-quantitative-alpha-derivations)
+- [5. Experimental Quantitative Modules](#5-experimental-quantitative-modules)
 - [6. Learning Algorithms](#6-learning-algorithms)
-- [7. Calibration, Signal Tiers, and Decision Rule](#7-calibration-signal-tiers-and-decision-rule)
+- [7. Calibration, Stacking, and Decision Rule](#7-calibration-stacking-and-decision-rule)
 - [8. Evaluation Protocol](#8-evaluation-protocol)
 - [9. Installation](#9-installation)
 - [10. Quick Start](#10-quick-start)
@@ -31,976 +33,337 @@
 
 ## 1. Research Problem
 
-For stock $i \in \mathcal{U}$ and trading date $t$, let the observed state be
+For ticker $i$ and feature date $t$, the accepted study uses only information available after the official close of session $t$. The signal is generated after that close, execution occurs at the observed open of the next session $t+1$, and the position is marked or exited at that session's official close:
 
 $$
-\mathbf{s}_{i,t} =
-\left[
-O_{i,t}, H_{i,t}, L_{i,t}, C_{i,t}, V_{i,t},
-\mathbf{m}_t, \mathbf{q}_{i,t}, \mathbf{c}_t
-\right],
-$$
-
-where $O,H,L,C,V$ are open, high, low, close, and volume; $\mathbf{m}_t$ denotes macro variables from TCMB; $\mathbf{q}_{i,t}$ denotes ticker-level sentiment; and $\mathbf{c}_t$ denotes calendar state.
-
-The supervised labels are next-observation direction and return:
-
-$$
-r_{i,t+1} = \frac{C_{i,t+1} - C_{i,t}}{C_{i,t}}, \qquad
-y_{i,t+1} = \mathbb{1}\{r_{i,t+1} > 0\}.
-$$
-
-The repository estimates a dual-head predictive mapping:
-
-$$
-f_\theta(\mathbf{x}_{i,t}) =
-\left(
-\hat{p}_{i,t+1},
-\hat{r}_{i,t+1}
-\right),
+r_{i,t+1}^{\mathrm{exec}}
+=
+\frac{C_{i,t+1}^{\mathrm{raw}}}{O_{i,t+1}^{\mathrm{raw}}}-1,
 \qquad
-\hat{p}_{i,t+1} \approx P(y_{i,t+1}=1 \mid \mathbf{x}_{i,t}).
+y_{i,t+1}=\mathbb{1}\!\left\{r_{i,t+1}^{\mathrm{exec}}>0\right\}.
 $$
 
-The feature vector $\mathbf{x}_{i,t}$ is a deterministic transformation of historical prices, macro data, sentiment, and temporal encodings. The project is therefore a complete applied ML research stack: data generation, feature computation, model training, model registry, signal inference, and evaluation.
+Every panel row stores `feature_available_at`, `signal_generated_at`, `execution_timestamp`, `target_start`, and `target_end`, and enforces
+
+$$
+\texttt{feature\_available\_at}
+<
+\texttt{execution\_timestamp}
+\leq
+\texttt{target\_start}
+<
+\texttt{target\_end}.
+$$
+
+This target is deliberately narrower than a generic next-day forecast: it is the return the backtest can actually earn under its stated timing. Internally, returns are decimal fractions; multiplication by 100 occurs only in reports.
+
+The current research question is therefore:
+
+> Do scale-normalized price and volume features provide out-of-sample information for next-session open-to-close returns in this fixed prototype, after chronological validation and explicit transaction costs?
 
 ---
 
 ## 2. System Architecture
 
+The accepted path is intentionally small and evidence-driven.
+
 ```mermaid
 flowchart TD
-    A[CLI: bist-predict] --> B[Ingestion Scheduler]
-    B --> C1[Is Yatirim OHLCV]
-    B --> C2[Yahoo Finance fallback]
-    B --> C3[TCMB EVDS macro]
-    B --> C4[Google News and Turkish RSS sentiment]
-    C1 --> D[(SQLite raw_prices)]
-    C2 --> D
-    C3 --> E[(SQLite macro_data)]
-    C4 --> F[(SQLite sentiment_data)]
-    D --> G[Feature Engine]
-    E --> G
-    F --> G
-    G --> H[Rust PyO3 technical indicators]
-    G --> I[Python macro, sentiment, temporal features]
-    G --> J[Quant alpha layer]
-    H --> K[(SQLite features)]
-    I --> K
-    J --> K
-    K --> L[Dataset builders]
-    L --> M1[XGBoost dual head]
-    L --> M2[LightGBM dual head]
-    L --> M3[LSTM dual head]
-    L --> M4[Transformer dual head]
-    M1 --> N[Stacking ensemble]
-    M2 --> N
-    M3 --> N
-    M4 --> N
-    N --> O[Platt calibration]
-    O --> P[Signal tiers]
-    P --> Q[(predictions and accuracy tracking)]
-    L --> R[Walk-forward backtest]
+    A[Provider bars + provenance] --> B[Calendar and action validation]
+    B --> C[Canonical date-ticker panel]
+    C --> D[Immutable feature manifest]
+    D --> E[Date-grouped purged folds]
+    E --> F[Seven common-fold baselines]
+    F --> G[Immutable OOS predictions]
+    G --> H[Metrics recomputation]
+    G --> I[Long-only top-k decisions]
+    I --> J[Signals, orders, fills]
+    J --> K[Positions, cash, costs, equity]
+    K --> L[Run manifests and artifact hashes]
 ```
 
-The implementation uses a layered design:
+### 2.1 Evidence Boundary
 
-| Layer | Repository modules | Research function |
-|-------|--------------------|-------------------|
-| Ingestion | `src/bist_predict/ingest/` | Builds the empirical sample from free data sources with validation and fallback. |
-| Storage | `src/bist_predict/storage/` | Persists raw observations, features, predictions, stock universe, and schema metadata. |
-| Feature computation | `src/bist_predict/features/`, `rust/bist_features/` | Converts raw observations into a model-ready representation. |
-| Quant alpha | `src/bist_predict/quant/` | Adds state-space, volatility, factor, regime, signal-quality, and risk features. |
-| Models | `src/bist_predict/models/` | Implements tabular, sequential, ensemble, calibration, and registry abstractions. |
-| Evaluation | `src/bist_predict/evaluation/` | Computes prediction metrics, trading metrics, walk-forward folds, and live accuracy. |
-| Interface | `src/bist_predict/cli.py` | Exposes the research workflow as reproducible CLI commands. |
+| Status | Components |
+|---|---|
+| Accepted and evaluated | Canonical panel, immutable feature manifest, stationary pooled features, official-calendar validation, executable target, date-grouped purged folds, seven baselines, saved OOS predictions, event-ledger backtest, immutable run replay. |
+| Implemented but outside the accepted experiment | Bounded XGBoost/LightGBM search, strict chronological stacking and calibration, Rust indicators and benchmark, provider reconciliation. |
+| Experimental legacy surface | Macro features, sentiment collection, Kalman/OU/GARCH/HMM/wavelet/cointegration features, LSTM, Transformer, model registry, legacy `train`, `signals`, `pipeline`, and `backtest` commands. |
+| Not implemented | Point-in-time historical BIST-100 membership and sentiment scoring. |
+
+Components outside the accepted path are never silently converted to zero-valued input columns. They remain available for research, but their existence is not presented as evidence of predictive value.
 
 ---
 
 ## 3. Data and Storage Model
 
-The data model is explicitly time-indexed. This matters because the learning task is leakage-sensitive: features at $t$ must never include outcomes from $t+1$.
+### 3.1 Accepted Input Contract
 
-```mermaid
-erDiagram
-    raw_prices {
-        text ticker
-        text date
-        real open
-        real high
-        real low
-        real close
-        real adj_close
-        real volume
-    }
-    macro_data {
-        text indicator
-        text date
-        real value
-    }
-    sentiment_data {
-        text ticker
-        text date
-        text headline
-        real sentiment_score
-    }
-    features {
-        text ticker
-        text date
-        text feature_name
-        real value
-    }
-    predictions {
-        text ticker
-        text prediction_date
-        text target_date
-        text direction
-        real confidence
-        real predicted_pct_move
-        text model_name
-        text actual_direction
-        real actual_pct_move
-    }
-    model_registry {
-        text model_name
-        text version
-        text model_path
-        text metrics_json
-        integer active
-    }
-    tracked_stocks {
-        text ticker
-        integer active
-        text source
-    }
-    raw_prices ||--o{ features : "ticker,date"
-    raw_prices ||--o{ predictions : "target outcome"
-    macro_data ||--o{ features : "date"
-    sentiment_data ||--o{ features : "ticker,date"
-    model_registry ||--o{ predictions : "model_name"
+The committed provider-backed run contains 1,004 rows for four tickers from 2025-04-07 through 2026-04-03. Every execution open and volume observation is marked `observed`; proxy opens are rejected.
+
+The canonical provider record distinguishes:
+
+| Representation | Research use |
+|---|---|
+| Raw tradable OHLCV | Orders, fills, and portfolio marking. |
+| Split-adjusted OHLCV | Stationary technical features where continuity is required. |
+| Total-return prices | Economic labels where distributions must be recognized. |
+| Corporate-action events | Splits, bonus issues, rights issues, cash dividends, ticker changes, and delistings where sourced. |
+
+Each row retains provider name, provider symbol, source record identifier, retrieval time, `open_quality`, and `volume_quality`. The Is Yatirim weighted-average price is represented as a proxy and cannot enter next-open execution research. Partial provider gaps can be repaired by the reconciliation layer; the accepted run itself uses one explicit Yahoo input snapshot rather than claiming an empirically validated multi-provider merge.
+
+### 3.2 Calendar and Corporate Actions
+
+The accepted runner validates expected sessions, duplicates, weekend rows, holidays, timezone, and full-day or half-day open/close timestamps against the committed Borsa Istanbul schedule. Its input bundle includes five sourced cash-dividend events and a per-ticker corporate-action query-coverage artifact.
+
+Typed policies and invariant tests cover stock splits, bonus issues, rights issues, cash dividends, ticker changes, and delistings. Unsupported rights-action pricing fails closed. A synthetic two-for-one split verifies that a nominal price change from 100 to 50 does not become a false $-50\%$ economic return.
+
+### 3.3 Immutable Run Bundle
+
+Every accepted run is written under `runs/<run_id>/` and includes:
+
+```text
+config.yaml                 run_manifest.json
+data_manifest.json          universe_manifest.json
+feature_manifest.json       folds.json
+trials.jsonl                predictions.parquet
+metrics.json                model_artifact.json
+environment.json            artifact_hashes.json
+input_prices.parquet        official_calendar.parquet
+corporate_actions.parquet   corporate_action_coverage.parquet
+panel.parquet               sample_metadata.parquet
+signals.parquet             orders.parquet
+fills.parquet               positions.parquet
+cash_ledger.parquet         costs.parquet
+daily_equity.parquet
 ```
 
-### 3.1 Ingestion Sources
-
-| Data type | Source | Module | Notes |
-|-----------|--------|--------|-------|
-| BIST OHLCV | Is Yatirim API | `ingest/isyatirim.py` | Primary free price source. |
-| BIST OHLCV fallback | Yahoo Finance | `ingest/yahoo.py` | Uses BIST suffix conventions through `yfinance`. |
-| Macro indicators | TCMB EVDS | `ingest/tcmb.py` | Free key required for FX, rates, CPI, gold, and bond indicators. |
-| Sentiment | Google News RSS, Turkish finance RSS | `ingest/sentiment.py` | Lightweight Turkish/finance headline scoring. |
-| Validation | Internal quality module | `ingest/quality.py` | OHLCV consistency, missing-data gaps, and duplicate protection. |
-
-### 3.2 Data Quality Constraints
-
-For each price bar, the system enforces the admissible OHLCV region
-
-$$
-H_{i,t} \geq \max(O_{i,t}, C_{i,t}, L_{i,t}), \qquad
-L_{i,t} \leq \min(O_{i,t}, C_{i,t}, H_{i,t}), \qquad
-V_{i,t} \geq 0.
-$$
-
-Invalid observations are filtered before storage so that downstream feature functions receive a consistent sample.
+Run identifiers combine a UTC timestamp, short Git SHA, and configuration hash. Replay rebuilds the run from bundled inputs and checks every artifact hash.
 
 ---
 
 ## 4. Feature Construction
 
-The feature engine computes $\mathbf{x}_{i,t}$ from at most 252 historical price observations ending at $t$. The resulting vector combines Rust-computed technical features, Python-computed macro/sentiment/calendar features, and quantitative alpha features.
+The accepted pooled model uses a typed `FeatureManifest` with schema version, ordered names, formulas and formula versions, lookbacks, availability rules, missing-value policies, normalization policies, and a content hash. Training and inference reject missing features, unknown features, changed order, and hash mismatches. Equal column count is not schema compatibility.
 
-```mermaid
-flowchart LR
-    P[Price history up to t] --> T[Technical indicators]
-    P --> Q[Quant alpha features]
-    M[Macro data at t and prior t'] --> MF[Macro deltas]
-    S[Sentiment records for i,t] --> SF[Sentiment aggregation]
-    C[Calendar date t] --> TF[Cyclical temporal encoding]
-    T --> X[Feature vector x_i,t]
-    Q --> X
-    MF --> X
-    SF --> X
-    TF --> X
-    X --> Y[(features table)]
+### 4.1 Accepted Feature Families
+
+| Family | Accepted features |
+|---|---|
+| Returns | `log_return_1d`, `log_return_5d`, `log_return_20d` |
+| Trend and volatility | `close_over_sma20_minus_1`, `sma20_over_sma100_minus_1`, `atr14_over_close`, `realized_volatility_20`, `drawdown_20` |
+| Intraday and volume | `vwap20_over_close_minus_1`, `log_volume`, `volume_zscore_20`, `intraday_range_over_close`, `overnight_gap` |
+| Cross-sectional context | `cross_sectional_return_rank`, `market_relative_return_20d` |
+| Calendar encoding | `day_of_week_sin/cos`, `month_sin/cos` |
+
+Raw close, moving-average levels, absolute ATR, raw VWAP, raw volume, and OBV are excluded from the pooled accepted feature set because nominal scale can act as accidental ticker identification.
+
+### 4.2 Availability and Missingness
+
+Feature generation retrieves the maximum configured lookback plus the target horizon and fails when there is insufficient history. Every enabled feature must become observable on at least one eligible sample.
+
+Missing values retain an explicit reason:
+
+```text
+missing observation | insufficient lookback | calculation failure
+not applicable | stale source
 ```
 
-### 4.1 Technical Indicator Basis
+Economic zeros remain zeros. Tree estimators may retain native missing values; logistic and ridge models fit imputation and scaling on the training partition only. Missingness reports are grouped by feature, ticker, date, source, and fold. Future-perturbation and preprocessor-isolation tests guard the point-in-time boundary.
 
-The Rust extension in `rust/bist_features/src/` exposes the high-throughput indicator basis through PyO3. Implemented functions include:
+### 4.3 Feature Lineage
 
-| Family | Features and functions |
-|--------|------------------------|
-| Momentum | RSI(14), MACD(12,26,9), stochastic `%K/%D`, Williams `%R`, CCI(20), MFI(14). |
-| Trend | SMA and EMA over 5, 10, 20, 50, 100, and 200 sessions; ADX(14). |
-| Volatility | Bollinger upper/middle/lower bands, Bollinger width, Bollinger position, ATR(14). |
-| Volume | OBV, VWAP, 20-day volume ratio, raw volume. |
-| Return state | Close, 1-day return, 5-day return, 20-day return. |
-| Candlestick/cross-stock library | Pattern detection, correlation matrix, and beta are exposed by Rust and tested; the current feature orchestrator uses the indicator subset directly. |
-
-Canonical examples:
-
-$$
-\text{SMA}_n(t) = \frac{1}{n}\sum_{k=0}^{n-1} C_{t-k},
-\qquad
-\text{EMA}_n(t) = \alpha C_t + (1-\alpha)\text{EMA}_n(t-1),
-\quad
-\alpha = \frac{2}{n+1}.
-$$
-
-For Bollinger features:
-
-$$
-\mu_{20,t} = \frac{1}{20}\sum_{k=0}^{19} C_{t-k}, \qquad
-s_{20,t} = \sqrt{\frac{1}{19}\sum_{k=0}^{19}(C_{t-k}-\mu_{20,t})^2},
-$$
-
-$$
-B_t^{upper} = \mu_{20,t} + 2s_{20,t}, \qquad
-B_t^{lower} = \mu_{20,t} - 2s_{20,t}, \qquad
-\text{BBPos}_t = \frac{C_t - B_t^{lower}}{B_t^{upper} - B_t^{lower}}.
-$$
-
-For VWAP:
-
-$$
-\text{VWAP}_t =
-\frac{\sum_{\tau \leq t} \left(\frac{H_\tau + L_\tau + C_\tau}{3}\right)V_\tau}
-{\sum_{\tau \leq t}V_\tau}.
-$$
-
-### 4.2 Macro Features
-
-The macro module computes the current value, first difference, and relative difference for each configured TCMB indicator:
-
-$$
-\Delta m_{j,t} = m_{j,t} - m_{j,t^-},
-\qquad
-\delta m_{j,t} = \frac{m_{j,t} - m_{j,t^-}}{m_{j,t^-}},
-$$
-
-where $t^-$ is the previous available observation date for indicator $j$. Implemented indicator keys are:
-
-| Indicator | Feature names |
-|-----------|---------------|
-| `USD_TRY` | `usd_try_value`, `usd_try_delta`, `usd_try_pct` |
-| `EUR_TRY` | `eur_try_value`, `eur_try_delta`, `eur_try_pct` |
-| `GOLD_TRY` | `gold_try_value`, `gold_try_delta`, `gold_try_pct` |
-| `POLICY_RATE` | `policy_rate_value`, `policy_rate_delta`, `policy_rate_pct` |
-| `CPI` | `cpi_value`, `cpi_delta`, `cpi_pct` |
-| `BOND_2Y` | `bond_2y_value`, `bond_2y_delta`, `bond_2y_pct` |
-
-### 4.3 Sentiment Features
-
-For a ticker $i$, date $t$, and sentiment scores $a_{i,t,k}$, the system computes:
-
-$$
-\bar{a}_{i,t} = \frac{1}{K_{i,t}}\sum_{k=1}^{K_{i,t}}a_{i,t,k},
-\qquad
-\rho^+_{i,t} = \frac{1}{K_{i,t}}\sum_{k=1}^{K_{i,t}}\mathbb{1}\{a_{i,t,k} > 0\}.
-$$
-
-Stored sentiment features are `sentiment_mean`, `sentiment_count`, `sentiment_positive_ratio`, `sentiment_max`, and `sentiment_min`.
-
-### 4.4 Temporal Features
-
-Calendar periodicity is represented with both categorical-like flags and continuous cyclical encodings:
-
-$$
-d_t^{sin} = \sin\left(\frac{2\pi \cdot \text{dow}(t)}{7}\right),
-\qquad
-d_t^{cos} = \cos\left(\frac{2\pi \cdot \text{dow}(t)}{7}\right),
-$$
-
-with analogous month encodings. Additional tested calendar features include day of month, quarter, week of year, Monday/Friday flags, month-start flag, and month-end flag.
+Generated feature artifacts record the feature-manifest hash, Git commit, input-data-manifest hash, calculation timestamp, code version, ticker, and date range. Existing versions are content-addressed rather than overwritten in place.
 
 ---
 
-## 5. Quantitative Alpha Derivations
+## 5. Experimental Quantitative Modules
 
-The quantitative layer is not treated as side metadata. It formalizes alternative hypotheses about return generation: trend persistence, mean reversion, latent regime, conditional volatility, cross-sectional factor exposure, and signal reliability.
+The repository contains implementations of Kalman trend filters, Ornstein-Uhlenbeck mean reversion, GARCH volatility, HMM regimes, momentum and factor features, wavelets, cointegration, Kelly sizing, and other risk utilities. These modules are not part of the accepted benchmark because no common-fold experiment has established incremental value.
 
-### 5.1 Kalman Trend Filter
+| Family | Implemented | Accepted feature input | Empirically accepted |
+|---|---:|---:|---:|
+| Kalman, OU, GARCH, HMM | Partial/yes | No | No |
+| Wavelets and cointegration | Yes | No | No |
+| Macro features | Partial | No | No |
+| Sentiment collection | Partial | No | No |
+| Sentiment scoring | No | No | No |
+| Kelly sizing | Yes | No | No |
 
-`quant/statistical.py` implements a two-dimensional state-space model:
-
-$$
-\begin{aligned}
-\mathbf{z}_t &=
-\begin{bmatrix}
-\ell_t \\
-v_t
-\end{bmatrix}, &
-\mathbf{F} &=
-\begin{bmatrix}
-1 & 1 \\
-0 & 1
-\end{bmatrix}, &
-\mathbf{H} &=
-\begin{bmatrix}
-1 & 0
-\end{bmatrix}, \\
-\mathbf{z}_t &= \mathbf{F}\mathbf{z}_{t-1} + \mathbf{w}_t, &
-C_t &= \mathbf{H}\mathbf{z}_t + \epsilon_t.
-\end{aligned}
-$$
-
-Prediction and update:
-
-$$
-\hat{\mathbf{z}}_{t|t-1} = \mathbf{F}\hat{\mathbf{z}}_{t-1|t-1}, \qquad
-\mathbf{P}_{t|t-1} = \mathbf{F}\mathbf{P}_{t-1|t-1}\mathbf{F}^\top + \mathbf{Q},
-$$
-
-$$
-\mathbf{K}_t = \mathbf{P}_{t|t-1}\mathbf{H}^\top
-\left(\mathbf{H}\mathbf{P}_{t|t-1}\mathbf{H}^\top + \mathbf{R}\right)^{-1},
-$$
-
-$$
-\begin{aligned}
-\hat{\mathbf{z}}_{t|t}
-&= \hat{\mathbf{z}}_{t|t-1}
-+ \mathbf{K}_t\left(C_t-\mathbf{H}\hat{\mathbf{z}}_{t|t-1}\right).
-\end{aligned}
-$$
-
-Exported features: `kalman_trend`, `kalman_velocity`, `kalman_variance`.
-
-### 5.2 Ornstein-Uhlenbeck Mean Reversion
-
-The mean-reversion model assumes:
-
-$$
-dX_t = \theta(\mu - X_t)dt + \sigma dW_t.
-$$
-
-With discrete observations, the implementation estimates:
-
-$$
-\Delta X_t = a + bX_t + \varepsilon_t,
-\qquad
-\hat{\theta} = -\hat{b},
-\qquad
-\hat{\mu} = -\frac{\hat{a}}{\hat{b}}.
-$$
-
-The standardized deviation and signal are:
-
-$$
-z_t = \frac{X_t-\hat{\mu}}{\hat{\sigma}},
-\qquad
-s^{OU}_t = -z_t\hat{\theta}.
-$$
-
-Exported features: `ou_theta`, `ou_mu`, `ou_sigma`, `ou_deviation`, `ou_signal`.
-
-### 5.3 GARCH(1,1) Volatility Forecast
-
-The conditional variance model is:
-
-$$
-\sigma_t^2 = \omega + \alpha \epsilon_{t-1}^2 + \beta \sigma_{t-1}^2.
-$$
-
-The repository fits a zero-mean GARCH(1,1) process through the `arch` package, forecasts one-step volatility, annualizes it, and reports volatility surprise:
-
-$$
-\text{VolSurprise}_{t+1} =
-\frac{|r_t|}{\hat{\sigma}_{t+1}}.
-$$
-
-Exported features: `garch_vol_forecast`, `garch_vol_surprise`, `garch_omega`, `garch_alpha`, `garch_beta`.
-
-### 5.4 Hidden Markov Regime Model
-
-The HMM uses observations:
-
-$$
-\mathbf{o}_t = [r_t, r_t^2],
-$$
-
-with latent regime $z_t \in \{1,\dots,K\}$, transition matrix $A$, and Gaussian emissions:
-
-$$
-P(z_t=j \mid z_{t-1}=i) = A_{ij},
-\qquad
-\mathbf{o}_t \mid z_t=k \sim \mathcal{N}(\boldsymbol{\mu}_k,\boldsymbol{\Sigma}_k).
-$$
-
-For $K=3$, states are labeled by mean return: lowest mean as bear, highest mean as bull, and the middle state as sideways. Exported values include current state and posterior bull/bear/sideways probabilities.
-
-```mermaid
-stateDiagram-v2
-    [*] --> Bull
-    Bull --> Bull: A_bb
-    Bull --> Bear: A_ba
-    Bull --> Sideways: A_bs
-    Bear --> Bear: A_aa
-    Bear --> Bull: A_ab
-    Bear --> Sideways: A_as
-    Sideways --> Sideways: A_ss
-    Sideways --> Bull: A_sb
-    Sideways --> Bear: A_sa
-```
-
-### 5.5 Momentum and Factor Models
-
-Time-series momentum:
-
-$$
-R^{(L)}_{i,t} = \frac{C_{i,t} - C_{i,t-L}}{C_{i,t-L}},
-\qquad
-s^{TSMOM}_{i,t} =
-\begin{cases}
-+1, & R^{(L)}_{i,t} > 0, \\
--1, & R^{(L)}_{i,t} \leq 0.
-\end{cases}
-$$
-
-Cross-sectional momentum ranks trailing cumulative returns into percentile scores. The adapted Fama-French module computes:
-
-$$
-\begin{aligned}
-SMB_t &=
-\frac{1}{|\mathcal{S}|}\sum_{i \in \mathcal{S}} r_{i,t}
-- \frac{1}{|\mathcal{B}|}\sum_{i \in \mathcal{B}} r_{i,t}.
-\end{aligned}
-$$
-
-$$
-\begin{aligned}
-HML_t &=
-\frac{1}{|\mathcal{H}|}\sum_{i \in \mathcal{H}} r_{i,t}
-- \frac{1}{|\mathcal{L}|}\sum_{i \in \mathcal{L}} r_{i,t}.
-\end{aligned}
-$$
-
-then estimates stock exposures by OLS:
-
-$$
-r_{i,t} = \alpha_i + \beta_{i,m}MKT_t + \beta_{i,s}SMB_t + \beta_{i,h}HML_t + \epsilon_{i,t}.
-$$
-
-### 5.6 Signal Quality and Risk
-
-Information coefficient:
-
-$$
-IC_t = \rho_{Spearman}(\hat{r}_{:,t}, r_{:,t}).
-$$
-
-For a cross-section at evaluation date $t$, the rank-based statistic is computed as:
-
-$$
-\begin{aligned}
-IC_t
-&=
-\frac{
-\sum_{i=1}^{N_t}
-\left(\operatorname{rank}(\hat{r}_{i,t})-\bar{R}_{\hat{r},t}\right)
-\left(\operatorname{rank}(r_{i,t})-\bar{R}_{r,t}\right)
-}{
-\sqrt{
-\sum_{i=1}^{N_t}
-\left(\operatorname{rank}(\hat{r}_{i,t})-\bar{R}_{\hat{r},t}\right)^2
-}
-\sqrt{
-\sum_{i=1}^{N_t}
-\left(\operatorname{rank}(r_{i,t})-\bar{R}_{r,t}\right)^2
-}
-}.
-\end{aligned}
-$$
-
-Thus $IC_t>0$ means that the model's ranking agrees with realized return ordering, while $IC_t<0$ indicates inverse ranking information. The corresponding information ratio over $T$ validation dates is:
-
-$$
-IR =
-\frac{
-\frac{1}{T}\sum_{t=1}^{T} IC_t
-}{
-\sqrt{\frac{1}{T-1}\sum_{t=1}^{T}(IC_t-\bar{IC})^2}
-}.
-$$
-
-Kelly fraction:
-
-$$
-f^* = \frac{pb - q}{b},
-\qquad q = 1-p,
-$$
-
-with fractional sizing $f = \lambda f^*$, where the default implementation uses conservative fractional Kelly.
-
-For a calibrated directional model, the empirical win probability and payoff ratio can be estimated on a validation block $\mathcal{V}$:
-
-$$
-\hat{p}_{\mathcal{V}} =
-\frac{1}{|\mathcal{V}|}
-\sum_{(i,t)\in\mathcal{V}}
-\mathbb{1}\{\operatorname{sign}(\hat{r}_{i,t})=\operatorname{sign}(r_{i,t})\},
-\qquad
-\hat{b}_{\mathcal{V}} =
-\frac{
-\mathbb{E}[|r_{i,t}| \mid \operatorname{sign}(\hat{r}_{i,t})=\operatorname{sign}(r_{i,t})]
-}{
-\mathbb{E}[|r_{i,t}| \mid \operatorname{sign}(\hat{r}_{i,t})\neq\operatorname{sign}(r_{i,t})]
-}.
-$$
-
-Ledoit-Wolf shrinkage estimates covariance as:
-
-$$
-\hat{\Sigma}_{LW} = \lambda \mathbf{T} + (1-\lambda)\mathbf{S},
-$$
-
-where $\mathbf{S}$ is the empirical covariance matrix and $\mathbf{T}$ is a structured shrinkage target.
-
-PCA factor extraction solves:
-
-$$
-\max_{\mathbf{w}_k:\|\mathbf{w}_k\|_2=1}
-\mathbf{w}_k^\top \Sigma \mathbf{w}_k,
-$$
-
-subject to orthogonality constraints for later components.
+This boundary is intentional: a formula or passing construction test does not establish a research result.
 
 ---
 
 ## 6. Learning Algorithms
 
-The repository defines a shared `PredictionModel` protocol. Every model returns:
+### 6.1 Accepted Baselines
 
-$$
-\begin{aligned}
-\left(\hat{p}_{i,t+1}, \hat{r}_{i,t+1}\right)
-&= \mathrm{model.predict}\left(\mathbf{x}_{i,t}\right).
-\end{aligned}
-$$
+All accepted models use the same panel, target, folds, feature manifest, evaluation dates, and train-only preprocessing.
 
-### 6.1 Dataset Construction
+| Baseline | Role |
+|---|---|
+| Zero return | Regression null and zero-mean $R^2$ reference. |
+| Majority direction | Training-fold class-frequency null. |
+| Previous return | One-session persistence heuristic. |
+| Market direction | Same-date cross-sectional context baseline. |
+| Rolling mean | Training-history return estimate. |
+| Logistic regression | Regularized linear direction model. |
+| Ridge regression | Regularized linear return model and accepted portfolio ranking model. |
 
-The tabular dataset builder joins stored features and next-day closes:
+Every OOS row records date, ticker, fold ID, model name/version, training end, feature-manifest hash, target, prediction, predicted probability, and predicted return. Metrics are recomputed from this file rather than copied from training logs.
 
-```mermaid
-sequenceDiagram
-    participant DB as SQLite
-    participant FS as FeatureStore
-    participant B as build_tabular_dataset
-    participant M as Model
-    DB->>B: ordered feature dates for ticker
-    DB->>B: ordered close prices
-    B->>FS: load(ticker, date)
-    FS-->>B: feature dictionary
-    B->>B: sort canonical feature names
-    B->>B: y_dir = 1[pct_move > 0]
-    B->>B: y_pct = pct_move
-    B-->>M: X, y_dir, y_pct, valid_dates
-```
+### 6.2 Nonlinear and Neural Models
 
-For sequential models, `build_sequence_dataset` converts tabular snapshots into:
+XGBoost and LightGBM have bounded search utilities with validation-based early stopping, best-iteration recording, declared trials, multiple seeds, and immutable trial manifests. They are not included in the accepted provider-backed result.
 
-$$
-\mathbf{X}^{seq}_{n} =
-\left[
-\mathbf{x}_{t-L},
-\mathbf{x}_{t-L+1},
-\dots,
-\mathbf{x}_{t-1}
-\right]
-\in \mathbb{R}^{L \times d}.
-$$
-
-The keyed dataset variant used by the ensemble workflow attaches each row to:
-
-$$
-k_n = (i_n,t_n),
-$$
-
-so base-model validation predictions can be intersected exactly before stacking:
-
-$$
-\mathcal{K}^{meta}
-=
-\bigcap_{m=1}^{M}
-\left\{k_n : \hat{p}^{(m)}_n \text{ is available}\right\}.
-$$
-
-This prevents a meta-learner from combining predictions that refer to different tickers or dates.
-
-### 6.2 Dual-Head Objective
-
-The tree and neural models optimize separate direction and return heads. For neural models, the combined loss is:
-
-$$
-\begin{aligned}
-\mathcal{L}_{BCE}(\theta)
-&=
--\frac{1}{N}\sum_{n=1}^{N}
-\left[
-y_n\log \hat{p}_n + (1-y_n)\log(1-\hat{p}_n)
-\right], \\
-\mathcal{L}_{MSE}(\theta)
-&=
-\frac{1}{N}\sum_{n=1}^{N}(\hat{r}_n-r_n)^2, \\
-\mathcal{L}(\theta)
-&= \mathcal{L}_{BCE}(\theta) + \mathcal{L}_{MSE}(\theta).
-\end{aligned}
-$$
-
-For XGBoost and LightGBM, the classifier and regressor heads are fitted as independent estimators over the same feature matrix.
-
-In all cases the supervised target is:
-
-$$
-r_{i,t+1} = \frac{C_{i,t+1}-C_{i,t}}{C_{i,t}},
-\qquad
-y_{i,t+1}=\mathbb{1}\{r_{i,t+1}>0\}.
-$$
-
-The empirical risk minimized by a dual-head learner can be written abstractly as:
-
-$$
-\hat{\theta}
-=
-\arg\min_{\theta}
-\frac{1}{N}
-\sum_{n=1}^{N}
-\left[
-\ell_{cls}\left(y_n,\hat{p}_{\theta}(\mathbf{x}_n)\right)
-+
-\gamma
-\ell_{ret}\left(r_n,\hat{r}_{\theta}(\mathbf{x}_n)\right)
-\right],
-$$
-
-where the implemented neural objective uses $\gamma=1$, binary cross-entropy for $\ell_{cls}$, and squared error for $\ell_{ret}$.
-
-### 6.3 Model Library
-
-| Model | Module | Input | Output heads | Current operational status |
-|-------|--------|-------|--------------|----------------------------|
-| XGBoost | `models/xgboost_model.py` | Tabular $N \times d$ | classifier + regressor | Default base model. |
-| LightGBM | `models/lightgbm_model.py` | Tabular $N \times d$ | classifier + regressor | Default base model. |
-| LSTM | `models/lstm_model.py` | Sequence $N \times L \times d$ | sigmoid direction + linear return | Opt-in neural base model. |
-| Transformer | `models/transformer_model.py` | Sequence $N \times L \times d$ | sigmoid direction + linear return | Opt-in neural base model. |
-
-### 6.4 LSTM Representation
-
-The LSTM state transition is:
-
-$$
-\begin{aligned}
-\mathbf{i}_t &= \sigma(W_i\mathbf{x}_t + U_i\mathbf{h}_{t-1} + \mathbf{b}_i),\\
-\mathbf{f}_t &= \sigma(W_f\mathbf{x}_t + U_f\mathbf{h}_{t-1} + \mathbf{b}_f),\\
-\mathbf{o}_t &= \sigma(W_o\mathbf{x}_t + U_o\mathbf{h}_{t-1} + \mathbf{b}_o),\\
-\tilde{\mathbf{c}}_t &= \tanh(W_c\mathbf{x}_t + U_c\mathbf{h}_{t-1} + \mathbf{b}_c),\\
-\mathbf{c}_t &= \mathbf{f}_t \odot \mathbf{c}_{t-1} + \mathbf{i}_t \odot \tilde{\mathbf{c}}_t,\\
-\mathbf{h}_t &= \mathbf{o}_t \odot \tanh(\mathbf{c}_t).
-\end{aligned}
-$$
-
-The repository maps the final hidden state to two heads:
-
-$$
-\hat{p}_{t+1} = \sigma(g_{dir}(\mathbf{h}_T)),
-\qquad
-\hat{r}_{t+1} = g_{reg}(\mathbf{h}_T).
-$$
-
-### 6.5 Transformer Representation
-
-The Transformer encoder first projects feature vectors into $d_{model}$, adds sinusoidal positional encodings, then applies multi-head self-attention:
-
-$$
-\text{Attention}(Q,K,V) =
-\text{softmax}\left(\frac{QK^\top}{\sqrt{d_k}}\right)V.
-$$
-
-For head $h$:
-
-$$
-\text{head}_h =
-\text{Attention}(XW_h^Q, XW_h^K, XW_h^V),
-\qquad
-\text{MHA}(X) =
-\text{Concat}(\text{head}_1,\dots,\text{head}_H)W^O.
-$$
-
-The final token representation is used for the direction and return heads.
-
-### 6.6 Stacking Ensemble
-
-The ensemble combiner stacks model outputs into meta-features:
-
-$$
-\mathbf{z}^{dir}_{n} =
-\left[
-\hat{p}^{(1)}_n,\dots,\hat{p}^{(M)}_n
-\right],
-\qquad
-\mathbf{z}^{ret}_{n} =
-\left[
-\hat{r}^{(1)}_n,\dots,\hat{r}^{(M)}_n
-\right].
-$$
-
-The meta-training set is deliberately constructed from validation predictions rather than in-sample base-model predictions. Let $\mathcal{T}$ be the base-model training interval and $\mathcal{M}$ be a later meta interval with $\max \mathcal{T}<\min \mathcal{M}$. For each base learner $m$:
-
-$$
-\hat{f}^{(m)} =
-\operatorname{fit}\left(\{(\mathbf{x}_{i,t},y_{i,t+1},r_{i,t+1}) : t\in\mathcal{T}\}\right),
-$$
-
-and the stacker receives:
-
-$$
-\mathbf{z}_{i,t}
-=
-\left[
-\hat{f}^{(1)}(\mathbf{x}_{i,t}),
-\dots,
-\hat{f}^{(M)}(\mathbf{x}_{i,t})
-\right],
-\qquad t\in\mathcal{M}.
-$$
-
-Direction stacking uses logistic regression:
-
-$$
-\hat{p}^{ens}_n =
-\sigma\left(\alpha + \boldsymbol{\beta}^{\top}\mathbf{z}^{dir}_{n}\right),
-$$
-
-and return stacking uses ridge regression:
-
-$$
-\hat{\boldsymbol{\beta}} =
-\arg\min_{\boldsymbol{\beta}}
-\left\|
-\mathbf{y}^{ret} - \mathbf{Z}^{ret}\boldsymbol{\beta}
-\right\|_2^2
-+ \lambda \left\|\boldsymbol{\beta}\right\|_2^2.
-$$
-
-If the meta-learner is not trained, predictions fall back to simple averaging.
-
-Operationally, active ensemble inference computes:
-
-$$
-\hat{p}^{final}_{i,t+1}
-=
-\operatorname{Calibrate}
-\left(
-\hat{p}^{ens}_{i,t+1}
-\right),
-\qquad
-\hat{r}^{final}_{i,t+1}
-=
-\hat{r}^{ens}_{i,t+1}.
-$$
+The LSTM and Transformer implementations remain experimental. They are disabled in the accepted pipeline until sequence alignment, training-only scaling, checkpoint restoration, deterministic validation, and common-fold incremental value are all demonstrated. Their presence does not make the benchmark more credible than the baselines.
 
 ---
 
-## 7. Calibration, Signal Tiers, and Decision Rule
+## 7. Calibration, Stacking, and Decision Rule
 
-### 7.1 Platt Scaling
+Strict chronological stacking and calibration are implemented and invariant-tested, but they are outside the accepted provider-backed run.
 
-The calibration module fits:
+For a stacker row, the repository persists row ID, base model, base-model training end, OOF fold ID, and prediction timestamp. A base model cannot generate a meta-feature for a row it trained on. Calibration uses a later, separate interval and reports Brier score, log loss, expected calibration error, slope, intercept, and reliability buckets on a final test block.
 
-$$
-P(y=1 \mid a) =
-\frac{1}{1+\exp(Aa+B)},
-$$
-
-where $a$ is an uncalibrated score or raw probability transformed as a scalar input. This turns confidence into an empirical probability statement.
-
-The fitted coefficients minimize the negative log-likelihood on the calibration set:
+Raw model scores are not called confidence. The accepted portfolio decision is based on predicted net return after the declared decision-cost assumption:
 
 $$
-\begin{aligned}
-\mathcal{L}_{cal}(A,B)
-&=
+\hat r^{\mathrm{net}}_{i,t+1}
+=
+\hat r_{i,t+1}
 -
-\sum_{n=1}^{N_{cal}}
-\left[
-y_n \log q_n
-+
-(1-y_n)\log(1-q_n)
-\right], \\
-q_n
-&=
-\frac{1}{1+\exp(Aa_n+B)}.
-\end{aligned}
+\widehat{\mathrm{cost}}_{i,t+1}.
 $$
 
-If the calibration block contains only one class, the implementation records the calibration state as skipped and leaves ensemble probabilities untransformed. This avoids fitting an unidentified sigmoid.
-
-### 7.2 Signal Tier Function
-
-For direction $d$ and confidence $c$, the signal-tier function is:
-
-$$
-\tau(d,c) =
-\begin{cases}
-\text{STRONG BUY}, & d=\text{UP}, c \geq 0.80,\\
-\text{BUY}, & d=\text{UP}, 0.70 \leq c < 0.80,\\
-\text{STRONG SELL}, & d=\text{DOWN}, c \geq 0.80,\\
-\text{SELL}, & d=\text{DOWN}, 0.70 \leq c < 0.80,\\
-\text{HOLD}, & \text{otherwise}.
-\end{cases}
-$$
-
-The inference path first tries to load the active calibrated ensemble from the model registry. It then loads the ensemble's active base models, aligns tabular or sequence inference rows by the recorded feature dimension, and emits a single ensemble prediction per ticker. If no active ensemble is available, it falls back to active tabular base models. If a model expects a different feature dimension than the latest feature row, that ticker/model pair is skipped to prevent schema-incompatible inference.
+On each signal date, eligible stocks with positive expected net return are ranked; at most the top $k=3$ receive equal long-only weights. The legacy `BUY`/`SELL` probability tiers and their arbitrary thresholds are not accepted research decisions.
 
 ---
 
 ## 8. Evaluation Protocol
 
-### 8.1 Walk-Forward Backtesting
+### 8.1 Date-Grouped Walk-Forward Validation
 
-The backtest engine constructs folds:
+Folds are expanding windows over unique trading dates, never row offsets. All tickers on one date remain in the same partition. The committed run uses 24 minimum training dates, 10 validation dates, a 10-date step, one embargo date, and 12 folds.
 
-$$
-\mathcal{D}^{train}_k =
-\{t_k,\dots,t_k+W_{train}-1\},
-\qquad
-\mathcal{D}^{val}_k =
-\{t_k+W_{train},\dots,t_k+W_{train}+W_{val}-1\}.
-$$
-
-With defaults $W_{train}=252$, $W_{val}=63$, and step size $21$, each validation block is strictly later than its training block.
-
-For calibrated stacking, each training fold is internally partitioned into a base-training segment and a meta-calibration segment:
+For every fold $k$:
 
 $$
-\begin{aligned}
-\mathcal{D}^{base}_k
-&=
-\{t_k,\dots,t_k+W_{base}-1\}, \\
-\mathcal{D}^{meta}_k
-&=
-\{t_k+W_{base},\dots,t_k+W_{train}-1\}, \\
-\mathcal{D}^{val}_k
-&=
-\{t_k+W_{train},\dots,t_k+W_{train}+W_{val}-1\}.
-\end{aligned}
-$$
-
-The temporal ordering condition is therefore:
-
-$$
-\max \mathcal{D}^{base}_k
+\max(\text{train target end})
 <
-\min \mathcal{D}^{meta}_k
-\leq
-\max \mathcal{D}^{meta}_k
-<
-\min \mathcal{D}^{val}_k.
+\min(\text{validation feature time}).
 $$
 
-This gives the base learners, stacker, calibrator, and final validation block disjoint chronological roles inside each fold.
+Invariant tests additionally prove that ticker ordering and row ordering cannot change fold membership, dates cannot appear in both partitions, all tickers share date boundaries, future raw-data changes cannot alter past features, and validation extremes cannot change training preprocessors.
 
-```mermaid
-gantt
-    title Walk-forward validation geometry
-    dateFormat  X
-    axisFormat %s
-    section Fold 1
-    Train 1 :0, 252
-    Validate 1 :252, 63
-    section Fold 2
-    Train 2 :21, 252
-    Validate 2 :273, 63
-    section Fold 3
-    Train 3 :42, 252
-    Validate 3 :294, 63
-```
+### 8.2 Portfolio Simulation
 
-Trading costs are applied on entry and exit:
+The initial strategy is intentionally simple: long-only, top-$k$ predicted returns, equal weighting, next-open observed-price execution, and a one-session holding period. Its event sequence is:
 
-$$
-r^{net} = r^{gross} - 2c_{commission} - 2c_{slippage}.
-$$
+1. Persist after-close predictions.
+2. Apply universe and eligibility rules.
+3. Convert positive expected net returns to target weights.
+4. Submit next-open orders.
+5. Reject unavailable or proxy opens.
+6. Apply participation and liquidity limits.
+7. Calculate fills.
+8. Apply commission, spread, slippage, impact, and configured taxes.
+9. Update positions and cash without allowing negative cash.
+10. Mark the portfolio at the official close.
+11. Process corporate actions under the declared entitlement policy.
+12. Persist the complete ledger.
 
-The paper-trading position rule induced by calibrated probability $\tilde{p}_{i,t+1}$ and threshold $\eta$ is:
+Accounting enforces
 
 $$
-w_{i,t+1} =
-\begin{cases}
-+1, & \tilde{p}_{i,t+1} \geq \eta,\\
--1, & \tilde{p}_{i,t+1} \leq 1-\eta,\\
-0, & 1-\eta < \tilde{p}_{i,t+1} < \eta.
-\end{cases}
+E_T
+=
+E_0 + \mathrm{gross\ PnL} + \mathrm{distributions} - \mathrm{transaction\ costs}.
 $$
 
-For a validation date with active position set $\mathcal{A}_t=\{i: w_{i,t}\neq 0\}$, equal-weighted portfolio return is:
+The same signal decisions are reused across cost sensitivity cases. Increasing costs cannot improve net performance, and a no-position strategy has zero gross return, turnover, cost, and net return.
 
-$$
-R_t =
-\begin{cases}
-\frac{1}{|\mathcal{A}_t|}
-\sum_{i\in\mathcal{A}_t}
-\left(w_{i,t}r_{i,t}^{gross}-2c_{commission}-2c_{slippage}\right),
-& |\mathcal{A}_t|>0,\\
-0, & |\mathcal{A}_t|=0.
-\end{cases}
-$$
+### 8.3 Metrics
 
-### 8.2 Prediction Metrics
+Prediction reports include MAE, RMSE, zero-mean $R^2$, Pearson and Spearman IC, directional and balanced accuracy, log loss, Brier score, PR-AUC, and MCC. Portfolio reports include gross/net/annualized return, volatility, Sharpe, Sortino, maximum drawdown, Calmar, turnover, trade count, hit rate, holding period, exposures, concentration, cost decomposition, benchmark-relative return, information ratio, and seeded block-bootstrap intervals.
 
-`evaluation/metrics.py` computes:
+Prediction results are grouped by fold, year, ticker, liquidity bucket, and market regime. Sector slices are explicitly unavailable because the accepted input contains no sourced sector taxonomy. Portfolio-level sector, liquidity, and regime attribution is not implemented and is not claimed.
 
-$$
-\text{Accuracy} = \frac{TP+TN}{TP+TN+FP+FN},
-\qquad
-\text{Precision} = \frac{TP}{TP+FP},
-\qquad
-\text{Recall} = \frac{TP}{TP+FN},
-$$
+### 8.4 Committed Experiment
 
-$$
-F_1 = \frac{2 \cdot \text{Precision}\cdot \text{Recall}}
-{\text{Precision}+\text{Recall}},
-\qquad
-\text{Brier} = \frac{1}{N}\sum_{n=1}^{N}(\hat{p}_n-y_n)^2,
-$$
+The following block is generated from the immutable run artifacts by `bist_predict.research.readme_results`.
 
-$$
-\text{MAE}_{ret} =
-\frac{1}{N}\sum_{n=1}^{N}
-|\hat{r}_n-r_n|.
-$$
+<!-- ACCEPTED_RESULTS:START -->
+### Accepted run provenance
 
-The AUC-ROC is computed where class diversity permits it.
+| Field | Value |
+|---|---|
+| Run | `20260714T143541Z-112a94e-9d9b70` |
+| Git commit | `112a94e174ca` (clean working tree recorded) |
+| Dataset | `fixed_bist_large_cap_prototype-150d24cf4251` |
+| Scope | `fixed_bist_large_cap_prototype` |
+| Tickers | GARAN, ISCTR, KCHOL, THYAO |
+| Period | 2025-04-07 to 2026-04-03 |
+| Provider rows | 1,004 |
 
-### 8.3 Trading Metrics
+### Out-of-sample prediction metrics
 
-For daily strategy returns $R_t$:
+| Model | Samples | MAE | RMSE | Zero-mean R-squared | Spearman IC | Directional accuracy | Balanced accuracy |
+|---|---:|---:|---:|---:|---:|---:|---:|
+| logistic | 480 | 1.5019% | 1.9713% | -0.0783 | -0.0040 | 48.75% | 47.87% |
+| majority_direction | 480 | 1.9780% | 2.4662% | -0.6876 | 0.1080 | 53.12% | 50.00% |
+| market_direction | 480 | 1.8731% | 2.4583% | -0.6768 | 0.0094 | 52.71% | 52.35% |
+| previous_return | 480 | 1.9837% | 2.6340% | -0.9252 | 0.0324 | 51.25% | 51.03% |
+| ridge | 480 | 1.6515% | 2.1199% | -0.2470 | 0.0210 | 51.04% | 50.97% |
+| rolling_mean | 480 | 1.4612% | 1.9619% | -0.0680 | 0.0079 | 50.42% | 50.01% |
+| zero_return | 480 | 1.4248% | 1.8984% | 0.0000 | not available | 53.12% | 50.00% |
 
-$$
-\text{Sharpe} =
-\frac{\mathbb{E}[R_t-r_f/252]}{\sqrt{\text{Var}(R_t-r_f/252)}}\sqrt{252},
-$$
+### Accepted portfolio result
 
-$$
-\text{Sortino} =
-\frac{\mathbb{E}[R_t-r_f/252]}{\sqrt{\text{Var}(\min(R_t-r_f/252,0))}}\sqrt{252},
-$$
+| Portfolio measure | Accepted result |
+|---|---:|
+| Gross return | -0.9636% |
+| Net return | -6.3488% |
+| Annualized return | -12.8679% |
+| Annualized volatility | 11.8169% |
+| Sharpe | -1.1067 |
+| Maximum drawdown | -8.5707% |
+| Turnover | 55.8212x |
+| Trade count | 57 |
+| Equal-weight benchmark return | -5.8309% |
+| Benchmark-relative return | -0.5179% |
+| Total modeled costs | TRY 5,494.49 |
 
-$$
-\begin{aligned}
-\text{MaxDrawdown} &=
-\min_t
-\frac{
-\prod_{\tau \leq t}(1+R_\tau)
-- \max_{u \leq t}\prod_{\tau \leq u}(1+R_\tau)
-}{
-\max_{u \leq t}\prod_{\tau \leq u}(1+R_\tau)
-}.
-\end{aligned}
-$$
+### Transaction-cost sensitivity
 
-Additional tracked metrics include win rate, profit factor, average win/loss ratio, Calmar ratio, and total return.
+| Cost case | Gross return | Net return | Total costs | Trades |
+|---|---:|---:|---:|---:|
+| 0.0x | -0.9545% | -0.9545% | TRY 0.00 | 57 |
+| 1.0x | -0.9636% | -6.3488% | TRY 5,494.49 | 57 |
+| 2.0x | -0.9579% | -11.4348% | TRY 10,688.12 | 57 |
+
+### Negative results and evidence limits
+
+- No evaluated model achieved positive zero-mean R-squared; the best observed value was 0.0000 for `zero_return`.
+- The 95% block-bootstrap interval for annualized return spans zero (-34.22% to 11.12%).
+- No relevant BIST index benchmark was available in the accepted input dataset; the report therefore does not claim index-relative performance.
+- Net return did not improve as modeled transaction costs increased (-0.9545% to -11.4348%).
+<!-- ACCEPTED_RESULTS:END -->
+
+### 8.5 Methods-to-Code Traceability
+
+| Method | Implementation | Invariant test | Artifact |
+|---|---|---|---|
+| Fixed experiment scope | `research/accepted_benchmark.py` | accepted benchmark E2E | `universe_manifest.json` |
+| Official sessions | `ingest/calendar.py` | calendar validity | `official_calendar.parquet` |
+| Corporate actions | `ingest/corporate_actions.py` | action and split invariants | `corporate_actions.parquet` |
+| Canonical panel and target | `research/panel.py` | chronology and alignment | `panel.parquet` |
+| Immutable feature identity | `features/manifest.py` | schema identity | `feature_manifest.json` |
+| Date-grouped purged CV | `research/splits.py` | ordering invariance and purge | `folds.json` |
+| Common-fold baselines | `research/baselines.py` | preprocessing isolation | `predictions.parquet` |
+| Event-ledger backtest | `research/portfolio_backtest.py` | accounting and cost monotonicity | `fills.parquet`, `cash_ledger.parquet` |
+| Immutable replay | `research/run_artifacts.py` | artifact round trip and exact replay | `artifact_hashes.json` |
+| Prediction maturation | `research/prediction_tracking.py` | create-only lifecycle | frozen outcome store |
 
 ---
 
@@ -1009,204 +372,111 @@ Additional tracked metrics include win rate, profit factor, average win/loss rat
 ### Prerequisites
 
 - Python 3.12+
-- [uv](https://docs.astral.sh/uv/) (recommended) or pip
-- Rust toolchain for the Rust feature engine
-- Homebrew `libomp` on macOS, required by XGBoost: `brew install libomp`
+- [uv](https://docs.astral.sh/uv/)
+- Rust toolchain only for the optional Rust indicator library
+- Homebrew `libomp` on macOS when running XGBoost
 
 ### Install
 
 ```bash
-# Clone the repository
 git clone <repo-url>
 cd BIST-Predictorcl
-
-# Install Python dependencies
 uv sync
-
-# Optional: build the Rust feature engine for maximum performance
-cd rust/bist_features
-maturin develop --release
-cd ../..
 ```
 
-If the Rust module is not compiled, the system falls back to Python-only feature computation. Macro, sentiment, temporal, and quantitative features still work; Rust technical indicators are unavailable until the extension is built.
+Optional Rust build:
+
+```bash
+uv run maturin develop --release --manifest-path rust/bist_features/Cargo.toml
+```
+
+There is no Python numerical fallback for the Rust indicator family. If the extension is unavailable, those indicators are explicitly disabled. The accepted benchmark does not depend on them.
 
 ---
 
 ## 10. Quick Start
 
-```bash
-# 1. Fetch market data (last 90 days)
-uv run bist-predict fetch --days 90
-
-# 2. Compute features for all stocks
-uv run bist-predict features
-
-# 3. Train prediction models
-uv run bist-predict train
-
-# 4. Get today's trading signals
-uv run bist-predict signals
-
-# 5. Check prediction accuracy
-uv run bist-predict accuracy
-```
-
-End-to-end pipeline command:
+Run the deterministic synthetic methodology check:
 
 ```bash
-uv run bist-predict pipeline --days 365
-uv run bist-predict pipeline --days 365 --ticker THYAO --detail
+make reproduce-smoke
 ```
+
+Exactly replay the committed provider-backed experiment:
+
+```bash
+make reproduce RUN_ID=20260714T143541Z-112a94e-9d9b70
+```
+
+Run a new accepted benchmark from explicit, provenance-bearing inputs:
+
+```bash
+make benchmark \
+  INPUT=data/accepted/fixed_bist_large_cap_prices.parquet \
+  ACTIONS=data/accepted/corporate_actions.parquet \
+  ACTION_COVERAGE=data/accepted/corporate_action_coverage.parquet
+```
+
+No network access is required to replay the committed run.
 
 ---
 
 ## 11. CLI Commands
 
-### `bist-predict fetch`
+### 11.1 Accepted Commands
 
-Pull latest market data from all sources.
+| Command | Purpose |
+|---|---|
+| `bist-predict benchmark` | Build a new accepted run from explicit price, action, and action-coverage inputs. |
+| `bist-predict reproduce-smoke` | Run the bounded synthetic end-to-end methodology check. |
+| `bist-predict reproduce <run-id>` | Rebuild a committed run and verify exact hashes. |
+| `bist-predict mature-predictions` | Freeze realized outcomes after the exact target interval completes. |
+| `bist-predict accuracy` | Report accuracy only from immutable signal-time records and frozen outcomes. |
 
-```bash
-uv run bist-predict fetch                    # Fetch last 30 days for all stocks
-uv run bist-predict fetch --days 90          # Fetch last 90 days
-uv run bist-predict fetch --ticker THYAO     # Fetch a single stock
-```
-
-Fetches OHLCV prices, TCMB macro indicators when an API key is configured, and Google News sentiment records. The scheduler uses Is Yatirim as the primary price source and Yahoo Finance as fallback. Incremental fetching only requests dates newer than the latest stored date.
-
-### `bist-predict features`
-
-Compute features from stored raw data.
+Prediction lifecycle example:
 
 ```bash
-uv run bist-predict features                           # Backfill missing feature dates
-uv run bist-predict features --ticker THYAO             # Single stock
-uv run bist-predict features --date 2026-03-15          # Specific date
+uv run bist-predict mature-predictions \
+  --store prediction_tracking \
+  --prices data/accepted/fixed_bist_large_cap_prices.parquet \
+  --as-of 2026-04-03T18:10:00+03:00
+
+uv run bist-predict accuracy --store prediction_tracking
 ```
 
-Runs the full feature pipeline: Rust technical indicators when available, quantitative alpha features, macro deltas, sentiment aggregation, and temporal features. Results are stored in SQLite keyed by `(ticker, date, feature_name)`.
+Historical predictions are never reevaluated with a newly retrained model.
 
-### `bist-predict train`
+### 11.2 Experimental Legacy Commands
 
-Train or retrain prediction models.
+`fetch`, `features`, `train`, `signals`, `pipeline`, and `backtest` operate the earlier SQLite/model-registry prototype. Their help text marks model-training, signal, pipeline, and backtest commands as experimental. They are retained for development and are not evidence for the accepted benchmark.
 
-```bash
-uv run bist-predict train                    # Train on all stocks
-uv run bist-predict train --ticker THYAO     # Train on one stock only
-uv run bist-predict train --models xgboost,lightgbm
-uv run bist-predict train --include-neural --seq-len 30
-```
-
-Builds chronological keyed datasets from the feature store, trains active base models, fits a stacking ensemble on validation predictions, applies Platt calibration when validation labels contain both classes, saves model artifacts, and registers active versions in the model registry. The default remains the fast tabular ensemble (`xgboost,lightgbm`); LSTM and Transformer training is opt-in through `--include-neural`.
-
-### `bist-predict signals`
-
-Get current trading signals.
-
-```bash
-uv run bist-predict signals                  # All stocks
-uv run bist-predict signals --ticker THYAO   # Single stock
-uv run bist-predict signals --detail         # Detailed breakdown including HOLD
-```
-
-When an active calibrated ensemble exists, `signals` loads the ensemble plus its active base models and emits one ensemble signal per ticker. If no ensemble is active, it falls back to the active tabular base models. Example output:
-
-```text
-========================================
-  STRONG BUY
-========================================
-  THYAO    85.2% conf  +1.42% target  (xgboost)
-  GARAN    82.1% conf  +0.98% target  (lightgbm)
-
-========================================
-  BUY
-========================================
-  AKBNK    74.3% conf  +0.67% target  (xgboost)
-```
-
-### `bist-predict pipeline`
-
-Run fetch, feature generation, training, and signal generation end to end.
-
-```bash
-uv run bist-predict pipeline
-uv run bist-predict pipeline --days 365
-uv run bist-predict pipeline --ticker THYAO --detail
-```
-
-### `bist-predict backtest`
-
-Run walk-forward backtest.
-
-```bash
-uv run bist-predict backtest
-uv run bist-predict backtest --ticker THYAO
-uv run bist-predict backtest --train-window 252 --val-window 63 --step-size 21
-```
-
-Runs a leakage-aware walk-forward research simulation. Each fold trains base models on the earliest fold segment, trains the stacker and calibrator on a later in-fold meta segment, evaluates on the forward validation segment, applies commission and slippage to long/short paper positions, and prints prediction and trading metrics. This is a research backtest, not an execution engine or financial advice.
-
-### `bist-predict accuracy`
-
-Show prediction accuracy history.
-
-```bash
-uv run bist-predict accuracy                 # Top 5 stocks
-uv run bist-predict accuracy --ticker THYAO  # Single stock with confidence buckets
-```
-
-For a single ticker, this also displays confidence bucket analysis across 60-70%, 70-80%, 80-90%, and 90-100% confidence ranges.
-
-### `bist-predict stocks`
-
-List all tracked stocks from the persistent DB universe.
-
-```bash
-uv run bist-predict stocks
-```
-
-### `bist-predict config`
-
-Display current configuration.
-
-```bash
-uv run bist-predict config
-```
+No illustrative `BUY`, `SELL`, or confidence output is shown here because no such output belongs to the committed accepted run.
 
 ---
 
 ## 12. Configuration
 
-Create a `config.toml` in the project root:
+The accepted run stores its exact configuration in `runs/<run_id>/config.yaml`. The committed experiment uses:
 
-```toml
-[data]
-tcmb_api_key = ""           # Free key from evds2.tcmb.gov.tr
-fetch_retries = 3           # Max retries per data source
-rate_limit_delay = 1.0      # Seconds between API calls
-
-[signals]
-min_confidence = 0.70       # Minimum confidence to display signal
-lookback_days = 30          # Feature computation lookback
-
-[models]
-retrain_interval = "monthly" # Retrain cadence
-ensemble_weights = "learned" # "learned" or "equal"
-active_models = "xgboost,lightgbm"
-include_neural = false
-seq_len = 30
-validation_fraction = 0.2
-
-[quant]
-hmm_states = 3              # HMM regime states: bull, bear, sideways
-kelly_fraction = 0.25       # Fractional Kelly multiplier
-hurst_window = 252          # Hurst exponent lookback window
-
-[backtest]
-commission = 0.001          # 0.1% per trade
-slippage = 0.0005           # 0.05% per trade
+```yaml
+experiment_scope: fixed_bist_large_cap_prototype
+methodology_version: accepted-baseline-v1
+min_train_dates: 24
+validation_dates: 10
+step_dates: 10
+embargo_dates: 1
+portfolio_model: ridge
+top_k: 3
+starting_equity: 100000.0
+commission_rate: 0.0002
+bid_ask_spread_rate: 0.001
+slippage_rate: 0.0003
+market_impact_coefficient: 0.0001
+max_participation: 0.01
+seed: 42
 ```
+
+The configuration hash is part of the run ID and manifest. Legacy `config.toml` options do not alter replayed run artifacts.
 
 ---
 
@@ -1215,113 +485,67 @@ slippage = 0.0005           # 0.05% per trade
 ```text
 BIST-Predictorcl/
 +-- README.md
++-- Makefile
 +-- pyproject.toml
 +-- config.example.toml
-+-- Cargo.toml
-+-- Cargo.lock
-+-- uv.lock
-|
++-- docs/component_status.yaml
++-- data/accepted/                  # committed provider/action snapshots
++-- runs/                           # immutable accepted run bundles
++-- benchmarks/results/             # Rust benchmark evidence
++-- .github/workflows/              # PR and scheduled research checks
 +-- src/bist_predict/
 |   +-- cli.py
-|   +-- config.py
-|   |
-|   +-- ingest/
-|   |   +-- isyatirim.py
-|   |   +-- yahoo.py
-|   |   +-- tcmb.py
-|   |   +-- sentiment.py
-|   |   +-- scheduler.py
-|   |   +-- quality.py
-|   |   +-- types.py
-|   |
-|   +-- features/
-|   |   +-- engine.py
-|   |   +-- store.py
-|   |   +-- macro_features.py
-|   |   +-- sentiment_features.py
-|   |   +-- temporal_features.py
-|   |
-|   +-- quant/
-|   |   +-- factors.py
-|   |   +-- statistical.py
-|   |   +-- risk.py
-|   |   +-- signal_quality.py
-|   |   +-- regime.py
-|   |
-|   +-- models/
-|   |   +-- types.py
-|   |   +-- xgboost_model.py
-|   |   +-- lightgbm_model.py
-|   |   +-- lstm_model.py
-|   |   +-- transformer_model.py
-|   |   +-- ensemble.py
-|   |   +-- calibration.py
-|   |   +-- registry.py
-|   |
-|   +-- evaluation/
-|   |   +-- backtest.py
-|   |   +-- metrics.py
-|   |   +-- tracker.py
-|   |
-|   +-- storage/
-|       +-- database.py
-|       +-- migrations.py
-|
-+-- rust/bist_features/
-|   +-- Cargo.toml
-|   +-- src/
-|       +-- lib.rs
-|       +-- indicators.rs
-|       +-- patterns.rs
-|       +-- correlations.rs
-|
+|   +-- ingest/                     # providers, reconciliation, calendar, actions
+|   +-- features/                   # manifests, lineage, preprocessing, legacy engine
+|   +-- research/                   # accepted panel, folds, baselines, artifacts, backtest
+|   +-- models/                     # experimental boosting/neural/ensemble models
+|   +-- quant/                      # experimental quantitative modules
+|   +-- evaluation/                 # legacy evaluation compatibility
+|   +-- storage/                    # legacy SQLite surface
++-- rust/bist_features/             # optional PyO3 indicator library
 +-- tests/
-    +-- test_ingest/
-    +-- test_features/
-    +-- test_quant/
-    +-- test_models/
+    +-- test_research/              # methodology and E2E invariants
+    +-- test_ingest/                # provider, calendar, action invariants
+    +-- test_features/              # schema, lineage, Rust equivalence
+    +-- test_models/                # experimental model behavior
     +-- test_evaluation/
     +-- test_storage/
-    +-- test_cli.py
-    +-- conftest.py
 ```
 
 ---
 
 ## 14. Testing
 
-```bash
-# Run all tests
-uv run pytest tests/ -v
-
-# Run by module
-uv run pytest tests/test_ingest/ -v        # Data ingestion tests
-uv run pytest tests/test_features/ -v      # Feature engine tests
-uv run pytest tests/test_quant/ -v         # Quantitative alpha tests
-uv run pytest tests/test_models/ -v        # ML model tests
-uv run pytest tests/test_evaluation/ -v    # Evaluation tests
-uv run pytest tests/test_storage/ -v       # Storage tests
-
-# Run a single test
-uv run pytest tests/test_models/test_xgboost_model.py::TestXGBoostModel::test_predict_better_than_random -v
-```
-
-Current collection snapshot:
+The repository does not use raw test count as research evidence. The important distinction is between ordinary construction tests and methodology invariants.
 
 ```bash
-uv run pytest --collect-only -q
+make lint
+make format-check
+make typecheck
+make test
+make coverage
+make research-invariants
+make rust-test
+make rust-equivalence
+make reproduce-smoke
+make reproduce RUN_ID=20260714T143541Z-112a94e-9d9b70
 ```
 
-The command collected 221 tests in the current workspace. The test suite covers ingestion, feature stores, Rust indicators and patterns, quantitative alpha modules, model protocols, calibration, model registry behavior, backtesting folds, trading metrics, storage, and CLI helper logic.
+The invariant suite covers:
 
-| Module | Coverage focus |
-|--------|----------------|
-| `tests/test_ingest/` | Price clients, macro client, sentiment feeds, validation, scheduler fallback, integration cycle. |
-| `tests/test_features/` | Feature engine, macro/sentiment/temporal features, store CRUD, Rust indicators, Rust correlations, Rust candlestick patterns. |
-| `tests/test_quant/` | Momentum, OU, Fama-French, Kalman, GARCH, HMM, cointegration, Hurst, wavelets, IC, Kelly, PCA, regime routing. |
-| `tests/test_models/` | XGBoost, LightGBM, LSTM, Transformer, ensemble, calibration, registry, dataset builders, prediction dataclass. |
-| `tests/test_evaluation/` | Walk-forward folds, transaction costs, prediction metrics, trading metrics, live accuracy tracking. |
-| `tests/test_storage/` | Database initialization, schema creation, stock universe seeding, raw price CRUD. |
+| Boundary | Evidence |
+|---|---|
+| Schema identity | Equal-width but differently named/ordered matrices are rejected. |
+| Global chronology | Date grouping, target purge, embargo, and ordering invariance. |
+| Point-in-time features | Future perturbation and train-only preprocessor isolation. |
+| Executable target | Availability, signal, open execution, and close target timestamps. |
+| Market data | Calendar, provider reconciliation, quality flags, provenance, and action policies. |
+| OOF learning | Base-model training rows cannot become their own stacker inputs. |
+| Calibration | Fit and final-test intervals are chronologically separate. |
+| Portfolio | Accounting identity, nonnegative cash, no-position neutrality, fixed-decision cost monotonicity. |
+| Governance | Parquet/JSON round trips, metric recomputation, immutable tracking, exact artifact replay. |
+
+Pull-request CI runs lint, formatting, type checking, coverage, research invariants, a deterministic synthetic pipeline, Rust tests, and Python-Rust equivalence. Scheduled CI adds live provider-schema and fresh-data smoke checks; those checks monitor interfaces and are not benchmark results.
 
 ---
 
@@ -1329,45 +553,46 @@ The command collected 221 tests in the current workspace. The test suite covers 
 
 ### 15.1 Tech Stack
 
-| Component | Technology |
-|-----------|------------|
-| Language | Python 3.12+, Rust |
-| CLI | Click |
-| HTTP | httpx |
-| Market data | yfinance, custom Is Yatirim client |
-| RSS | feedparser |
-| Tabular ML | XGBoost, LightGBM |
-| Neural ML | PyTorch LSTM and Transformer encoder |
-| Quant libraries | scipy, statsmodels, hmmlearn, arch, PyWavelets |
-| ML utilities | scikit-learn |
-| Rust binding | PyO3, maturin |
-| Storage | SQLite |
-| Build and environment | uv, Cargo |
-| Tests | pytest, pytest-asyncio, respx |
+| Function | Technology |
+|---|---|
+| Core research | Python 3.12+, pandas, NumPy, PyArrow, scikit-learn |
+| CLI and environment | Click, uv |
+| Optional nonlinear models | XGBoost, LightGBM |
+| Experimental neural models | PyTorch |
+| Experimental quantitative modules | SciPy, statsmodels, `arch`, hmmlearn, PyWavelets |
+| Optional indicators | Rust, PyO3, maturin |
+| Validation | pytest, coverage, ruff, mypy, pre-commit, Cargo |
 
 ### 15.2 Data Sources
 
-All data sources are free and require no paid subscription:
+| Source | Accepted use |
+|---|---|
+| Yahoo Finance chart endpoint | Committed four-ticker OHLCV and corporate-action snapshot with record-level provenance. |
+| Borsa Istanbul official holidays | Expected sessions and full-day/half-day timestamps. |
+| Is Yatirim | Legacy collection and tested proxy-quality handling; not accepted for next-open execution. |
+| TCMB EVDS | Experimental macro collection; excluded without release-availability timestamps. |
+| News/RSS feeds | Experimental headline collection; excluded because scoring and cutoff validation are incomplete. |
 
-| Source | Data | API key required |
-|--------|------|------------------|
-| [Is Yatirim](https://www.isyatirim.com.tr) | BIST OHLCV prices | No |
-| [Yahoo Finance](https://finance.yahoo.com) | BIST OHLCV prices fallback | No |
-| [TCMB EVDS](https://evds2.tcmb.gov.tr) | FX, rates, CPI, gold, bond indicators | Yes, free registration |
-| [Google News RSS](https://news.google.com) | Ticker-level headlines | No |
-| Turkish finance RSS feeds | Finance headline sentiment | No |
+Free public sources can change availability or schema. Committed inputs and hashes isolate reproducibility from those future changes.
 
 ---
 
 ## 16. Research Status and Limitations
 
-This repository is an applied research system, not a production trading desk. Important implementation facts:
+The accepted provider-backed experiment proves that the methodology executes and reproduces; it does not prove that the strategy has alpha.
 
-- The default CLI training path activates a calibrated XGBoost/LightGBM stacking ensemble; LSTM and Transformer models remain opt-in because they are slower to train and verify locally.
-- The ensemble combiner and Platt calibrator are integrated into the default inference path when an active ensemble is registered.
-- The Rust module exposes candlestick pattern detection, correlations, and beta; the current feature engine directly uses the indicator subset and price-derived features.
-- CLI-level walk-forward orchestration is available for research simulation with realistic commission and slippage assumptions.
-- The system depends on free public data sources, so availability, schema stability, and latency can vary.
+- The universe is a fixed four-stock prototype, not historical BIST-100 membership.
+- The sample is approximately one year and is too small for a strong economic conclusion.
+- The relevant BIST index is unavailable in the committed input, so only cash and equal-weight eligible-universe benchmarks are reported.
+- Sector metadata is unavailable; sector-relative features and sector reporting are excluded.
+- The chosen ridge strategy is net negative, and its bootstrap interval includes both losses and gains.
+- No accepted model achieves positive zero-mean OOS $R^2$.
+- Advanced models, stacking, calibration, macro, sentiment, regimes, wavelets, cointegration, Kelly sizing, and neural networks remain outside the accepted experiment.
+- Corporate-action tests cover all declared event types, while the committed empirical snapshot contains cash dividends only.
+- Provider reconciliation is implemented and tested, but the accepted artifact is not evidence of a live multi-provider study.
+- Live prediction persistence and maturation are executable, but no unattended production inference service is claimed.
+
+The next legitimate research step is better point-in-time data and a longer dated universe—not another model family.
 
 ---
 
@@ -1379,4 +604,4 @@ GNU General Public License v3.0
 
 ## 18. Disclaimer
 
-This software is for educational and research purposes only. It is not financial advice. Past performance does not guarantee future results. Always do your own research before making investment decisions. The authors assume no liability for losses incurred from using this system.
+This software is for educational and research purposes only. It is not financial advice. Past performance does not guarantee future results. The authors assume no liability for losses incurred from using this system.
