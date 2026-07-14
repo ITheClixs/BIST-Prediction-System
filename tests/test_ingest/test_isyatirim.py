@@ -9,7 +9,7 @@ import pytest
 import respx
 
 from bist_predict.ingest.isyatirim import BASE_URL, IsYatirimClient
-from bist_predict.ingest.types import OHLCVBar
+from bist_predict.ingest.types import OHLCVBar, OpenQuality, VolumeQuality
 
 
 SAMPLE_RESPONSE = {
@@ -71,6 +71,8 @@ class TestIsYatirimClient:
         assert apr1.low == 308.0
         assert apr1.close == 312.5
         assert apr1.volume == 1_000_000  # 310M TRY / 310 AOF
+        assert apr1.open_quality is OpenQuality.PROXY
+        assert apr1.volume_quality is VolumeQuality.RECONSTRUCTED
 
     @respx.mock
     @pytest.mark.asyncio

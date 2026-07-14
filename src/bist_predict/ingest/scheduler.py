@@ -10,7 +10,16 @@ from typing import Any, Callable, Coroutine, Sequence
 
 from bist_predict.config import Config
 from bist_predict.ingest.quality import ValidationError, validate_bar
-from bist_predict.ingest.types import MacroDataPoint, OHLCVBar, SentimentRecord
+from bist_predict.ingest.reconciliation import (
+    ReconciliationReport,
+    reconcile_price_bars,
+)
+from bist_predict.ingest.types import (
+    MacroDataPoint,
+    OHLCVBar,
+    PriceRepresentation,
+    SentimentRecord,
+)
 from bist_predict.storage.database import Database
 
 logger = logging.getLogger(__name__)
@@ -32,26 +41,34 @@ class IngestionScheduler:
         self._config = config
         self._price_primary = price_primary
         self._price_fallback = price_fallback
+        self._last_reconciliation = ReconciliationReport()
+
+    @property
+    def last_reconciliation(self) -> ReconciliationReport:
+        """Return diagnostics from the most recent provider merge."""
+        return self._last_reconciliation
 
     async def fetch_prices(
         self, ticker: str, start_date: date, end_date: date
     ) -> list[OHLCVBar]:
-        """Fetch price data with fallback. Tries primary source first."""
+        """Fetch both providers and use fallback observations to fill partial gaps."""
+        primary_bars: list[OHLCVBar] = []
         if self._price_primary is not None:
             try:
-                bars = await self._price_primary(ticker, start_date, end_date)
-                if bars:
-                    return bars
+                primary_bars = await self._price_primary(ticker, start_date, end_date)
             except Exception as e:
                 logger.warning("Primary source failed for %s: %s", ticker, e)
 
+        fallback_bars: list[OHLCVBar] = []
         if self._price_fallback is not None:
             try:
-                return await self._price_fallback(ticker, start_date, end_date)
+                fallback_bars = await self._price_fallback(ticker, start_date, end_date)
             except Exception as e:
                 logger.warning("Fallback source failed for %s: %s", ticker, e)
 
-        return []
+        bars, report = reconcile_price_bars(primary_bars, fallback_bars)
+        self._last_reconciliation = report
+        return bars
 
     async def store_prices(self, bars: Sequence[OHLCVBar]) -> int:
         """Validate and store price bars. Returns count of newly stored bars."""
@@ -67,11 +84,29 @@ class IngestionScheduler:
                 try:
                     conn.execute(
                         """INSERT INTO raw_prices
-                           (ticker, date, open, high, low, close, adj_close, volume, source)
-                           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+                           (ticker, date, open, high, low, close, adj_close, volume,
+                            source, open_quality, volume_quality, provider_symbol,
+                            provider_record_id, source_retrieved_at,
+                            split_adj_open, split_adj_high, split_adj_low,
+                            split_adj_close, split_adj_volume,
+                            total_return_open, total_return_high, total_return_low,
+                            total_return_close, total_return_volume)
+                           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?,
+                                   ?, ?, ?, ?, ?, ?, ?, ?)""",
                         (
                             bar.ticker, bar.date_str, bar.open, bar.high,
                             bar.low, bar.close, bar.adj_close, bar.volume, bar.source,
+                            bar.open_quality.value,
+                            bar.volume_quality.value,
+                            bar.provider_symbol,
+                            bar.provider_record_id,
+                            (
+                                bar.source_retrieved_at.isoformat()
+                                if bar.source_retrieved_at
+                                else None
+                            ),
+                            *self._representation_values(bar.split_adjusted_prices),
+                            *self._representation_values(bar.total_return_prices),
                         ),
                     )
                     stored += 1
@@ -80,6 +115,20 @@ class IngestionScheduler:
 
             conn.commit()
         return stored
+
+    @staticmethod
+    def _representation_values(
+        representation: PriceRepresentation | None,
+    ) -> tuple[object, ...]:
+        if representation is None:
+            return (None, None, None, None, None)
+        return (
+            representation.open,
+            representation.high,
+            representation.low,
+            representation.close,
+            representation.volume,
+        )
 
     async def store_macro(self, points: Sequence[MacroDataPoint]) -> int:
         """Store macro data points. Returns count of newly stored points."""

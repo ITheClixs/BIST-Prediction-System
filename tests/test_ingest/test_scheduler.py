@@ -11,7 +11,13 @@ import pytest
 
 from bist_predict.config import Config, DataConfig
 from bist_predict.ingest.scheduler import IngestionScheduler
-from bist_predict.ingest.types import OHLCVBar, MacroDataPoint, SentimentRecord
+from bist_predict.ingest.types import (
+    OHLCVBar,
+    MacroDataPoint,
+    OpenQuality,
+    SentimentRecord,
+    VolumeQuality,
+)
 from bist_predict.storage.database import Database
 
 
@@ -27,6 +33,10 @@ def _make_bar(ticker: str = "THYAO", d: date = date(2026, 4, 1)) -> OHLCVBar:
         ticker=ticker, date=d, open=310.0, high=315.0,
         low=308.0, close=312.5, adj_close=312.5,
         volume=1_000_000, source="isyatirim",
+        open_quality=OpenQuality.PROXY,
+        volume_quality=VolumeQuality.RECONSTRUCTED,
+        provider_symbol=ticker,
+        provider_record_id=f"isyatirim:{ticker}:{d.isoformat()}",
     )
 
 
@@ -57,9 +67,15 @@ class TestIngestionScheduler:
         assert stored == 1
 
         with db.connect() as conn:
-            row = conn.execute("SELECT ticker, close FROM raw_prices").fetchone()
+            row = conn.execute(
+                "SELECT ticker, close, open_quality, volume_quality, "
+                "provider_record_id FROM raw_prices"
+            ).fetchone()
             assert row[0] == "THYAO"
             assert row[1] == 312.5
+            assert row[2] == "proxy"
+            assert row[3] == "reconstructed"
+            assert row[4] == "isyatirim:THYAO:2026-04-01"
 
     @pytest.mark.asyncio
     async def test_store_macro_data(self, db: Database, config: Config) -> None:
@@ -98,6 +114,46 @@ class TestIngestionScheduler:
 
         assert len(bars) == 1
         mock_primary.assert_called_once()
+        mock_fallback.assert_called_once()
+
+    @pytest.mark.asyncio
+    async def test_fallback_repairs_a_partial_primary_interval(
+        self, db: Database, config: Config
+    ) -> None:
+        primary = [
+            _make_bar(d=date(2026, 4, 1)),
+            _make_bar(d=date(2026, 4, 3)),
+        ]
+        fallback_bar = OHLCVBar(
+            ticker="THYAO",
+            date=date(2026, 4, 2),
+            open=311.0,
+            high=316.0,
+            low=309.0,
+            close=313.0,
+            adj_close=313.0,
+            volume=900_000,
+            source="yahoo",
+        )
+        mock_primary = AsyncMock(return_value=primary)
+        mock_fallback = AsyncMock(return_value=[fallback_bar])
+        scheduler = IngestionScheduler(
+            db=db,
+            config=config,
+            price_primary=mock_primary,
+            price_fallback=mock_fallback,
+        )
+
+        bars = await scheduler.fetch_prices(
+            "THYAO", date(2026, 4, 1), date(2026, 4, 3)
+        )
+
+        assert [bar.date for bar in bars] == [
+            date(2026, 4, 1),
+            date(2026, 4, 2),
+            date(2026, 4, 3),
+        ]
+        assert scheduler.last_reconciliation.fallback_fill_count == 1
         mock_fallback.assert_called_once()
 
     @pytest.mark.asyncio

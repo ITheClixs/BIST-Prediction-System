@@ -2,11 +2,11 @@
 
 from __future__ import annotations
 
-from datetime import date, datetime
+from datetime import UTC, date, datetime
 
 import httpx
 
-from bist_predict.ingest.types import OHLCVBar
+from bist_predict.ingest.types import OHLCVBar, OpenQuality, VolumeQuality
 
 BASE_URL = (
     "https://www.isyatirim.com.tr/_layouts/15/Isyatirim.Website/"
@@ -49,6 +49,7 @@ class IsYatirimClient:
             raise ValueError(f"IsYatirim API error: {desc}")
 
         rows = data.get("value", [])
+        retrieved_at = datetime.now(UTC)
 
         bars: list[OHLCVBar] = []
         for row in rows:
@@ -73,6 +74,11 @@ class IsYatirimClient:
                 adj_close=close,
                 volume=volume_lots,
                 source="isyatirim",
+                open_quality=OpenQuality.PROXY,
+                volume_quality=VolumeQuality.RECONSTRUCTED,
+                provider_symbol=ticker,
+                provider_record_id=f"isyatirim:{ticker}:{dt.isoformat()}",
+                source_retrieved_at=retrieved_at,
             )
             bars.append(bar)
 

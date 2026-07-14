@@ -8,7 +8,7 @@ from unittest.mock import MagicMock, patch
 import pytest
 
 from bist_predict.ingest.yahoo import YahooFinanceClient
-from bist_predict.ingest.types import OHLCVBar
+from bist_predict.ingest.types import OHLCVBar, OpenQuality, VolumeQuality
 
 
 class TestYahooFinanceClient:
@@ -44,6 +44,8 @@ class TestYahooFinanceClient:
         assert all(isinstance(b, OHLCVBar) for b in bars)
         assert bars[0].ticker == "THYAO"
         assert bars[0].source == "yahoo"
+        assert bars[0].open_quality is OpenQuality.OBSERVED
+        assert bars[0].volume_quality is VolumeQuality.OBSERVED
 
     @patch("bist_predict.ingest.yahoo.yf.download")
     def test_fetch_empty_dataframe(self, mock_download: MagicMock) -> None:

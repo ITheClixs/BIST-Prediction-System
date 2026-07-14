@@ -2,14 +2,47 @@
 
 from __future__ import annotations
 
-from dataclasses import dataclass
-from datetime import date
-from typing import Protocol, Sequence
+from dataclasses import dataclass, field
+from datetime import date, datetime
+from enum import Enum
+from typing import Protocol
+
+
+class OpenQuality(str, Enum):
+    """Whether an opening price is directly tradable research data."""
+
+    OBSERVED = "observed"
+    PROXY = "proxy"
+    MISSING = "missing"
+
+
+class VolumeQuality(str, Enum):
+    """How the reported trading volume was obtained."""
+
+    OBSERVED = "observed"
+    RECONSTRUCTED = "reconstructed"
+    MISSING = "missing"
+
+
+@dataclass(frozen=True)
+class PriceRepresentation:
+    """OHLCV values under one explicit price-adjustment convention."""
+
+    open: float
+    high: float
+    low: float
+    close: float
+    volume: int
 
 
 @dataclass(frozen=True)
 class OHLCVBar:
-    """A single OHLCV price bar for one ticker on one date."""
+    """A provider price record with explicit adjustment and quality metadata.
+
+    The original scalar fields remain the raw, tradable representation so existing
+    collectors and storage call sites remain compatible. Adjusted representations
+    are optional because they must not be inferred from equal-looking price values.
+    """
 
     ticker: str
     date: date
@@ -20,6 +53,27 @@ class OHLCVBar:
     adj_close: float
     volume: int
     source: str
+    split_adjusted_prices: PriceRepresentation | None = None
+    total_return_prices: PriceRepresentation | None = None
+    open_quality: OpenQuality = OpenQuality.OBSERVED
+    volume_quality: VolumeQuality = VolumeQuality.OBSERVED
+    provider_symbol: str | None = None
+    provider_record_id: str | None = None
+    source_retrieved_at: datetime | None = None
+    raw_prices: PriceRepresentation = field(init=False)
+
+    def __post_init__(self) -> None:
+        object.__setattr__(
+            self,
+            "raw_prices",
+            PriceRepresentation(
+                open=self.open,
+                high=self.high,
+                low=self.low,
+                close=self.close,
+                volume=self.volume,
+            ),
+        )
 
     @property
     def date_str(self) -> str:

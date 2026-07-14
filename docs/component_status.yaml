@@ -50,21 +50,23 @@ components:
     accepted_default: false
     evidence:
       - src/bist_predict/ingest/yahoo.py
-    note: "All-or-nothing fallback; overlapping observations are not reconciled."
+    note: "Observed OHLCV fallback now participates in overlap reconciliation."
 
   provider_reconciliation:
     package: bist_predict.ingest
-    implemented: false
-    integrated: false
+    implemented: true
+    integrated: true
     evaluated: false
     production_inference: false
     accepted_default: false
-    evidence: []
-    note: "No partial-gap repair, deviation report, or per-record overlap provenance."
+    evidence:
+      - src/bist_predict/ingest/reconciliation.py
+      - src/bist_predict/ingest/scheduler.py
+    note: "Partial gaps are repaired and overlap deviations are explicit; not empirically accepted."
 
   market_price_representations:
     package: bist_predict.ingest
-    implemented: partial
+    implemented: true
     integrated: true
     evaluated: false
     production_inference: false
@@ -72,36 +74,40 @@ components:
     evidence:
       - src/bist_predict/ingest/types.py
       - src/bist_predict/storage/database.py
-    note: "Raw close and adjusted close share one record; no total-return series."
+    note: "Raw, split-adjusted, and total-return contracts plus quality/provenance are persisted."
 
   corporate_actions:
     package: bist_predict.ingest
-    implemented: false
-    integrated: false
+    implemented: true
+    integrated: partial
     evaluated: false
     production_inference: false
     accepted_default: false
-    evidence: []
-    note: "No split, dividend, rights, bonus, ticker-change, or delisting contract."
+    evidence:
+      - src/bist_predict/ingest/corporate_actions.py
+      - src/bist_predict/storage/database.py
+    note: "Typed events and economic-return handling exist; portfolio processing remains pending."
 
   trading_calendar:
     package: bist_predict.ingest
-    implemented: false
+    implemented: true
     integrated: false
     evaluated: false
     production_inference: false
     accepted_default: false
-    evidence: []
-    note: "No official-session, holiday, timezone, or duplicate-session validation."
+    evidence:
+      - src/bist_predict/ingest/calendar.py
+    note: "Sourced immutable session snapshots validate holidays, weekends, duplicates, and timezone."
 
   immutable_data_manifests:
     package: bist_predict.research
-    implemented: false
+    implemented: true
     integrated: false
     evaluated: false
     production_inference: false
     accepted_default: false
-    evidence: []
+    evidence:
+      - src/bist_predict/research/data_manifest.py
 
   feature_store:
     package: bist_predict.features
@@ -116,13 +122,15 @@ components:
 
   immutable_feature_manifest:
     package: bist_predict.features
-    implemented: false
+    implemented: true
     integrated: false
     evaluated: false
     production_inference: false
     accepted_default: false
-    evidence: []
-    note: "Compatibility currently relies on feature count, not ordered identity."
+    evidence:
+      - src/bist_predict/features/manifest.py
+      - src/bist_predict/features/lineage.py
+    note: "Strict identity and lineage contracts exist; accepted runner integration remains pending."
 
   canonical_panel:
     package: bist_predict.models
@@ -138,14 +146,14 @@ components:
 
   missing_value_policy:
     package: bist_predict.models
-    implemented: scaffold
-    integrated: true
+    implemented: true
+    integrated: false
     evaluated: false
-    production_inference: true
+    production_inference: false
     accepted_default: false
     evidence:
-      - src/bist_predict/models/types.py
-    note: "Missing and non-finite values are silently converted to zero."
+      - src/bist_predict/features/preprocessing.py
+    note: "Train-only linear/neural preprocessing and native tree missing values are implemented."
 
   rust_technical_indicators:
     package: bist_features
@@ -217,15 +225,14 @@ components:
 
   date_grouped_purged_validation:
     package: bist_predict.evaluation
-    implemented: false
+    implemented: true
     integrated: false
     evaluated: false
     production_inference: false
     accepted_default: false
     evidence:
-      - src/bist_predict/evaluation/backtest.py
-      - src/bist_predict/research/ensemble_pipeline.py
-    note: "Current folds use pooled row indices and overlapping rolling windows."
+      - src/bist_predict/research/splits.py
+    note: "Invariant-tested date-grouped folds exist; legacy ensemble integration remains pending."
 
   executable_next_open_target:
     package: bist_predict.models

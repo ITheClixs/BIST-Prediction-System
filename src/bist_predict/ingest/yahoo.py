@@ -3,11 +3,11 @@
 from __future__ import annotations
 
 import asyncio
-from datetime import date
+from datetime import UTC, date, datetime
 
 import yfinance as yf
 
-from bist_predict.ingest.types import OHLCVBar
+from bist_predict.ingest.types import OHLCVBar, OpenQuality, VolumeQuality
 
 
 class YahooFinanceClient:
@@ -35,6 +35,7 @@ class YahooFinanceClient:
             return []
 
         bars: list[OHLCVBar] = []
+        retrieved_at = datetime.now(UTC)
         for idx, row in df.iterrows():
             bar = OHLCVBar(
                 ticker=ticker,
@@ -46,6 +47,11 @@ class YahooFinanceClient:
                 adj_close=float(row["Adj Close"]),
                 volume=int(row["Volume"]),
                 source="yahoo",
+                open_quality=OpenQuality.OBSERVED,
+                volume_quality=VolumeQuality.OBSERVED,
+                provider_symbol=yahoo_ticker,
+                provider_record_id=f"yahoo:{yahoo_ticker}:{idx.date().isoformat()}",
+                source_retrieved_at=retrieved_at,
             )
             bars.append(bar)
 

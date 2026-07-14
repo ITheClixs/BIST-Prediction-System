@@ -76,6 +76,47 @@ class TestDatabaseInit:
             )
             assert cursor.fetchone() is not None
 
+    def test_price_schema_separates_quality_provenance_and_representations(
+        self, tmp_db_path: Path
+    ) -> None:
+        db = Database(tmp_db_path)
+        db.initialize()
+
+        with db.connect() as conn:
+            columns = {
+                row[1] for row in conn.execute("PRAGMA table_info(raw_prices)").fetchall()
+            }
+
+        assert {
+            "open_quality",
+            "volume_quality",
+            "provider_symbol",
+            "provider_record_id",
+            "source_retrieved_at",
+            "split_adj_open",
+            "split_adj_high",
+            "split_adj_low",
+            "split_adj_close",
+            "split_adj_volume",
+            "total_return_open",
+            "total_return_high",
+            "total_return_low",
+            "total_return_close",
+            "total_return_volume",
+        } <= columns
+
+    def test_creates_corporate_actions_table(self, tmp_db_path: Path) -> None:
+        db = Database(tmp_db_path)
+        db.initialize()
+
+        with db.connect() as conn:
+            row = conn.execute(
+                "SELECT name FROM sqlite_master "
+                "WHERE type='table' AND name='corporate_actions'"
+            ).fetchone()
+
+        assert row is not None
+
     def test_idempotent_initialize(self, tmp_db_path: Path) -> None:
         db = Database(tmp_db_path)
         db.initialize()

@@ -7,7 +7,9 @@ from contextlib import contextmanager
 from pathlib import Path
 from typing import Generator
 
-SCHEMA_VERSION = 1
+from bist_predict.storage.migrations import apply_pending_migrations
+
+SCHEMA_VERSION = 2
 
 DEFAULT_TRACKED_STOCKS = [
     "THYAO", "GARAN", "AKBNK", "EREGL", "SISE", "TUPRS", "TCELL", "TOASO",
@@ -33,12 +35,47 @@ CREATE TABLE IF NOT EXISTS raw_prices (
     adj_close REAL NOT NULL,
     volume INTEGER NOT NULL,
     source TEXT NOT NULL,
+    open_quality TEXT NOT NULL DEFAULT 'observed',
+    volume_quality TEXT NOT NULL DEFAULT 'observed',
+    provider_symbol TEXT,
+    provider_record_id TEXT,
+    source_retrieved_at TEXT,
+    split_adj_open REAL,
+    split_adj_high REAL,
+    split_adj_low REAL,
+    split_adj_close REAL,
+    split_adj_volume INTEGER,
+    total_return_open REAL,
+    total_return_high REAL,
+    total_return_low REAL,
+    total_return_close REAL,
+    total_return_volume INTEGER,
     fetched_at TEXT NOT NULL DEFAULT (datetime('now')),
     UNIQUE(ticker, date)
 );
 
 CREATE INDEX IF NOT EXISTS idx_raw_prices_ticker_date ON raw_prices(ticker, date);
 CREATE INDEX IF NOT EXISTS idx_raw_prices_ticker ON raw_prices(ticker);
+
+CREATE TABLE IF NOT EXISTS corporate_actions (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    ticker TEXT NOT NULL,
+    effective_date TEXT NOT NULL,
+    action_type TEXT NOT NULL,
+    source TEXT NOT NULL,
+    ratio REAL,
+    cash_amount REAL,
+    currency TEXT,
+    subscription_price REAL,
+    new_ticker TEXT,
+    delisting_price REAL,
+    source_retrieved_at TEXT,
+    created_at TEXT NOT NULL DEFAULT (datetime('now')),
+    UNIQUE(ticker, effective_date, action_type, source)
+);
+
+CREATE INDEX IF NOT EXISTS idx_corporate_actions_ticker_date
+ON corporate_actions(ticker, effective_date);
 
 CREATE TABLE IF NOT EXISTS macro_data (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -138,6 +175,9 @@ class Database:
                 conn.execute(
                     "INSERT INTO schema_version (version) VALUES (?)", (SCHEMA_VERSION,)
                 )
+                conn.commit()
+            else:
+                apply_pending_migrations(conn)
             self._seed_default_tracked_stocks(conn)
             conn.commit()
 
