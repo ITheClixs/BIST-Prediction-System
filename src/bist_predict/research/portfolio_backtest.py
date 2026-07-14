@@ -19,6 +19,16 @@ def _identifier(*parts: object) -> str:
     return hashlib.sha256("|".join(map(str, parts)).encode()).hexdigest()[:20]
 
 
+def prediction_identifier(
+    fold_id: str,
+    model_name: str,
+    signal_date: str,
+    ticker: str,
+) -> str:
+    """Return the stable identity shared by artifacts, signals, and tracking."""
+    return _identifier(fold_id, model_name, signal_date, ticker)
+
+
 @dataclass(frozen=True)
 class CostModel:
     """Explicit realized transaction-cost components as decimal rates."""
@@ -341,11 +351,11 @@ class PortfolioBacktester:
                 reason = candidate.rejection_reason
                 if reason is None and key not in selected_keys:
                     reason = "not_top_k"
-                prediction_id = _identifier(
-                    prediction["fold_id"],
-                    prediction["model_name"],
-                    prediction["date"],
-                    prediction["ticker"],
+                prediction_id = prediction_identifier(
+                    str(prediction["fold_id"]),
+                    str(prediction["model_name"]),
+                    str(prediction["date"]),
+                    str(prediction["ticker"]),
                 )
                 signal = Signal(
                     signal_id=_identifier("signal", prediction_id),
@@ -593,9 +603,9 @@ class PortfolioBacktester:
             )
             if key in represented:
                 continue
-            prediction_id = _identifier(
-                candidate.prediction["fold_id"],
-                candidate.prediction["model_name"],
+            prediction_id = prediction_identifier(
+                str(candidate.prediction["fold_id"]),
+                str(candidate.prediction["model_name"]),
                 *key,
             )
             signals.append(

@@ -1,6 +1,6 @@
 schema_version: 1
 scope: fixed_bist_large_cap_prototype
-generated_from_commit: 49c241c
+generated_from_commit: 2c9dd00
 status_definitions:
   implemented: "Executable code exists; scaffold and partial identify incomplete contracts."
   integrated: "The component participates in the current default CLI path."
@@ -385,25 +385,28 @@ components:
     note: "Observed-open top-k execution now persists signals, orders, fills, positions, cash, component costs, and daily equity with accounting and cost-monotonicity tests; accepted runner integration remains pending."
 
   live_prediction_tracking:
-    package: bist_predict.evaluation
-    implemented: scaffold
-    integrated: partial
-    evaluated: false
-    production_inference: false
-    accepted_default: false
-    evidence:
-      - src/bist_predict/evaluation/tracker.py
-      - src/bist_predict/cli.py
-    note: "Accuracy is read-only; signal generation does not persist predictions."
-
-  prediction_maturation:
-    package: bist_predict.evaluation
-    implemented: false
+    package: bist_predict.research
+    implemented: true
     integrated: false
     evaluated: false
     production_inference: false
     accepted_default: false
-    evidence: []
+    evidence:
+      - src/bist_predict/research/prediction_tracking.py
+      - tests/test_research/test_prediction_tracking.py
+    note: "Actionable signals can persist create-only records bound to model-run and feature-manifest identities; accepted live CLI integration remains pending."
+
+  prediction_maturation:
+    package: bist_predict.research
+    implemented: true
+    integrated: false
+    evaluated: false
+    production_inference: false
+    accepted_default: false
+    evidence:
+      - src/bist_predict/research/prediction_tracking.py
+      - tests/test_research/test_prediction_tracking.py
+    note: "Maturation waits for target close, requires exact observed-open provider records, freezes one outcome, and computes accuracy without retraining."
 
   immutable_run_governance:
     package: bist_predict.research
