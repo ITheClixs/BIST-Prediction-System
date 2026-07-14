@@ -1,0 +1,177 @@
+{
+  "features": [
+    {
+      "availability_rule": "after_official_session_close",
+      "formula": "log(split_close_t / split_close_t_minus_1)",
+      "formula_version": "1",
+      "lookback": 2,
+      "missing_value_policy": "preserve_with_reason",
+      "name": "log_return_1d",
+      "normalization_policy": "none"
+    },
+    {
+      "availability_rule": "after_official_session_close",
+      "formula": "log(split_close_t / split_close_t_minus_5)",
+      "formula_version": "1",
+      "lookback": 6,
+      "missing_value_policy": "preserve_with_reason",
+      "name": "log_return_5d",
+      "normalization_policy": "none"
+    },
+    {
+      "availability_rule": "after_official_session_close",
+      "formula": "log(split_close_t / split_close_t_minus_20)",
+      "formula_version": "1",
+      "lookback": 21,
+      "missing_value_policy": "preserve_with_reason",
+      "name": "log_return_20d",
+      "normalization_policy": "none"
+    },
+    {
+      "availability_rule": "after_official_session_close",
+      "formula": "split_close / mean_20(split_close) - 1",
+      "formula_version": "1",
+      "lookback": 20,
+      "missing_value_policy": "preserve_with_reason",
+      "name": "close_over_sma20_minus_1",
+      "normalization_policy": "none"
+    },
+    {
+      "availability_rule": "after_official_session_close",
+      "formula": "mean_20(split_close) / mean_100(split_close) - 1",
+      "formula_version": "1",
+      "lookback": 100,
+      "missing_value_policy": "preserve_with_reason",
+      "name": "sma20_over_sma100_minus_1",
+      "normalization_policy": "none"
+    },
+    {
+      "availability_rule": "after_official_session_close",
+      "formula": "atr_14(split_adjusted_ohlc) / split_close",
+      "formula_version": "1",
+      "lookback": 15,
+      "missing_value_policy": "preserve_with_reason",
+      "name": "atr14_over_close",
+      "normalization_policy": "none"
+    },
+    {
+      "availability_rule": "after_official_session_close",
+      "formula": "vwap_20(split_adjusted_hlc, raw_volume) / split_close - 1",
+      "formula_version": "1",
+      "lookback": 20,
+      "missing_value_policy": "preserve_with_reason",
+      "name": "vwap20_over_close_minus_1",
+      "normalization_policy": "none"
+    },
+    {
+      "availability_rule": "after_official_session_close",
+      "formula": "log1p(raw_volume)",
+      "formula_version": "1",
+      "lookback": 1,
+      "missing_value_policy": "preserve_with_reason",
+      "name": "log_volume",
+      "normalization_policy": "none"
+    },
+    {
+      "availability_rule": "after_official_session_close",
+      "formula": "zscore_20(raw_volume)",
+      "formula_version": "1",
+      "lookback": 20,
+      "missing_value_policy": "preserve_with_reason",
+      "name": "volume_zscore_20",
+      "normalization_policy": "none"
+    },
+    {
+      "availability_rule": "after_official_session_close",
+      "formula": "std_20(log_return_1d) * sqrt(252)",
+      "formula_version": "1",
+      "lookback": 21,
+      "missing_value_policy": "preserve_with_reason",
+      "name": "realized_volatility_20",
+      "normalization_policy": "none"
+    },
+    {
+      "availability_rule": "after_official_session_close",
+      "formula": "(split_high - split_low) / split_close",
+      "formula_version": "1",
+      "lookback": 1,
+      "missing_value_policy": "preserve_with_reason",
+      "name": "intraday_range_over_close",
+      "normalization_policy": "none"
+    },
+    {
+      "availability_rule": "after_official_session_close",
+      "formula": "split_open / prior_split_close - 1",
+      "formula_version": "1",
+      "lookback": 2,
+      "missing_value_policy": "preserve_with_reason",
+      "name": "overnight_gap",
+      "normalization_policy": "none"
+    },
+    {
+      "availability_rule": "after_official_session_close",
+      "formula": "split_close / max_20(split_close) - 1",
+      "formula_version": "1",
+      "lookback": 20,
+      "missing_value_policy": "preserve_with_reason",
+      "name": "drawdown_20",
+      "normalization_policy": "none"
+    },
+    {
+      "availability_rule": "after_official_session_close",
+      "formula": "midrank_percentile_by_date(log_return_20d)",
+      "formula_version": "1",
+      "lookback": 21,
+      "missing_value_policy": "preserve_with_reason",
+      "name": "cross_sectional_return_rank",
+      "normalization_policy": "none"
+    },
+    {
+      "availability_rule": "after_official_session_close",
+      "formula": "log_return_20d - date_mean(log_return_20d)",
+      "formula_version": "1",
+      "lookback": 21,
+      "missing_value_policy": "preserve_with_reason",
+      "name": "market_relative_return_20d",
+      "normalization_policy": "none"
+    },
+    {
+      "availability_rule": "after_official_session_close",
+      "formula": "sin(2*pi*weekday/7)",
+      "formula_version": "1",
+      "lookback": 1,
+      "missing_value_policy": "preserve_with_reason",
+      "name": "day_of_week_sin",
+      "normalization_policy": "none"
+    },
+    {
+      "availability_rule": "after_official_session_close",
+      "formula": "cos(2*pi*weekday/7)",
+      "formula_version": "1",
+      "lookback": 1,
+      "missing_value_policy": "preserve_with_reason",
+      "name": "day_of_week_cos",
+      "normalization_policy": "none"
+    },
+    {
+      "availability_rule": "after_official_session_close",
+      "formula": "sin(2*pi*(month-1)/12)",
+      "formula_version": "1",
+      "lookback": 1,
+      "missing_value_policy": "preserve_with_reason",
+      "name": "month_sin",
+      "normalization_policy": "none"
+    },
+    {
+      "availability_rule": "after_official_session_close",
+      "formula": "cos(2*pi*(month-1)/12)",
+      "formula_version": "1",
+      "lookback": 1,
+      "missing_value_policy": "preserve_with_reason",
+      "name": "month_cos",
+      "normalization_policy": "none"
+    }
+  ],
+  "manifest_hash": "b0349ccf178ddaf18885ffadcf3685d71f845458b211792d82ccbc866c84cf71",
+  "schema_version": "2.0.0"
+}

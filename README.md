@@ -110,13 +110,15 @@ The canonical provider record distinguishes:
 | Total-return prices | Economic labels where distributions must be recognized. |
 | Corporate-action events | Splits, bonus issues, rights issues, cash dividends, ticker changes, and delistings where sourced. |
 
-Each row retains provider name, provider symbol, source record identifier, retrieval time, `open_quality`, and `volume_quality`. The Is Yatirim weighted-average price is represented as a proxy and cannot enter next-open execution research. Partial provider gaps can be repaired by the reconciliation layer; the accepted run itself uses one explicit Yahoo input snapshot rather than claiming an empirically validated multi-provider merge.
+The accepted label is the tradable same-session raw open-to-close return. It begins after effective-open actions and ends before the next session, so it carries no overnight distribution entitlement; total-return fields remain explicit for any future target interval that does.
+
+Each row retains provider name, provider symbol, source record identifier, retrieval time, `open_quality`, and `volume_quality`. The Is Yatirim weighted-average price is represented as a proxy and cannot enter next-open execution research. Partial provider gaps can be repaired by the reconciliation layer. The raw Yahoo client does not construct all accepted price representations; the committed run therefore enters through a separately validated, provenance-bearing snapshot rather than pretending that collector output is directly accepted or that a multi-provider merge was empirically validated.
 
 ### 3.2 Calendar and Corporate Actions
 
 The accepted runner validates expected sessions, duplicates, weekend rows, holidays, timezone, and full-day or half-day open/close timestamps against the committed Borsa Istanbul schedule. Its input bundle includes five sourced cash-dividend events and a per-ticker corporate-action query-coverage artifact.
 
-Typed policies and invariant tests cover stock splits, bonus issues, rights issues, cash dividends, ticker changes, and delistings. Unsupported rights-action pricing fails closed. A synthetic two-for-one split verifies that a nominal price change from 100 to 50 does not become a false $-50\%$ economic return.
+The execution ledger credits cash dividends to entitled shares, adjusts quantities and basis for splits and bonus issues, remaps ticker changes, and cash-settles delistings only when a sourced settlement price exists. Rights issues fail closed without an explicit exercise policy. The one-session accepted strategy carries no overnight entitlement, so its five dividend events are persisted as `no_entitlement`, not as invented income. A synthetic two-for-one split verifies that a nominal price change from 100 to 50 does not become a false $-50\%$ economic return.
 
 ### 3.3 Immutable Run Bundle
 
@@ -126,19 +128,21 @@ Every accepted run is written under `runs/<run_id>/` and includes:
 config.yaml                 run_manifest.json
 data_manifest.json          universe_manifest.json
 feature_manifest.json       folds.json
+feature_lineage.parquet     missingness.parquet
+feature_artifacts/          model_artifact.json
 trials.jsonl                predictions.parquet
-metrics.json                model_artifact.json
-environment.json            artifact_hashes.json
-input_prices.parquet        official_calendar.parquet
-corporate_actions.parquet   corporate_action_coverage.parquet
+metrics.json                environment.json
+artifact_hashes.json        input_prices.parquet
+official_calendar.parquet   corporate_actions.parquet
+corporate_action_coverage.parquet
 panel.parquet               sample_metadata.parquet
 signals.parquet             orders.parquet
 fills.parquet               positions.parquet
 cash_ledger.parquet         costs.parquet
-daily_equity.parquet
+daily_equity.parquet        corporate_action_ledger.parquet
 ```
 
-Run identifiers combine a UTC timestamp, short Git SHA, and configuration hash. Replay rebuilds the run from bundled inputs and checks every artifact hash.
+Run identifiers combine a UTC timestamp, short Git SHA, and configuration hash. Recursive hashes freeze every original artifact, including environment provenance. Replay rebuilds from bundled inputs and requires byte-identical scientific artifacts; the replay machine's environment record is allowed to differ from the immutable original provenance.
 
 ---
 
@@ -210,7 +214,7 @@ All accepted models use the same panel, target, folds, feature manifest, evaluat
 | Logistic regression | Regularized linear direction model. |
 | Ridge regression | Regularized linear return model and accepted portfolio ranking model. |
 
-Every OOS row records date, ticker, fold ID, model name/version, training end, feature-manifest hash, target, prediction, predicted probability, and predicted return. Metrics are recomputed from this file rather than copied from training logs.
+Every OOS row records date, ticker, fold ID, model name/version, training end, feature-manifest hash, target, prediction, predicted probability, and predicted return. Metrics are recomputed from this file rather than copied from training logs. The model artifact also stores each fold's ordered features, train-only imputation and scaling state, fitted logistic/ridge parameters, deterministic baseline rule state, training boundary, and version.
 
 ### 6.2 Nonlinear and Neural Models
 
@@ -258,7 +262,7 @@ Invariant tests additionally prove that ticker ordering and row ordering cannot 
 
 ### 8.2 Portfolio Simulation
 
-The initial strategy is intentionally simple: long-only, top-$k$ predicted returns, equal weighting, next-open observed-price execution, and a one-session holding period. Its event sequence is:
+The initial strategy is intentionally simple: long-only, top-$k$ predicted returns, equal weighting, next-open observed-price execution, and a one-session holding period. Participation caps and market impact use a 20-session trailing volume reference whose final observation is no later than the signal date; full execution-session volume is never used at the open. Its event sequence is:
 
 1. Persist after-close predictions.
 2. Apply universe and eligibility rules.
@@ -287,7 +291,7 @@ The same signal decisions are reused across cost sensitivity cases. Increasing c
 
 Prediction reports include MAE, RMSE, zero-mean $R^2$, Pearson and Spearman IC, directional and balanced accuracy, log loss, Brier score, PR-AUC, and MCC. Portfolio reports include gross/net/annualized return, volatility, Sharpe, Sortino, maximum drawdown, Calmar, turnover, trade count, hit rate, holding period, exposures, concentration, cost decomposition, benchmark-relative return, information ratio, and seeded block-bootstrap intervals.
 
-Prediction results are grouped by fold, year, ticker, liquidity bucket, and market regime. Sector slices are explicitly unavailable because the accepted input contains no sourced sector taxonomy. Portfolio-level sector, liquidity, and regime attribution is not implemented and is not claimed.
+Prediction results are grouped by fold, year, ticker, liquidity bucket, and market regime. Ledger-derived portfolio PnL, cost components, turnover, trades, and exposure reconcile across the same available dimensions. Sector slices remain explicitly unavailable because the accepted input contains no sourced sector taxonomy.
 
 ### 8.4 Committed Experiment
 
@@ -298,8 +302,8 @@ The following block is generated from the immutable run artifacts by `bist_predi
 
 | Field | Value |
 |---|---|
-| Run | `20260714T143541Z-112a94e-9d9b70` |
-| Git commit | `112a94e174ca` (clean working tree recorded) |
+| Run | `20260714T151522Z-a877480-ff7b60` |
+| Git commit | `a87748044b1c` (clean working tree recorded) |
 | Dataset | `fixed_bist_large_cap_prototype-150d24cf4251` |
 | Scope | `fixed_bist_large_cap_prototype` |
 | Tickers | GARAN, ISCTR, KCHOL, THYAO |
@@ -322,32 +326,32 @@ The following block is generated from the immutable run artifacts by `bist_predi
 
 | Portfolio measure | Accepted result |
 |---|---:|
-| Gross return | -0.9636% |
-| Net return | -6.3488% |
-| Annualized return | -12.8679% |
-| Annualized volatility | 11.8169% |
-| Sharpe | -1.1067 |
-| Maximum drawdown | -8.5707% |
-| Turnover | 55.8212x |
-| Trade count | 57 |
+| Gross return | 7.7694% |
+| Net return | -4.7687% |
+| Annualized return | -9.7521% |
+| Annualized volatility | 18.8297% |
+| Sharpe | -0.4513 |
+| Maximum drawdown | -14.4181% |
+| Turnover | 123.6824x |
+| Trade count | 143 |
 | Equal-weight benchmark return | -5.8309% |
-| Benchmark-relative return | -0.5179% |
-| Total modeled costs | TRY 5,494.49 |
+| Benchmark-relative return | 1.0621% |
+| Total modeled costs | TRY 12,403.77 |
 
 ### Transaction-cost sensitivity
 
 | Cost case | Gross return | Net return | Total costs | Trades |
 |---|---:|---:|---:|---:|
-| 0.0x | -0.9545% | -0.9545% | TRY 0.00 | 57 |
-| 1.0x | -0.9636% | -6.3488% | TRY 5,494.49 | 57 |
-| 2.0x | -0.9579% | -11.4348% | TRY 10,688.12 | 57 |
+| 0.0x | 7.7671% | 7.7671% | TRY 0.00 | 143 |
+| 1.0x | 7.7694% | -4.7687% | TRY 12,403.77 | 143 |
+| 2.0x | 7.7188% | -15.8890% | TRY 23,338.11 | 143 |
 
 ### Negative results and evidence limits
 
 - No evaluated model achieved positive zero-mean R-squared; the best observed value was 0.0000 for `zero_return`.
-- The 95% block-bootstrap interval for annualized return spans zero (-34.22% to 11.12%).
+- The 95% block-bootstrap interval for annualized return spans zero (-41.19% to 37.06%).
 - No relevant BIST index benchmark was available in the accepted input dataset; the report therefore does not claim index-relative performance.
-- Net return did not improve as modeled transaction costs increased (-0.9545% to -11.4348%).
+- Net return did not improve as modeled transaction costs increased (7.7671% to -15.8890%).
 <!-- ACCEPTED_RESULTS:END -->
 
 ### 8.5 Methods-to-Code Traceability
@@ -356,13 +360,15 @@ The following block is generated from the immutable run artifacts by `bist_predi
 |---|---|---|---|
 | Fixed experiment scope | `research/accepted_benchmark.py` | accepted benchmark E2E | `universe_manifest.json` |
 | Official sessions | `ingest/calendar.py` | calendar validity | `official_calendar.parquet` |
-| Corporate actions | `ingest/corporate_actions.py` | action and split invariants | `corporate_actions.parquet` |
+| Corporate actions | `research/portfolio_backtest.py` | entitlement and transition tests | `corporate_action_ledger.parquet` |
 | Canonical panel and target | `research/panel.py` | chronology and alignment | `panel.parquet` |
-| Immutable feature identity | `features/manifest.py` | schema identity | `feature_manifest.json` |
+| Immutable feature identity and lineage | `features/manifest.py`, `features/lineage.py` | schema identity and content addressing | `feature_manifest.json`, `feature_lineage.parquet` |
+| Fold-aware missingness | `research/missingness.py` | reason and partition validation | `missingness.parquet` |
 | Date-grouped purged CV | `research/splits.py` | ordering invariance and purge | `folds.json` |
-| Common-fold baselines | `research/baselines.py` | preprocessing isolation | `predictions.parquet` |
+| Common-fold baselines | `research/baselines.py` | preprocessing isolation and state reconstruction | `predictions.parquet`, `model_artifact.json` |
 | Event-ledger backtest | `research/portfolio_backtest.py` | accounting and cost monotonicity | `fills.parquet`, `cash_ledger.parquet` |
-| Immutable replay | `research/run_artifacts.py` | artifact round trip and exact replay | `artifact_hashes.json` |
+| Grouped portfolio attribution | `research/reporting.py` | ledger reconciliation | `metrics.json` |
+| Portable scientific replay | `research/run_artifacts.py` | artifact round trip and environment-drift replay | `artifact_hashes.json`, `environment.json` |
 | Prediction maturation | `research/prediction_tracking.py` | create-only lifecycle | frozen outcome store |
 
 ---
@@ -402,19 +408,19 @@ Run the deterministic synthetic methodology check:
 make reproduce-smoke
 ```
 
-Exactly replay the committed provider-backed experiment:
+Replay the committed provider-backed scientific artifacts:
 
 ```bash
-make reproduce RUN_ID=20260714T143541Z-112a94e-9d9b70
+make reproduce RUN_ID=20260714T151522Z-a877480-ff7b60
 ```
 
 Run a new accepted benchmark from explicit, provenance-bearing inputs:
 
 ```bash
 make benchmark \
-  INPUT=data/accepted/fixed_bist_large_cap_prices.parquet \
-  ACTIONS=data/accepted/corporate_actions.parquet \
-  ACTION_COVERAGE=data/accepted/corporate_action_coverage.parquet
+  INPUT=runs/20260714T151522Z-a877480-ff7b60/input_prices.parquet \
+  ACTIONS=runs/20260714T151522Z-a877480-ff7b60/corporate_actions.parquet \
+  ACTION_COVERAGE=runs/20260714T151522Z-a877480-ff7b60/corporate_action_coverage.parquet
 ```
 
 No network access is required to replay the committed run.
@@ -429,7 +435,7 @@ No network access is required to replay the committed run.
 |---|---|
 | `bist-predict benchmark` | Build a new accepted run from explicit price, action, and action-coverage inputs. |
 | `bist-predict reproduce-smoke` | Run the bounded synthetic end-to-end methodology check. |
-| `bist-predict reproduce <run-id>` | Rebuild a committed run and verify exact hashes. |
+| `bist-predict reproduce <run-id>` | Rebuild a committed run and verify exact scientific hashes while preserving original environment provenance. |
 | `bist-predict mature-predictions` | Freeze realized outcomes after the exact target interval completes. |
 | `bist-predict accuracy` | Report accuracy only from immutable signal-time records and frozen outcomes. |
 
@@ -438,7 +444,7 @@ Prediction lifecycle example:
 ```bash
 uv run bist-predict mature-predictions \
   --store prediction_tracking \
-  --prices data/accepted/fixed_bist_large_cap_prices.parquet \
+  --prices runs/20260714T151522Z-a877480-ff7b60/input_prices.parquet \
   --as-of 2026-04-03T18:10:00+03:00
 
 uv run bist-predict accuracy --store prediction_tracking
@@ -460,7 +466,7 @@ The accepted run stores its exact configuration in `runs/<run_id>/config.yaml`. 
 
 ```yaml
 experiment_scope: fixed_bist_large_cap_prototype
-methodology_version: accepted-baseline-v1
+methodology_version: accepted-baseline-v2
 min_train_dates: 24
 validation_dates: 10
 step_dates: 10
@@ -468,11 +474,15 @@ embargo_dates: 1
 portfolio_model: ridge
 top_k: 3
 starting_equity: 100000.0
+decision_cost_rate: 0.0001
 commission_rate: 0.0002
 bid_ask_spread_rate: 0.001
 slippage_rate: 0.0003
 market_impact_coefficient: 0.0001
 max_participation: 0.01
+liquidity_lookback_sessions: 20
+min_trade_value: 100.0
+tax_rate: 0.0
 seed: 42
 ```
 
@@ -489,7 +499,6 @@ BIST-Predictorcl/
 +-- pyproject.toml
 +-- config.example.toml
 +-- docs/component_status.yaml
-+-- data/accepted/                  # committed provider/action snapshots
 +-- runs/                           # immutable accepted run bundles
 +-- benchmarks/results/             # Rust benchmark evidence
 +-- .github/workflows/              # PR and scheduled research checks
@@ -528,7 +537,7 @@ make research-invariants
 make rust-test
 make rust-equivalence
 make reproduce-smoke
-make reproduce RUN_ID=20260714T143541Z-112a94e-9d9b70
+make reproduce RUN_ID=20260714T151522Z-a877480-ff7b60
 ```
 
 The invariant suite covers:
@@ -543,7 +552,7 @@ The invariant suite covers:
 | OOF learning | Base-model training rows cannot become their own stacker inputs. |
 | Calibration | Fit and final-test intervals are chronologically separate. |
 | Portfolio | Accounting identity, nonnegative cash, no-position neutrality, fixed-decision cost monotonicity. |
-| Governance | Parquet/JSON round trips, metric recomputation, immutable tracking, exact artifact replay. |
+| Governance | Parquet/JSON round trips, metric recomputation, immutable tracking, recursive hashes, and portable scientific replay. |
 
 Pull-request CI runs lint, formatting, type checking, coverage, research invariants, a deterministic synthetic pipeline, Rust tests, and Python-Rust equivalence. Scheduled CI adds live provider-schema and fresh-data smoke checks; those checks monitor interfaces and are not benchmark results.
 
@@ -567,7 +576,8 @@ Pull-request CI runs lint, formatting, type checking, coverage, research invaria
 
 | Source | Accepted use |
 |---|---|
-| Yahoo Finance chart endpoint | Committed four-ticker OHLCV and corporate-action snapshot with record-level provenance. |
+| Prepared Yahoo-sourced snapshot | Committed four-ticker price representations and corporate-action inputs with record-level provenance. |
+| Raw Yahoo collector | Observed OHLCV ingestion only; not a direct accepted input because it does not construct every required price representation. |
 | Borsa Istanbul official holidays | Expected sessions and full-day/half-day timestamps. |
 | Is Yatirim | Legacy collection and tested proxy-quality handling; not accepted for next-open execution. |
 | TCMB EVDS | Experimental macro collection; excluded without release-availability timestamps. |
@@ -588,7 +598,7 @@ The accepted provider-backed experiment proves that the methodology executes and
 - The chosen ridge strategy is net negative, and its bootstrap interval includes both losses and gains.
 - No accepted model achieves positive zero-mean OOS $R^2$.
 - Advanced models, stacking, calibration, macro, sentiment, regimes, wavelets, cointegration, Kelly sizing, and neural networks remain outside the accepted experiment.
-- Corporate-action tests cover all declared event types, while the committed empirical snapshot contains cash dividends only.
+- Corporate-action tests cover declared transitions and fail-closed policies, while the committed empirical snapshot contains cash dividends only.
 - Provider reconciliation is implemented and tested, but the accepted artifact is not evidence of a live multi-provider study.
 - Live prediction persistence and maturation are executable, but no unattended production inference service is claimed.
 

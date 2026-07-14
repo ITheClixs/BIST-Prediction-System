@@ -67,6 +67,8 @@ jobs:
           make reproduce-smoke RUNS_ROOT="$RUNNER_TEMP/runs"
           run_id="$(find "$RUNNER_TEMP/runs" -mindepth 1 -maxdepth 1 -type d -exec basename {} \;)"
           make reproduce RUN_ID="$run_id" RUNS_ROOT="$RUNNER_TEMP/runs"
+      - name: Replay committed provider-backed benchmark
+        run: make reproduce-committed
 
   rust:
     name: Rust tests and Python equivalence

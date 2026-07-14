@@ -1,6 +1,6 @@
-schema_version: 2
+schema_version: 3
 scope: fixed_bist_large_cap_prototype
-evidence_run: runs/20260714T143541Z-112a94e-9d9b70
+evidence_run: runs/20260714T151522Z-a877480-ff7b60
 status_definitions:
   implemented: "Executable code exists; partial identifies an incomplete contract."
   integrated: "The component participates in the accepted benchmark or accepted prediction lifecycle."
@@ -16,7 +16,7 @@ components:
     evaluated: true
     production_inference: false
     accepted_default: true
-    evidence: [src/bist_predict/research/accepted_benchmark.py, runs/20260714T143541Z-112a94e-9d9b70/universe_manifest.json]
+    evidence: [src/bist_predict/research/accepted_benchmark.py, runs/20260714T151522Z-a877480-ff7b60/universe_manifest.json]
     note: "Four fixed tickers; explicitly not historical BIST-100 membership."
 
   legacy_seed_universe:
@@ -52,12 +52,22 @@ components:
   yahoo_price_collection:
     package: bist_predict.ingest
     implemented: true
+    integrated: false
+    evaluated: false
+    production_inference: false
+    accepted_default: false
+    evidence: [src/bist_predict/ingest/yahoo.py, tests/test_ingest/test_provider_smoke.py]
+    note: "The raw collector supplies observed Yahoo OHLCV but does not itself construct the split-adjusted and total-return representations required by the accepted boundary."
+
+  accepted_provider_snapshot:
+    package: bist_predict.research
+    implemented: true
     integrated: true
     evaluated: true
     production_inference: false
     accepted_default: true
-    evidence: [src/bist_predict/ingest/yahoo.py, runs/20260714T143541Z-112a94e-9d9b70/input_prices.parquet]
-    note: "The accepted snapshot has stable provider identities and observed opens and volumes."
+    evidence: [src/bist_predict/research/accepted_benchmark.py, runs/20260714T151522Z-a877480-ff7b60/input_prices.parquet, runs/20260714T151522Z-a877480-ff7b60/data_manifest.json]
+    note: "The committed, provenance-bearing snapshot supplies all three price representations, observed execution fields, and stable provider record identities; it is not presented as direct Yahoo client output."
 
   provider_reconciliation:
     package: bist_predict.ingest
@@ -76,7 +86,7 @@ components:
     evaluated: true
     production_inference: false
     accepted_default: true
-    evidence: [src/bist_predict/ingest/types.py, runs/20260714T143541Z-112a94e-9d9b70/data_manifest.json]
+    evidence: [src/bist_predict/ingest/types.py, runs/20260714T151522Z-a877480-ff7b60/data_manifest.json]
     note: "Raw, split-adjusted, and total-return fields plus quality and provenance are mandatory."
 
   corporate_actions:
@@ -86,8 +96,8 @@ components:
     evaluated: true
     production_inference: false
     accepted_default: true
-    evidence: [src/bist_predict/ingest/corporate_actions.py, runs/20260714T143541Z-112a94e-9d9b70/corporate_actions.parquet, tests/test_ingest/test_corporate_actions.py]
-    note: "Typed policies cover six action classes; the committed empirical snapshot contains five cash dividends."
+    evidence: [src/bist_predict/ingest/corporate_actions.py, src/bist_predict/research/portfolio_backtest.py, runs/20260714T151522Z-a877480-ff7b60/corporate_actions.parquet, runs/20260714T151522Z-a877480-ff7b60/corporate_action_ledger.parquet, tests/test_research/test_portfolio_backtest.py]
+    note: "The ledger applies dividends, splits, bonus issues, ticker changes, and sourced delisting settlements; rights issues fail closed without an exercise policy. The one-session accepted run records five no-entitlement dividend events."
 
   trading_calendar:
     package: bist_predict.ingest
@@ -96,7 +106,7 @@ components:
     evaluated: true
     production_inference: false
     accepted_default: true
-    evidence: [src/bist_predict/ingest/calendar.py, runs/20260714T143541Z-112a94e-9d9b70/official_calendar.parquet]
+    evidence: [src/bist_predict/ingest/calendar.py, runs/20260714T151522Z-a877480-ff7b60/official_calendar.parquet]
     note: "Expected sessions, holidays, timezone, and half-day timestamps are validated and persisted."
 
   immutable_data_manifests:
@@ -106,7 +116,7 @@ components:
     evaluated: true
     production_inference: false
     accepted_default: true
-    evidence: [src/bist_predict/research/data_manifest.py, runs/20260714T143541Z-112a94e-9d9b70/data_manifest.json]
+    evidence: [src/bist_predict/research/data_manifest.py, runs/20260714T151522Z-a877480-ff7b60/data_manifest.json]
 
   legacy_feature_store:
     package: bist_predict.features
@@ -125,8 +135,8 @@ components:
     evaluated: true
     production_inference: false
     accepted_default: true
-    evidence: [src/bist_predict/features/manifest.py, src/bist_predict/features/lineage.py, runs/20260714T143541Z-112a94e-9d9b70/feature_manifest.json]
-    note: "Names, order, formulas, policies, and manifest hash are enforced."
+    evidence: [src/bist_predict/features/manifest.py, src/bist_predict/features/lineage.py, runs/20260714T151522Z-a877480-ff7b60/feature_manifest.json, runs/20260714T151522Z-a877480-ff7b60/feature_lineage.parquet, runs/20260714T151522Z-a877480-ff7b60/feature_artifacts]
+    note: "Names, order, formulas, policies, and manifest hash are enforced; ticker feature rows are content-addressed with Git, input-manifest, timestamp, code-version, and date-range lineage."
 
   canonical_panel:
     package: bist_predict.research
@@ -135,7 +145,7 @@ components:
     evaluated: true
     production_inference: false
     accepted_default: true
-    evidence: [src/bist_predict/research/panel.py, runs/20260714T143541Z-112a94e-9d9b70/panel.parquet]
+    evidence: [src/bist_predict/research/panel.py, runs/20260714T151522Z-a877480-ff7b60/panel.parquet]
 
   missing_value_policy:
     package: bist_predict.features
@@ -144,8 +154,8 @@ components:
     evaluated: true
     production_inference: false
     accepted_default: true
-    evidence: [src/bist_predict/features/preprocessing.py, src/bist_predict/research/missingness.py, runs/20260714T143541Z-112a94e-9d9b70/sample_metadata.parquet]
-    note: "Reasons are preserved; linear models fit preprocessing on training rows only."
+    evidence: [src/bist_predict/features/preprocessing.py, src/bist_predict/research/missingness.py, runs/20260714T151522Z-a877480-ff7b60/missingness.parquet]
+    note: "Reasons and manifest identity are persisted by feature, ticker, date, source, and validation fold or pre-validation partition; linear models fit preprocessing on training rows only."
 
   stationary_pooled_features:
     package: bist_predict.research
@@ -154,7 +164,7 @@ components:
     evaluated: true
     production_inference: false
     accepted_default: true
-    evidence: [src/bist_predict/research/stationary_features.py, runs/20260714T143541Z-112a94e-9d9b70/feature_manifest.json]
+    evidence: [src/bist_predict/research/stationary_features.py, runs/20260714T151522Z-a877480-ff7b60/feature_manifest.json]
     note: "Nineteen scale-normalized price, volume, cross-sectional, and calendar features are accepted."
 
   rust_technical_indicators:
@@ -223,7 +233,7 @@ components:
     evaluated: true
     production_inference: false
     accepted_default: true
-    evidence: [src/bist_predict/research/splits.py, runs/20260714T143541Z-112a94e-9d9b70/folds.json]
+    evidence: [src/bist_predict/research/splits.py, runs/20260714T151522Z-a877480-ff7b60/folds.json]
     note: "Expanding date groups use target-window purge and an explicit embargo."
 
   executable_next_open_target:
@@ -233,7 +243,7 @@ components:
     evaluated: true
     production_inference: false
     accepted_default: true
-    evidence: [src/bist_predict/research/panel.py, runs/20260714T143541Z-112a94e-9d9b70/panel.parquet]
+    evidence: [src/bist_predict/research/panel.py, runs/20260714T151522Z-a877480-ff7b60/panel.parquet]
     note: "Observed next-open-to-close targets carry explicit availability and execution timestamps."
 
   statistical_baselines:
@@ -243,8 +253,18 @@ components:
     evaluated: true
     production_inference: false
     accepted_default: true
-    evidence: [src/bist_predict/research/baselines.py, runs/20260714T143541Z-112a94e-9d9b70/metrics.json]
+    evidence: [src/bist_predict/research/baselines.py, runs/20260714T151522Z-a877480-ff7b60/metrics.json]
     note: "Seven baselines share the same features, folds, target, dates, and preprocessing."
+
+  fitted_baseline_states:
+    package: bist_predict.research
+    implemented: true
+    integrated: true
+    evaluated: true
+    production_inference: false
+    accepted_default: true
+    evidence: [src/bist_predict/research/baselines.py, runs/20260714T151522Z-a877480-ff7b60/model_artifact.json]
+    note: "Every fold records ordered features, train-only preprocessing, estimator parameters, rule state, probability mapping, training boundary, and model version in JSON-safe form."
 
   oos_prediction_artifacts:
     package: bist_predict.research
@@ -253,7 +273,7 @@ components:
     evaluated: true
     production_inference: false
     accepted_default: true
-    evidence: [src/bist_predict/research/predictions.py, runs/20260714T143541Z-112a94e-9d9b70/predictions.parquet]
+    evidence: [src/bist_predict/research/predictions.py, runs/20260714T151522Z-a877480-ff7b60/predictions.parquet]
     note: "All reported prediction metrics recompute from immutable OOS rows."
 
   xgboost:
@@ -323,7 +343,7 @@ components:
     evaluated: true
     production_inference: false
     accepted_default: true
-    evidence: [src/bist_predict/research/prediction_metrics.py, src/bist_predict/research/reporting.py, runs/20260714T143541Z-112a94e-9d9b70/metrics.json]
+    evidence: [src/bist_predict/research/prediction_metrics.py, src/bist_predict/research/reporting.py, runs/20260714T151522Z-a877480-ff7b60/metrics.json]
 
   grouped_prediction_reporting:
     package: bist_predict.research
@@ -332,18 +352,18 @@ components:
     evaluated: true
     production_inference: false
     accepted_default: false
-    evidence: [src/bist_predict/research/reporting.py, runs/20260714T143541Z-112a94e-9d9b70/metrics.json]
+    evidence: [src/bist_predict/research/reporting.py, runs/20260714T151522Z-a877480-ff7b60/metrics.json]
     note: "Fold, year, ticker, liquidity, and regime slices exist; sector is unavailable without sourced metadata."
 
   grouped_portfolio_reporting:
     package: bist_predict.research
-    implemented: false
-    integrated: false
-    evaluated: false
+    implemented: partial
+    integrated: true
+    evaluated: true
     production_inference: false
-    accepted_default: false
-    evidence: []
-    note: "Portfolio attribution by sector, liquidity, and regime is not implemented and is not claimed."
+    accepted_default: true
+    evidence: [src/bist_predict/research/reporting.py, runs/20260714T151522Z-a877480-ff7b60/metrics.json, tests/test_research/test_reporting.py]
+    note: "Ledger-derived PnL, costs, turnover, trades, and exposure reconcile by fold, execution year, ticker, liquidity bucket, and regime. Sector remains explicitly unavailable because no sourced taxonomy is present."
 
   portfolio_backtest:
     package: bist_predict.research
@@ -352,8 +372,8 @@ components:
     evaluated: true
     production_inference: false
     accepted_default: true
-    evidence: [src/bist_predict/research/portfolio_backtest.py, runs/20260714T143541Z-112a94e-9d9b70/daily_equity.parquet, runs/20260714T143541Z-112a94e-9d9b70/metrics.json]
-    note: "Observed-open long-only top-k simulation persists signals, orders, fills, positions, cash, costs, and equity."
+    evidence: [src/bist_predict/research/portfolio_backtest.py, runs/20260714T151522Z-a877480-ff7b60/signals.parquet, runs/20260714T151522Z-a877480-ff7b60/fills.parquet, runs/20260714T151522Z-a877480-ff7b60/daily_equity.parquet, runs/20260714T151522Z-a877480-ff7b60/metrics.json]
+    note: "Observed next-open top-k execution sizes against a 20-session trailing volume reference known by signal time; ledgers persist its as-of date, orders, fills, positions, cash, costs, actions, and equity."
 
   live_prediction_tracking:
     package: bist_predict.research
@@ -382,7 +402,8 @@ components:
     evaluated: true
     production_inference: false
     accepted_default: true
-    evidence: [src/bist_predict/research/run_artifacts.py, runs/20260714T143541Z-112a94e-9d9b70/artifact_hashes.json]
+    evidence: [src/bist_predict/research/run_artifacts.py, runs/20260714T151522Z-a877480-ff7b60/artifact_hashes.json, runs/20260714T151522Z-a877480-ff7b60/environment.json]
+    note: "Recursive hashes freeze original provenance and every nested artifact; replay requires byte-identical scientific outputs while allowing the newly recorded replay environment to differ."
 
   reproduction_commands:
     package: repository
@@ -391,8 +412,8 @@ components:
     evaluated: true
     production_inference: false
     accepted_default: true
-    evidence: [Makefile, src/bist_predict/research/accepted_benchmark.py, runs/20260714T143541Z-112a94e-9d9b70]
-    note: "Synthetic smoke and exact provider-backed replay both execute from one command."
+    evidence: [Makefile, src/bist_predict/research/accepted_benchmark.py, runs/20260714T151522Z-a877480-ff7b60]
+    note: "Synthetic smoke and provider-backed scientific replay both execute from one command; original environment provenance is preserved rather than regenerated."
 
   continuous_integration:
     package: repository
@@ -402,4 +423,4 @@ components:
     production_inference: false
     accepted_default: true
     evidence: [.github/workflows/ci.yml, .github/workflows/scheduled-research.yml, .pre-commit-config.yaml]
-    note: "CI definitions cover methodology and scheduled provider checks; no hosted CI run is claimed here."
+    note: "PR CI includes methodology invariants, synthetic E2E, and clean-checkout replay of the committed provider-backed run; scheduled jobs add provider checks. No hosted pass is claimed until GitHub executes the workflow."

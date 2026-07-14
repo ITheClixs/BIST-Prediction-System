@@ -1,7 +1,8 @@
-.PHONY: reproduce-smoke reproduce benchmark readme-results test research-invariants lint format-check typecheck coverage rust-test rust-equivalence provider-smoke
+.PHONY: reproduce-smoke reproduce reproduce-committed benchmark readme-results test research-invariants lint format-check typecheck coverage rust-test rust-equivalence provider-smoke
 
 UV_RUN = UV_CACHE_DIR=/tmp/bist-uv-cache PYTHONPATH=src uv run
 RUNS_ROOT ?= runs
+COMMITTED_RUN_ID ?= 20260714T151522Z-a877480-ff7b60
 
 reproduce-smoke:
 	$(UV_RUN) bist-predict reproduce-smoke --runs-root $(RUNS_ROOT)
@@ -9,6 +10,9 @@ reproduce-smoke:
 reproduce:
 	@test -n "$(RUN_ID)" || (echo "RUN_ID is required" && exit 2)
 	$(UV_RUN) bist-predict reproduce $(RUN_ID) --runs-root $(RUNS_ROOT)
+
+reproduce-committed:
+	$(MAKE) reproduce RUN_ID=$(COMMITTED_RUN_ID) RUNS_ROOT=$(RUNS_ROOT)
 
 benchmark:
 	@test -n "$(INPUT)" || (echo "INPUT is required" && exit 2)
