@@ -1,0 +1,12 @@
+{
+  "end": "2026-04-03",
+  "membership_type": "fixed_prototype_not_historical_index_membership",
+  "start": "2025-04-07",
+  "tickers": [
+    "GARAN",
+    "ISCTR",
+    "KCHOL",
+    "THYAO"
+  ],
+  "universe_version": "fixed_bist_large_cap_prototype"
+}

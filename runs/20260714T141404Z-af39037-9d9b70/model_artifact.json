@@ -1,0 +1,14 @@
+{
+  "accepted_models": [
+    "zero_return",
+    "majority_direction",
+    "previous_return",
+    "market_direction",
+    "rolling_mean",
+    "logistic",
+    "ridge"
+  ],
+  "fit_scope": "per-fold train rows only",
+  "methodology_version": "accepted-baseline-v1",
+  "portfolio_model": "ridge"
+}
