@@ -4,13 +4,33 @@ from __future__ import annotations
 
 import math
 from collections.abc import Sequence
+from typing import cast
 
 import numpy as np
 import pandas as pd
 
 from bist_predict.research.portfolio_backtest import PortfolioBacktestResult
+from bist_predict.research.portfolio_backtest import prediction_identifier
 from bist_predict.research.prediction_metrics import recompute_prediction_metrics
 from bist_predict.research.predictions import PREDICTION_COLUMNS, validate_predictions
+
+
+_PORTFOLIO_ATTRIBUTION_METRICS = (
+    "gross_pnl",
+    "gross_return_contribution",
+    "net_pnl",
+    "net_return_contribution",
+    "commission",
+    "bid_ask_spread",
+    "slippage",
+    "market_impact",
+    "taxes",
+    "transaction_costs",
+    "turnover",
+    "trade_count",
+    "average_gross_exposure_contribution",
+    "average_net_exposure_contribution",
+)
 
 
 def _annualized_return(returns: np.ndarray) -> float:
@@ -196,3 +216,312 @@ def grouped_prediction_metrics(
             for value, group in enriched.groupby(column, sort=True)
         }
     return result
+
+
+def _assert_attribution_close(label: str, actual: float, expected: float) -> None:
+    tolerance = 1e-9 * max(1.0, abs(actual), abs(expected))
+    if not math.isclose(actual, expected, rel_tol=0.0, abs_tol=tolerance):
+        raise ValueError(
+            f"portfolio attribution does not reconcile {label}: "
+            f"actual={actual}, expected={expected}"
+        )
+
+
+def _summed_attribution(frame: pd.DataFrame) -> dict[str, float | int]:
+    values: dict[str, float | int] = {
+        metric: float(frame[metric].sum()) for metric in _PORTFOLIO_ATTRIBUTION_METRICS
+    }
+    values["trade_count"] = int(values["trade_count"])
+    return values
+
+
+def _sector_status(metadata: pd.DataFrame) -> tuple[pd.Series, dict[str, str]]:
+    if "sector" not in metadata.columns:
+        return (
+            pd.Series("unavailable", index=metadata.index, dtype="object"),
+            {
+                "status": "unavailable",
+                "reason": "sample metadata has no sourced sector field",
+            },
+        )
+    sectors = metadata["sector"].astype("string").str.strip()
+    unavailable = sectors.isna() | sectors.str.lower().isin(
+        {"", "unavailable", "unclassified", "unknown", "none"}
+    )
+    normalized = sectors.mask(unavailable, "unavailable").astype(str)
+    if unavailable.all():
+        status = {
+            "status": "unavailable",
+            "reason": "sample metadata has no sourced sector values",
+        }
+    elif unavailable.any():
+        status = {
+            "status": "partial",
+            "reason": "some executed samples have no sourced sector value",
+        }
+    else:
+        status = {"status": "available", "reason": "sourced sector values provided"}
+    return normalized, status
+
+
+def grouped_portfolio_metrics(
+    result: PortfolioBacktestResult,
+    predictions: pd.DataFrame,
+    sample_metadata: pd.DataFrame,
+) -> dict[str, object]:
+    """Attribute executed portfolio outcomes once across declared dimensions.
+
+    PnL return contributions use initial capital as a common denominator, so
+    groups sum exactly to the portfolio result. Turnover uses each execution
+    session's starting equity. Exposure contributions are averaged over every
+    portfolio session, including sessions in which a group had no position.
+    """
+    validate_predictions(predictions)
+    required_metadata = {"date", "ticker", "liquidity_bucket", "market_regime"}
+    missing_metadata = sorted(required_metadata.difference(sample_metadata.columns))
+    if missing_metadata:
+        raise ValueError(f"sample metadata missing columns: {', '.join(missing_metadata)}")
+    if sample_metadata.duplicated(["date", "ticker"]).any():
+        raise ValueError("sample metadata must have one row per date and ticker")
+    if any(abs(snapshot.distributions) > 1e-12 for snapshot in result.daily_snapshots):
+        raise ValueError(
+            "portfolio distributions cannot be attributed without ticker-level action lineage"
+        )
+
+    metadata = sample_metadata.copy()
+    metadata["date"] = metadata["date"].astype(str)
+    metadata["ticker"] = metadata["ticker"].astype(str)
+    metadata["sector"], sector_status = _sector_status(metadata)
+    if metadata[["liquidity_bucket", "market_regime"]].isna().any().any():
+        raise ValueError("sample metadata dimensions must not be missing")
+    metadata_lookup = metadata.set_index(["date", "ticker"])
+
+    prediction_lookup: dict[str, pd.Series] = {}
+    for _, prediction in predictions.iterrows():
+        prediction_id = prediction_identifier(
+            str(prediction["fold_id"]),
+            str(prediction["model_name"]),
+            str(prediction["date"]),
+            str(prediction["ticker"]),
+        )
+        if prediction_id in prediction_lookup:
+            raise ValueError(f"ambiguous prediction identity: {prediction_id}")
+        prediction_lookup[prediction_id] = prediction
+
+    signals = {signal.signal_id: signal for signal in result.signals}
+    if len(signals) != len(result.signals):
+        raise ValueError("signal ledger contains duplicate signal IDs")
+    orders = {order.order_id: order for order in result.orders}
+    if len(orders) != len(result.orders):
+        raise ValueError("order ledger contains duplicate order IDs")
+    fills = {fill.fill_id: fill for fill in result.fills}
+    if len(fills) != len(result.fills):
+        raise ValueError("fill ledger contains duplicate fill IDs")
+    costs = {cost.fill_id: cost for cost in result.costs}
+    if len(costs) != len(result.costs):
+        raise ValueError("cost ledger contains duplicate fill IDs")
+    if set(costs) != set(fills):
+        raise ValueError("every fill must have exactly one cost record")
+
+    snapshots = {snapshot.date: snapshot for snapshot in result.daily_snapshots}
+    if len(snapshots) != len(result.daily_snapshots):
+        raise ValueError("daily snapshot ledger contains duplicate dates")
+    session_count = len(snapshots)
+    starting_capital = result.portfolio.starting_equity
+    if starting_capital <= 0.0:
+        raise ValueError("portfolio starting equity must be positive")
+
+    by_signal: dict[str, dict[str, object]] = {}
+    for fill in result.fills:
+        order = orders.get(fill.order_id)
+        if order is None:
+            raise ValueError(f"fill references unknown order: {fill.fill_id}")
+        signal = signals.get(order.signal_id)
+        if signal is None:
+            raise ValueError(f"order references unknown signal: {order.order_id}")
+        if order.status != "filled":
+            raise ValueError(f"fill references non-filled order: {fill.fill_id}")
+        if signal.execution_date is None or signal.execution_date not in snapshots:
+            raise ValueError(f"executed signal has no daily snapshot: {signal.signal_id}")
+        prediction = prediction_lookup.get(signal.prediction_id)
+        if prediction is None:
+            raise ValueError(f"signal references unknown prediction: {signal.signal_id}")
+        metadata_key = (signal.signal_date, signal.ticker)
+        if metadata_key not in metadata_lookup.index:
+            raise ValueError(
+                f"sample metadata does not cover executed signal: {signal.signal_date} {signal.ticker}"
+            )
+        sample = metadata_lookup.loc[metadata_key]
+        if isinstance(sample, pd.DataFrame):
+            raise ValueError("sample metadata must have one row per date and ticker")
+        record = by_signal.setdefault(
+            signal.signal_id,
+            {
+                "fold": str(prediction["fold_id"]),
+                "year": str(pd.Timestamp(signal.execution_date).year),
+                "ticker": signal.ticker,
+                "sector": str(sample["sector"]),
+                "liquidity_bucket": str(sample["liquidity_bucket"]),
+                "market_regime": str(sample["market_regime"]),
+                "execution_date": signal.execution_date,
+                "buy_notional": 0.0,
+                "sell_notional": 0.0,
+                "commission": 0.0,
+                "bid_ask_spread": 0.0,
+                "slippage": 0.0,
+                "market_impact": 0.0,
+                "taxes": 0.0,
+                "transaction_costs": 0.0,
+            },
+        )
+        if record["execution_date"] != signal.execution_date:
+            raise ValueError(f"signal fills cross execution sessions: {signal.signal_id}")
+        if fill.side == "buy":
+            record["buy_notional"] = cast(float, record["buy_notional"]) + fill.notional
+        elif fill.side == "sell":
+            record["sell_notional"] = cast(float, record["sell_notional"]) + fill.notional
+        else:
+            raise ValueError(f"unsupported fill side for long-only attribution: {fill.side}")
+        cost = costs[fill.fill_id]
+        for field in (
+            "commission",
+            "bid_ask_spread",
+            "slippage",
+            "market_impact",
+            "taxes",
+        ):
+            record[field] = cast(float, record[field]) + float(getattr(cost, field))
+        record["transaction_costs"] = cast(float, record["transaction_costs"]) + cost.total_cost
+
+    rows: list[dict[str, object]] = []
+    for signal_id, record in sorted(by_signal.items()):
+        buy_notional = cast(float, record.pop("buy_notional"))
+        sell_notional = cast(float, record.pop("sell_notional"))
+        if buy_notional <= 0.0 or sell_notional <= 0.0:
+            raise ValueError(f"executed signal is not a complete round trip: {signal_id}")
+        execution_date = str(record["execution_date"])
+        snapshot = snapshots[execution_date]
+        gross_pnl = sell_notional - buy_notional
+        transaction_costs = cast(float, record["transaction_costs"])
+        net_pnl = gross_pnl - transaction_costs
+        rows.append(
+            {
+                **record,
+                "gross_pnl": gross_pnl,
+                "gross_return_contribution": gross_pnl / starting_capital,
+                "net_pnl": net_pnl,
+                "net_return_contribution": net_pnl / starting_capital,
+                "turnover": (buy_notional + sell_notional) / snapshot.starting_equity,
+                "trade_count": 1,
+                "average_gross_exposure_contribution": (
+                    buy_notional / snapshot.starting_equity / session_count
+                    if session_count
+                    else 0.0
+                ),
+                "average_net_exposure_contribution": (
+                    buy_notional / snapshot.starting_equity / session_count
+                    if session_count
+                    else 0.0
+                ),
+            }
+        )
+
+    columns = [
+        "fold",
+        "year",
+        "ticker",
+        "sector",
+        "liquidity_bucket",
+        "market_regime",
+        "execution_date",
+        *_PORTFOLIO_ATTRIBUTION_METRICS,
+    ]
+    attribution = pd.DataFrame.from_records(rows, columns=columns)
+    aggregate = _summed_attribution(attribution)
+
+    snapshot_gross_pnl = sum(snapshot.gross_pnl for snapshot in result.daily_snapshots)
+    snapshot_costs = sum(snapshot.transaction_costs for snapshot in result.daily_snapshots)
+    snapshot_turnover = sum(snapshot.turnover for snapshot in result.daily_snapshots)
+    snapshot_gross_exposure = (
+        sum(snapshot.gross_exposure for snapshot in result.daily_snapshots) / session_count
+        if session_count
+        else 0.0
+    )
+    snapshot_net_exposure = (
+        sum(snapshot.net_exposure for snapshot in result.daily_snapshots) / session_count
+        if session_count
+        else 0.0
+    )
+    portfolio_net_pnl = result.portfolio.ending_equity - starting_capital
+    _assert_attribution_close("gross PnL", float(aggregate["gross_pnl"]), snapshot_gross_pnl)
+    _assert_attribution_close(
+        "transaction costs", float(aggregate["transaction_costs"]), snapshot_costs
+    )
+    _assert_attribution_close("net PnL", float(aggregate["net_pnl"]), portfolio_net_pnl)
+    _assert_attribution_close("turnover", float(aggregate["turnover"]), snapshot_turnover)
+    _assert_attribution_close(
+        "gross exposure",
+        float(aggregate["average_gross_exposure_contribution"]),
+        snapshot_gross_exposure,
+    )
+    _assert_attribution_close(
+        "net exposure",
+        float(aggregate["average_net_exposure_contribution"]),
+        snapshot_net_exposure,
+    )
+    closed_positions = [position for position in result.positions if position.quantity == 0]
+    _assert_attribution_close(
+        "realized position PnL",
+        float(aggregate["gross_pnl"]),
+        sum(position.realized_pnl for position in closed_positions),
+    )
+    if int(aggregate["trade_count"]) != len(closed_positions):
+        raise ValueError("portfolio attribution trade count does not match closed positions")
+
+    dimensions: dict[str, dict[str, dict[str, float | int]]] = {}
+    reconciliation: dict[str, dict[str, object]] = {}
+    for dimension in (
+        "fold",
+        "year",
+        "ticker",
+        "sector",
+        "liquidity_bucket",
+        "market_regime",
+    ):
+        grouped: dict[str, dict[str, float | int]] = {}
+        if not attribution.empty:
+            for value, group in attribution.groupby(dimension, sort=True):
+                grouped[str(value)] = _summed_attribution(group)
+        dimensions[dimension] = grouped
+        deltas = {
+            metric: float(sum(group[metric] for group in grouped.values()) - aggregate[metric])
+            for metric in _PORTFOLIO_ATTRIBUTION_METRICS
+        }
+        passed = all(
+            abs(delta) <= 1e-9 * max(1.0, abs(float(aggregate[metric])))
+            for metric, delta in deltas.items()
+        )
+        if not passed:
+            raise RuntimeError(f"grouped portfolio attribution failed for dimension: {dimension}")
+        reconciliation[dimension] = {"passed": True, "deltas": deltas}
+
+    return {
+        "schema_version": 1,
+        "basis": {
+            "year": "execution_date",
+            "return_contribution_denominator": "portfolio_starting_equity",
+            "turnover_denominator": "session_starting_equity",
+            "exposure_basis": "mean_session_contribution",
+        },
+        "aggregate": aggregate,
+        "dimensions": dimensions,
+        "dimension_status": {
+            "fold": {"status": "available"},
+            "year": {"status": "available"},
+            "ticker": {"status": "available"},
+            "sector": sector_status,
+            "liquidity_bucket": {"status": "available"},
+            "market_regime": {"status": "available"},
+        },
+        "reconciliation": reconciliation,
+    }
