@@ -7,7 +7,7 @@ from datetime import date, timedelta
 
 import pytest
 
-from bist_predict.ingest.types import OHLCVBar
+from bist_predict.ingest.types import OHLCVBar, PriceRepresentation
 from bist_predict.research.stationary_features import (
     FeatureHistoryError,
     STATIONARY_FEATURE_MANIFEST,
@@ -23,6 +23,13 @@ def _bars(*, sessions: int = 130, price_scale: float = 1.0) -> list[OHLCVBar]:
             trend = 80.0 + ticker_index * 40.0 + offset * (0.15 + ticker_index * 0.03)
             close = trend + ((offset % 7) - 3) * 0.2
             open_price = close * (1.0 + ((offset % 3) - 1) * 0.001)
+            adjusted = PriceRepresentation(
+                open=open_price * price_scale,
+                high=max(open_price, close) * 1.01 * price_scale,
+                low=min(open_price, close) * 0.99 * price_scale,
+                close=close * price_scale,
+                volume=1_000_000 + ticker_index * 50_000 + offset * 1_000,
+            )
             bars.append(
                 OHLCVBar(
                     ticker=ticker,
@@ -34,6 +41,8 @@ def _bars(*, sessions: int = 130, price_scale: float = 1.0) -> list[OHLCVBar]:
                     adj_close=close * price_scale,
                     volume=1_000_000 + ticker_index * 50_000 + offset * 1_000,
                     source="synthetic",
+                    split_adjusted_prices=adjusted,
+                    total_return_prices=adjusted,
                 )
             )
     return bars
@@ -58,6 +67,22 @@ def test_future_price_perturbation_cannot_change_prior_features() -> None:
             close=bar.close * 100.0,
             adj_close=bar.adj_close * 100.0,
             volume=bar.volume * 100,
+            split_adjusted_prices=replace(
+                bar.split_adjusted_prices,
+                open=bar.split_adjusted_prices.open * 100.0,
+                high=bar.split_adjusted_prices.high * 100.0,
+                low=bar.split_adjusted_prices.low * 100.0,
+                close=bar.split_adjusted_prices.close * 100.0,
+                volume=bar.split_adjusted_prices.volume * 100,
+            ),
+            total_return_prices=replace(
+                bar.total_return_prices,
+                open=bar.total_return_prices.open * 100.0,
+                high=bar.total_return_prices.high * 100.0,
+                low=bar.total_return_prices.low * 100.0,
+                close=bar.total_return_prices.close * 100.0,
+                volume=bar.total_return_prices.volume * 100,
+            ),
         )
         if bar.date > cutoff
         else bar
@@ -106,3 +131,11 @@ def test_requested_lookback_and_target_horizon_must_fit_each_ticker() -> None:
             [bar for bar in _bars(sessions=100) if bar.ticker == "THYAO"],
             target_horizon_sessions=1,
         )
+
+
+def test_stationary_features_require_explicit_split_adjusted_prices() -> None:
+    bars = _bars()
+    bars[0] = replace(bars[0], split_adjusted_prices=None)
+
+    with pytest.raises(FeatureHistoryError, match="split-adjusted"):
+        build_stationary_snapshots(bars)

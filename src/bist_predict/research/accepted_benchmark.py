@@ -16,6 +16,7 @@ from bist_predict.ingest.calendar import (
     OfficialTradingCalendar,
     borsa_istanbul_equity_calendar,
 )
+from bist_predict.ingest.corporate_actions import CorporateAction, CorporateActionType
 from bist_predict.ingest.types import (
     OHLCVBar,
     OpenQuality,
@@ -79,6 +80,21 @@ class AcceptedBenchmarkConfig:
         if unknown:
             raise ValueError(f"unknown benchmark config fields: {', '.join(unknown)}")
         return cls(**payload)  # type: ignore[arg-type]
+
+
+_CORPORATE_ACTION_COLUMNS = (
+    "ticker",
+    "effective_date",
+    "action_type",
+    "source",
+    "ratio",
+    "cash_amount",
+    "currency",
+    "subscription_price",
+    "new_ticker",
+    "delisting_price",
+    "source_retrieved_at",
+)
 
 
 def _price_frame(prices: Iterable[OHLCVBar]) -> pd.DataFrame:
@@ -182,6 +198,69 @@ def load_price_artifact(path: Path) -> tuple[OHLCVBar, ...]:
     return _prices_from_frame(pd.read_parquet(path))
 
 
+def _corporate_action_frame(actions: Iterable[CorporateAction]) -> pd.DataFrame:
+    records = [
+        {
+            "ticker": action.ticker,
+            "effective_date": action.effective_date.isoformat(),
+            "action_type": action.action_type.value,
+            "source": action.source,
+            "ratio": action.ratio,
+            "cash_amount": action.cash_amount,
+            "currency": action.currency,
+            "subscription_price": action.subscription_price,
+            "new_ticker": action.new_ticker,
+            "delisting_price": action.delisting_price,
+            "source_retrieved_at": (
+                action.source_retrieved_at.isoformat()
+                if action.source_retrieved_at is not None
+                else None
+            ),
+        }
+        for action in actions
+    ]
+    return pd.DataFrame.from_records(records, columns=_CORPORATE_ACTION_COLUMNS).sort_values(
+        ["effective_date", "ticker", "action_type"],
+        kind="stable",
+        ignore_index=True,
+    )
+
+
+def _corporate_actions_from_frame(frame: pd.DataFrame) -> tuple[CorporateAction, ...]:
+    if tuple(frame.columns) != _CORPORATE_ACTION_COLUMNS:
+        raise ValueError("corporate action artifact schema mismatch")
+    actions: list[CorporateAction] = []
+    for row in frame.to_dict(orient="records"):
+        retrieved = row["source_retrieved_at"]
+        actions.append(
+            CorporateAction(
+                ticker=str(row["ticker"]),
+                effective_date=date.fromisoformat(str(row["effective_date"])),
+                action_type=CorporateActionType(str(row["action_type"])),
+                source=str(row["source"]),
+                ratio=None if pd.isna(row["ratio"]) else float(row["ratio"]),
+                cash_amount=(None if pd.isna(row["cash_amount"]) else float(row["cash_amount"])),
+                currency=None if pd.isna(row["currency"]) else str(row["currency"]),
+                subscription_price=(
+                    None if pd.isna(row["subscription_price"]) else float(row["subscription_price"])
+                ),
+                new_ticker=(None if pd.isna(row["new_ticker"]) else str(row["new_ticker"])),
+                delisting_price=(
+                    None if pd.isna(row["delisting_price"]) else float(row["delisting_price"])
+                ),
+                source_retrieved_at=(
+                    None if pd.isna(retrieved) else datetime.fromisoformat(str(retrieved))
+                ),
+            )
+        )
+    return tuple(actions)
+
+
+def load_corporate_action_artifact(path: Path) -> tuple[CorporateAction, ...]:
+    """Load the explicit sourced corporate-action snapshot from Parquet."""
+    return _corporate_actions_from_frame(pd.read_parquet(path))
+
+
 def _validate_prices(prices: tuple[OHLCVBar, ...]) -> None:
     if not prices:
         raise ValueError("accepted benchmark requires price observations")
@@ -193,12 +272,51 @@ def _validate_prices(prices: tuple[OHLCVBar, ...]) -> None:
             raise ValueError("accepted benchmark requires observed volume")
         if not bar.source or bar.source_retrieved_at is None:
             raise ValueError("accepted benchmark requires source provenance and retrieval time")
+        if bar.source_retrieved_at.tzinfo is None:
+            raise ValueError("accepted benchmark requires timezone-aware retrieval time")
+        if not bar.provider_symbol or not bar.provider_record_id:
+            raise ValueError("accepted benchmark requires provider symbol and stable record ID")
+        if bar.split_adjusted_prices is None or bar.total_return_prices is None:
+            raise ValueError(
+                "accepted benchmark requires explicit split-adjusted and total-return prices"
+            )
         sessions_by_ticker.setdefault(bar.ticker, set()).add(bar.date)
     if len(sessions_by_ticker) < 2:
         raise ValueError("pooled benchmark requires at least two tickers")
     session_sets = list(sessions_by_ticker.values())
     if any(sessions != session_sets[0] for sessions in session_sets[1:]):
         raise ValueError("all accepted-universe tickers must share identical sessions")
+
+
+def _validate_corporate_actions(
+    actions: tuple[CorporateAction, ...] | None,
+    bars: tuple[OHLCVBar, ...],
+    config: AcceptedBenchmarkConfig,
+) -> tuple[CorporateAction, ...]:
+    if actions is None:
+        if config.experiment_scope == "synthetic_methodology_smoke":
+            return ()
+        raise ValueError("accepted market benchmark requires a corporate-action snapshot")
+    tickers = {bar.ticker for bar in bars}
+    start = min(bar.date for bar in bars)
+    end = max(bar.date for bar in bars)
+    identities: set[tuple[str, date, CorporateActionType]] = set()
+    for action in actions:
+        identity = (action.ticker, action.effective_date, action.action_type)
+        if identity in identities:
+            raise ValueError(f"duplicate corporate action: {identity}")
+        identities.add(identity)
+        if action.ticker not in tickers:
+            raise ValueError(
+                f"corporate action ticker is outside the accepted universe: {action.ticker}"
+            )
+        if not start <= action.effective_date <= end:
+            raise ValueError("corporate action lies outside the dataset interval")
+        if not action.source or action.source_retrieved_at is None:
+            raise ValueError("accepted corporate actions require source provenance")
+        if action.source_retrieved_at.tzinfo is None:
+            raise ValueError("corporate action retrieval time must be timezone-aware")
+    return tuple(sorted(actions, key=lambda item: (item.effective_date, item.ticker)))
 
 
 def _calendar_for_run(
@@ -305,6 +423,7 @@ def _strategy(config: AcceptedBenchmarkConfig) -> StrategyConfig:
 def run_accepted_benchmark(
     prices: Iterable[OHLCVBar],
     *,
+    corporate_actions: Iterable[CorporateAction] | None = None,
     runs_root: Path,
     config: AcceptedBenchmarkConfig,
     now: datetime | None = None,
@@ -317,6 +436,9 @@ def run_accepted_benchmark(
     price_frame = _price_frame(tuple(prices))
     bars = _prices_from_frame(price_frame)
     _validate_prices(bars)
+    supplied_actions = None if corporate_actions is None else tuple(corporate_actions)
+    action_records = _validate_corporate_actions(supplied_actions, bars, config)
+    action_frame = _corporate_action_frame(action_records)
     calendar = _calendar_for_run(bars, config, source_retrieved_at=effective_now)
     calendar_validation = calendar.validate_bars(bars)
     calendar_issues = {
@@ -349,6 +471,8 @@ def run_accepted_benchmark(
         bars,
         model_name=config.portfolio_model,
         starting_equity=config.starting_equity,
+        corporate_actions=action_records,
+        calendar=calendar,
     )
     session_dates = [snapshot.date for snapshot in portfolio.daily_snapshots]
     equal_weight_returns = _equal_weight_returns(panel, session_dates)
@@ -361,6 +485,8 @@ def run_accepted_benchmark(
             bars,
             model_name=config.portfolio_model,
             starting_equity=config.starting_equity,
+            corporate_actions=action_records,
+            calendar=calendar,
         )
         sensitivity[f"{multiplier:.1f}x"] = {
             "cost_multiplier": multiplier,
@@ -370,7 +496,11 @@ def run_accepted_benchmark(
     tickers = sorted({bar.ticker for bar in bars})
     data_manifest = {
         "dataset_id": f"{config.experiment_scope}-{_canonical_frame_hash(price_frame)[:12]}",
-        "sources": sorted({bar.source for bar in bars} | {calendar.source}),
+        "sources": sorted(
+            {bar.source for bar in bars}
+            | {calendar.source}
+            | {action.source for action in action_records}
+        ),
         "universe_version": config.experiment_scope,
         "start": min(bar.date for bar in bars).isoformat(),
         "end": max(bar.date for bar in bars).isoformat(),
@@ -385,6 +515,13 @@ def run_accepted_benchmark(
             "calendar_source": calendar.source,
             "calendar_sha256": _canonical_frame_hash(calendar_frame),
             "calendar_validation": calendar_issues,
+            "corporate_action_count": len(action_records),
+            "corporate_action_types": sorted(
+                {action.action_type.value for action in action_records}
+            ),
+            "corporate_action_policy": (
+                "positions open after effective-open actions; no pre-open entitlement is credited"
+            ),
         },
     }
     universe_manifest = {
@@ -414,11 +551,15 @@ def run_accepted_benchmark(
             "accepted_models": list(ACCEPTED_BASELINES),
             "portfolio_model": config.portfolio_model,
             "fit_scope": "per-fold train rows only",
+            "corporate_action_policy": (
+                "execution uses post-action observed opens and closes; positions carry no overnight entitlement"
+            ),
         },
         trials=(),
         seeds=(config.seed,),
         command=command,
         input_frames={
+            "corporate_actions": action_frame,
             "input_prices": price_frame,
             "official_calendar": calendar_frame,
             "panel": panel,
@@ -447,8 +588,12 @@ def reproduce_run(run_path: Path, *, scratch_root: Path) -> dict[str, str]:
         json.loads((run_path / "config.yaml").read_text())
     )
     prices = _prices_from_frame(pd.read_parquet(run_path / "input_prices.parquet"))
+    corporate_actions = _corporate_actions_from_frame(
+        pd.read_parquet(run_path / "corporate_actions.parquet")
+    )
     replay = run_accepted_benchmark(
         prices,
+        corporate_actions=corporate_actions,
         runs_root=scratch_root,
         config=config,
         now=datetime.fromisoformat(run_manifest["created_at"]),

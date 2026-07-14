@@ -34,21 +34,33 @@ def _spec(name: str, formula: str, lookback: int) -> FeatureSpec:
 
 
 STATIONARY_FEATURE_MANIFEST = FeatureManifest(
-    schema_version="1.0.0",
+    schema_version="2.0.0",
     features=(
-        _spec("log_return_1d", "log(adj_close_t / adj_close_t_minus_1)", 2),
-        _spec("log_return_5d", "log(adj_close_t / adj_close_t_minus_5)", 6),
-        _spec("log_return_20d", "log(adj_close_t / adj_close_t_minus_20)", 21),
-        _spec("close_over_sma20_minus_1", "adj_close / mean_20(adj_close) - 1", 20),
-        _spec("sma20_over_sma100_minus_1", "mean_20(adj_close) / mean_100(adj_close) - 1", 100),
-        _spec("atr14_over_close", "atr_14(adjusted_ohlc) / adj_close", 15),
-        _spec("vwap20_over_close_minus_1", "vwap_20(adjusted_hlc, volume) / adj_close - 1", 20),
+        _spec("log_return_1d", "log(split_close_t / split_close_t_minus_1)", 2),
+        _spec("log_return_5d", "log(split_close_t / split_close_t_minus_5)", 6),
+        _spec("log_return_20d", "log(split_close_t / split_close_t_minus_20)", 21),
+        _spec("close_over_sma20_minus_1", "split_close / mean_20(split_close) - 1", 20),
+        _spec(
+            "sma20_over_sma100_minus_1",
+            "mean_20(split_close) / mean_100(split_close) - 1",
+            100,
+        ),
+        _spec("atr14_over_close", "atr_14(split_adjusted_ohlc) / split_close", 15),
+        _spec(
+            "vwap20_over_close_minus_1",
+            "vwap_20(split_adjusted_hlc, raw_volume) / split_close - 1",
+            20,
+        ),
         _spec("log_volume", "log1p(raw_volume)", 1),
         _spec("volume_zscore_20", "zscore_20(raw_volume)", 20),
         _spec("realized_volatility_20", "std_20(log_return_1d) * sqrt(252)", 21),
-        _spec("intraday_range_over_close", "(adjusted_high - adjusted_low) / adj_close", 1),
-        _spec("overnight_gap", "adjusted_open / prior_adj_close - 1", 2),
-        _spec("drawdown_20", "adj_close / max_20(adj_close) - 1", 20),
+        _spec(
+            "intraday_range_over_close",
+            "(split_high - split_low) / split_close",
+            1,
+        ),
+        _spec("overnight_gap", "split_open / prior_split_close - 1", 2),
+        _spec("drawdown_20", "split_close / max_20(split_close) - 1", 20),
         _spec("cross_sectional_return_rank", "midrank_percentile_by_date(log_return_20d)", 21),
         _spec("market_relative_return_20d", "log_return_20d - date_mean(log_return_20d)", 21),
         _spec("day_of_week_sin", "sin(2*pi*weekday/7)", 1),
@@ -74,14 +86,16 @@ def _ordered_bars(prices: Iterable[OHLCVBar]) -> dict[str, list[OHLCVBar]]:
 
 
 def _adjusted_ohlc(bar: OHLCVBar) -> tuple[float, float, float, float]:
-    if bar.close <= 0.0 or bar.adj_close <= 0.0:
-        raise FeatureHistoryError(f"non-positive price for {bar.ticker} on {bar.date.isoformat()}")
-    factor = bar.adj_close / bar.close
+    representation = bar.split_adjusted_prices
+    if representation is None:
+        raise FeatureHistoryError(
+            f"split-adjusted prices required for {bar.ticker} on {bar.date.isoformat()}"
+        )
     values = (
-        bar.open * factor,
-        bar.high * factor,
-        bar.low * factor,
-        bar.adj_close,
+        representation.open,
+        representation.high,
+        representation.low,
+        representation.close,
     )
     if not all(math.isfinite(value) and value > 0.0 for value in values):
         raise FeatureHistoryError(

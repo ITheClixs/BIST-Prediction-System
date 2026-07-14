@@ -280,16 +280,28 @@ def reproduce_smoke(runs_root: Path) -> None:
     show_default=True,
 )
 @click.option(
+    "--corporate-actions",
+    type=click.Path(path_type=Path, exists=True, dir_okay=False),
+    required=True,
+    help="Sourced corporate_actions.parquet covering the input interval.",
+)
+@click.option(
     "--prediction-store",
     type=click.Path(path_type=Path),
     default=Path("prediction_tracking"),
     show_default=True,
     help="Create-only store for actionable signal-time prediction records.",
 )
-def benchmark(prices: Path, runs_root: Path, prediction_store: Path) -> None:
+def benchmark(
+    prices: Path,
+    runs_root: Path,
+    corporate_actions: Path,
+    prediction_store: Path,
+) -> None:
     """Run the accepted fixed-universe baseline benchmark on explicit inputs."""
     from bist_predict.research.accepted_benchmark import (
         AcceptedBenchmarkConfig,
+        load_corporate_action_artifact,
         load_price_artifact,
         run_accepted_benchmark,
     )
@@ -300,9 +312,12 @@ def benchmark(prices: Path, runs_root: Path, prediction_store: Path) -> None:
 
     bundle = run_accepted_benchmark(
         load_price_artifact(prices),
+        corporate_actions=load_corporate_action_artifact(corporate_actions),
         runs_root=runs_root,
         config=AcceptedBenchmarkConfig(),
-        command=f"bist-predict benchmark --prices {prices}",
+        command=(
+            f"bist-predict benchmark --prices {prices} --corporate-actions {corporate_actions}"
+        ),
     )
     tracked = persist_run_signal_predictions(
         bundle.path,

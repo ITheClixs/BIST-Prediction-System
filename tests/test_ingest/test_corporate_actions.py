@@ -53,6 +53,60 @@ def test_cash_dividend_is_represented_and_included_in_economic_return() -> None:
     assert result == pytest.approx(0.005)
 
 
+def test_bonus_issue_adjusts_share_count_without_false_loss() -> None:
+    bonus = CorporateAction(
+        ticker="KCHOL",
+        effective_date=date(2026, 4, 15),
+        action_type=CorporateActionType.BONUS_ISSUE,
+        ratio=1.5,
+        source="kap",
+    )
+
+    result = calculate_economic_return(
+        start_price=100.0,
+        end_price=100.0 / 1.5,
+        corporate_actions=[bonus],
+    )
+
+    assert result == pytest.approx(0.0)
+
+
+def test_rights_issue_fails_without_an_explicit_exercise_policy() -> None:
+    rights = CorporateAction(
+        ticker="ISCTR",
+        effective_date=date(2026, 4, 15),
+        action_type=CorporateActionType.RIGHTS_ISSUE,
+        ratio=0.25,
+        subscription_price=10.0,
+        source="kap",
+    )
+
+    with pytest.raises(ValueError, match="explicit exercise policy"):
+        calculate_economic_return(
+            start_price=20.0,
+            end_price=18.0,
+            corporate_actions=[rights],
+        )
+
+
+def test_delisting_uses_the_sourced_terminal_price() -> None:
+    delisting = CorporateAction(
+        ticker="OLD",
+        effective_date=date(2026, 4, 15),
+        action_type=CorporateActionType.DELISTING,
+        delisting_price=12.0,
+        source="borsa_istanbul",
+    )
+
+    result = calculate_economic_return(
+        start_price=10.0,
+        end_price=0.0,
+        corporate_actions=[delisting],
+    )
+
+    assert result == pytest.approx(0.2)
+
+
 def test_ticker_change_preserves_old_and_new_identity() -> None:
     ticker_change = CorporateAction(
         ticker="OLD",

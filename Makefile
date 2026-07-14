@@ -12,7 +12,8 @@ reproduce:
 
 benchmark:
 	@test -n "$(INPUT)" || (echo "INPUT is required" && exit 2)
-	$(UV_RUN) bist-predict benchmark --prices $(INPUT) --runs-root $(RUNS_ROOT)
+	@test -n "$(ACTIONS)" || (echo "ACTIONS is required" && exit 2)
+	$(UV_RUN) bist-predict benchmark --prices $(INPUT) --corporate-actions $(ACTIONS) --runs-root $(RUNS_ROOT)
 
 test:
 	$(UV_RUN) pytest -q
