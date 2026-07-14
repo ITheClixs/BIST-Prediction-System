@@ -56,6 +56,7 @@ class AcceptedBenchmarkConfig:
     starting_equity: float = 100_000.0
     decision_cost_rate: float = 0.0001
     max_participation: float = 0.01
+    liquidity_lookback_sessions: int = 20
     min_trade_value: float = 100.0
     commission_rate: float = 0.0002
     bid_ask_spread_rate: float = 0.001
@@ -524,6 +525,7 @@ def _strategy(config: AcceptedBenchmarkConfig) -> StrategyConfig:
         top_k=config.top_k,
         decision_cost_rate=config.decision_cost_rate,
         max_participation=config.max_participation,
+        liquidity_lookback_sessions=config.liquidity_lookback_sessions,
         min_trade_value=config.min_trade_value,
     )
 

@@ -28,6 +28,7 @@ def test_synthetic_methodology_smoke_runs_and_replays_from_bundled_inputs(
 ) -> None:
     now = datetime(2024, 4, 5, 12, 0, tzinfo=UTC)
     config = AcceptedBenchmarkConfig.synthetic_smoke()
+    assert config.to_dict()["liquidity_lookback_sessions"] == 20
     bundle = run_accepted_benchmark(
         generate_synthetic_prices(),
         runs_root=tmp_path / "runs",
