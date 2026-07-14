@@ -22,10 +22,16 @@ def sample_data() -> tuple:
 class TestLightGBMModel:
     def test_train_returns_metrics(self, sample_data: tuple) -> None:
         X, y_dir, y_pct = sample_data
-        model = LightGBMModel()
+        model = LightGBMModel(n_estimators=100, early_stopping_rounds=5)
         metrics = model.train(X[:150], y_dir[:150], y_pct[:150], X[150:], y_dir[150:], y_pct[150:])
         assert "val_accuracy" in metrics
         assert "val_mae" in metrics
+        assert metrics["classifier_best_iteration"] <= 100
+        assert metrics["regressor_best_iteration"] <= 100
+        assert model.best_iterations == {
+            "classifier": int(metrics["classifier_best_iteration"]),
+            "regressor": int(metrics["regressor_best_iteration"]),
+        }
 
     def test_predict_returns_probs_and_pct(self, sample_data: tuple) -> None:
         X, y_dir, y_pct = sample_data

@@ -17,13 +17,18 @@ class XGBoostModel:
         n_estimators: int = 200,
         max_depth: int = 6,
         learning_rate: float = 0.05,
+        early_stopping_rounds: int = 20,
+        seed: int = 42,
     ) -> None:
+        self._early_stopping_rounds = early_stopping_rounds
+        self._best_iterations: dict[str, int] = {}
         self._classifier = XGBClassifier(
             n_estimators=n_estimators,
             max_depth=max_depth,
             learning_rate=learning_rate,
             eval_metric="logloss",
-            random_state=42,
+            random_state=seed,
+            n_jobs=1,
             verbosity=0,
         )
         self._regressor = XGBRegressor(
@@ -31,7 +36,8 @@ class XGBoostModel:
             max_depth=max_depth,
             learning_rate=learning_rate,
             eval_metric="mae",
-            random_state=42,
+            random_state=seed,
+            n_jobs=1,
             verbosity=0,
         )
 
@@ -43,6 +49,11 @@ class XGBoostModel:
     def n_features(self) -> int | None:
         return getattr(self._classifier, "n_features_in_", None)
 
+    @property
+    def best_iterations(self) -> dict[str, int]:
+        """Best validation iterations for the two independently stopped heads."""
+        return dict(self._best_iterations)
+
     def train(
         self,
         X_train: NDArray[np.float64],
@@ -52,15 +63,51 @@ class XGBoostModel:
         y_dir_val: NDArray[np.int64] | None = None,
         y_pct_val: NDArray[np.float64] | None = None,
     ) -> dict[str, float]:
-        self._classifier.fit(X_train, y_dir_train)
-        self._regressor.fit(X_train, y_pct_train)
+        validation_values = (X_val, y_dir_val, y_pct_val)
+        has_validation = all(value is not None for value in validation_values)
+        if any(value is not None for value in validation_values) and not has_validation:
+            raise ValueError("validation features and both targets must be supplied together")
+
+        if has_validation:
+            self._classifier.set_params(
+                early_stopping_rounds=self._early_stopping_rounds
+            )
+            self._regressor.set_params(early_stopping_rounds=self._early_stopping_rounds)
+            self._classifier.fit(
+                X_train,
+                y_dir_train,
+                eval_set=[(X_val, y_dir_val)],
+                verbose=False,
+            )
+            self._regressor.fit(
+                X_train,
+                y_pct_train,
+                eval_set=[(X_val, y_pct_val)],
+                verbose=False,
+            )
+            self._best_iterations = {
+                "classifier": int(self._classifier.best_iteration),
+                "regressor": int(self._regressor.best_iteration),
+            }
+        else:
+            self._classifier.set_params(early_stopping_rounds=None)
+            self._regressor.set_params(early_stopping_rounds=None)
+            self._classifier.fit(X_train, y_dir_train)
+            self._regressor.fit(X_train, y_pct_train)
+            self._best_iterations = {}
 
         metrics: dict[str, float] = {}
-        if X_val is not None and y_dir_val is not None and y_pct_val is not None:
+        if has_validation:
             probs, pct_pred = self.predict(X_val)
             pred_dir = (probs > 0.5).astype(int)
             metrics["val_accuracy"] = float(np.mean(pred_dir == y_dir_val))
             metrics["val_mae"] = float(np.mean(np.abs(pct_pred - y_pct_val)))
+            metrics["classifier_best_iteration"] = float(
+                self._best_iterations["classifier"]
+            )
+            metrics["regressor_best_iteration"] = float(
+                self._best_iterations["regressor"]
+            )
 
         return metrics
 

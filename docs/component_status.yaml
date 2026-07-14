@@ -1,6 +1,6 @@
 schema_version: 1
 scope: fixed_bist_large_cap_prototype
-generated_from_commit: c35eafa
+generated_from_commit: 72281e3
 status_definitions:
   implemented: "Executable code exists; scaffold and partial identify incomplete contracts."
   integrated: "The component participates in the current default CLI path."
@@ -295,7 +295,9 @@ components:
     accepted_default: false
     evidence:
       - src/bist_predict/models/xgboost_model.py
-    note: "No early stopping, bounded trials, multiple seeds, or accepted OOS result."
+      - src/bist_predict/research/boosting_search.py
+      - tests/test_research/test_boosting_search.py
+    note: "Validation early stopping, best-iteration recording, at most twelve declared trials, multiple seeds, and immutable search manifests exist; no accepted OOS result."
 
   lightgbm:
     package: bist_predict.models
@@ -306,7 +308,9 @@ components:
     accepted_default: false
     evidence:
       - src/bist_predict/models/lightgbm_model.py
-    note: "No early stopping, bounded trials, multiple seeds, or accepted OOS result."
+      - src/bist_predict/research/boosting_search.py
+      - tests/test_research/test_boosting_search.py
+    note: "Validation early stopping, best-iteration recording, at most twelve declared trials, multiple seeds, and immutable search manifests exist; no accepted OOS result."
 
   lstm:
     package: bist_predict.models
