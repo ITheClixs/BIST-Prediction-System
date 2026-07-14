@@ -41,6 +41,44 @@ class BaselineBenchmarkResult:
 
     predictions: pd.DataFrame
     folds: tuple[WalkForwardFold, ...]
+    fitted_model_states: tuple[dict[str, object], ...]
+
+
+def _state_identity(
+    fold: WalkForwardFold,
+    manifest: FeatureManifest,
+    model_name: str,
+    training_row_count: int,
+) -> dict[str, object]:
+    return {
+        "schema_version": "1",
+        "fold_id": fold.fold_id,
+        "model_name": model_name,
+        "model_version": MODEL_VERSIONS[model_name],
+        "training_end": fold.train_window.date_end,
+        "feature_manifest_hash": manifest.manifest_hash,
+        "ordered_feature_names": list(manifest.ordered_feature_names),
+        "training_row_count": training_row_count,
+    }
+
+
+def _preprocessing_state(
+    preprocessor: TrainOnlyPreprocessor,
+    feature_names: tuple[str, ...],
+) -> dict[str, object]:
+    state = preprocessor.state
+    return {
+        "fit_scope": "fold_training_rows_only",
+        "manifest_hash": state.manifest_hash,
+        "model_family": state.model_family,
+        "imputation_values": list(state.imputation_values),
+        "means": list(state.means),
+        "scales": list(state.scales),
+        "transformed_feature_names": [
+            *feature_names,
+            *(f"{name}__missing" for name in feature_names),
+        ],
+    }
 
 
 def _normal_probability(values: np.ndarray, scale: float) -> np.ndarray:
@@ -165,6 +203,7 @@ def run_baseline_benchmark(
     if not folds:
         raise ValueError("split configuration produced no validation folds")
     records: list[dict[str, object]] = []
+    fitted_model_states: list[dict[str, object]] = []
     feature_names = manifest.ordered_feature_names
 
     for fold in folds:
@@ -192,6 +231,20 @@ def run_baseline_benchmark(
                 np.full(row_count, 0.5, dtype=np.float64),
             )
         )
+        fitted_model_states.append(
+            {
+                **_state_identity(fold, manifest, "zero_return", len(train)),
+                "seed": None,
+                "preprocessing": None,
+                "fit_config": {"constant_return": 0.0},
+                "estimator": {"type": "constant_return", "predicted_return": 0.0},
+                "prediction_mapping": {
+                    "direction_threshold": 0.0,
+                    "predicted_direction": 0,
+                    "predicted_probability": 0.5,
+                },
+            }
+        )
 
         majority_direction = int(positive_prevalence >= 0.5)
         majority_return = positive_mean if majority_direction else negative_mean
@@ -206,10 +259,42 @@ def run_baseline_benchmark(
                 np.full(row_count, majority_direction, dtype=np.int64),
             )
         )
+        fitted_model_states.append(
+            {
+                **_state_identity(fold, manifest, "majority_direction", len(train)),
+                "seed": None,
+                "preprocessing": None,
+                "fit_config": {"direction_threshold": 0.5},
+                "estimator": {
+                    "type": "training_direction_prevalence",
+                    "positive_prevalence": positive_prevalence,
+                    "majority_direction": majority_direction,
+                },
+                "prediction_mapping": {
+                    "positive_mean_return": positive_mean,
+                    "negative_mean_return": negative_mean,
+                    "predicted_return": majority_return,
+                },
+            }
+        )
 
-        for model_name, predicted_return in _point_in_time_baselines(
-            working, validation, mean_return
-        ).items():
+        point_in_time_predictions = _point_in_time_baselines(working, validation, mean_return)
+        point_in_time_configs: dict[str, dict[str, object]] = {
+            "previous_return": {
+                "history_scope": "same_ticker",
+                "aggregation": "last",
+            },
+            "market_direction": {
+                "history_scope": "latest_matured_feature_date",
+                "aggregation": "cross_sectional_mean",
+            },
+            "rolling_mean": {
+                "history_scope": "same_ticker",
+                "aggregation": "mean",
+                "window": 20,
+            },
+        }
+        for model_name, predicted_return in point_in_time_predictions.items():
             records.extend(
                 _prediction_rows(
                     validation,
@@ -219,6 +304,24 @@ def run_baseline_benchmark(
                     predicted_return,
                     _normal_probability(predicted_return, return_scale),
                 )
+            )
+            fitted_model_states.append(
+                {
+                    **_state_identity(fold, manifest, model_name, len(train)),
+                    "seed": None,
+                    "preprocessing": None,
+                    "fit_config": {
+                        **point_in_time_configs[model_name],
+                        "maturity_rule": "target_end_before_feature_available_at",
+                        "fallback_return": mean_return,
+                    },
+                    "estimator": {"type": "point_in_time_history_rule"},
+                    "prediction_mapping": {
+                        "probability_function": "normal_cdf",
+                        "probability_scale": return_scale,
+                        "direction_threshold": 0.0,
+                    },
+                }
             )
 
         train_matrix = train[list(feature_names)].to_numpy(dtype=np.float64)
@@ -239,8 +342,22 @@ def run_baseline_benchmark(
             classifier = LogisticRegression(C=1.0, max_iter=1_000, random_state=42)
             classifier.fit(prepared_train, y_train_direction)
             logistic_probability = classifier.predict_proba(prepared_validation)[:, 1]
+            logistic_estimator: dict[str, object] = {
+                "type": "sklearn.linear_model.LogisticRegression",
+                "classes": [int(value) for value in classifier.classes_],
+                "coefficients": classifier.coef_.astype(np.float64).tolist(),
+                "intercept": classifier.intercept_.astype(np.float64).tolist(),
+                "constant_probability": None,
+            }
         else:
             logistic_probability = np.full(row_count, positive_prevalence)
+            logistic_estimator = {
+                "type": "constant_probability",
+                "classes": [int(value) for value in np.unique(y_train_direction)],
+                "coefficients": [],
+                "intercept": [],
+                "constant_probability": positive_prevalence,
+            }
         logistic_return = (
             logistic_probability * positive_mean + (1.0 - logistic_probability) * negative_mean
         )
@@ -255,11 +372,34 @@ def run_baseline_benchmark(
                 (logistic_probability >= 0.5).astype(np.int64),
             )
         )
+        preprocessing_state = _preprocessing_state(preprocessor, feature_names)
+        fitted_model_states.append(
+            {
+                **_state_identity(fold, manifest, "logistic", len(train)),
+                "seed": 42,
+                "preprocessing": preprocessing_state,
+                "fit_config": {
+                    "C": 1.0,
+                    "fit_intercept": True,
+                    "max_iter": 1_000,
+                    "penalty": "l2",
+                    "random_state": 42,
+                    "solver": "lbfgs",
+                },
+                "estimator": logistic_estimator,
+                "prediction_mapping": {
+                    "positive_mean_return": positive_mean,
+                    "negative_mean_return": negative_mean,
+                    "direction_probability_threshold": 0.5,
+                },
+            }
+        )
 
         regressor = Ridge(alpha=1.0)
         regressor.fit(prepared_train, y_train_return)
         ridge_return = regressor.predict(prepared_validation).astype(np.float64)
         residual_scale = float(np.std(y_train_return - regressor.predict(prepared_train)))
+        probability_scale = residual_scale if residual_scale > 0.0 else return_scale
         records.extend(
             _prediction_rows(
                 validation,
@@ -267,10 +407,32 @@ def run_baseline_benchmark(
                 manifest,
                 "ridge",
                 ridge_return,
-                _normal_probability(
-                    ridge_return, residual_scale if residual_scale > 0.0 else return_scale
-                ),
+                _normal_probability(ridge_return, probability_scale),
             )
+        )
+        fitted_model_states.append(
+            {
+                **_state_identity(fold, manifest, "ridge", len(train)),
+                "seed": None,
+                "preprocessing": preprocessing_state,
+                "fit_config": {
+                    "alpha": 1.0,
+                    "fit_intercept": True,
+                    "solver": "auto",
+                },
+                "estimator": {
+                    "type": "sklearn.linear_model.Ridge",
+                    "coefficients": regressor.coef_.astype(np.float64).tolist(),
+                    "intercept": float(regressor.intercept_),
+                },
+                "prediction_mapping": {
+                    "probability_function": "normal_cdf",
+                    "residual_scale": residual_scale,
+                    "training_return_scale": return_scale,
+                    "probability_scale": probability_scale,
+                    "direction_threshold": 0.0,
+                },
+            }
         )
 
     predictions = pd.DataFrame.from_records(records, columns=PREDICTION_COLUMNS)
@@ -278,4 +440,8 @@ def run_baseline_benchmark(
         ["fold_id", "date", "ticker", "model_name"], kind="stable"
     ).reset_index(drop=True)
     validate_predictions(predictions)
-    return BaselineBenchmarkResult(predictions=predictions, folds=folds)
+    return BaselineBenchmarkResult(
+        predictions=predictions,
+        folds=folds,
+        fitted_model_states=tuple(fitted_model_states),
+    )

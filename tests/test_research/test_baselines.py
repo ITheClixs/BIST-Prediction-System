@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import json
+import math
 
 import numpy as np
 import pandas as pd
@@ -92,15 +94,105 @@ def test_all_baselines_share_folds_features_targets_and_oos_rows() -> None:
     )
 
 
+def test_fitted_model_states_are_json_safe_and_reconstruct_linear_predictions() -> None:
+    manifest = _manifest()
+    panel = _panel()
+    result = run_baseline_benchmark(panel, manifest, _splitter())
+
+    encoded = json.dumps(result.fitted_model_states, sort_keys=True, allow_nan=False)
+    states = json.loads(encoded)
+    assert len(states) == len(result.folds) * len(ACCEPTED_BASELINES)
+    assert {(state["fold_id"], state["model_name"]) for state in states} == {
+        (fold.fold_id, model_name) for fold in result.folds for model_name in ACCEPTED_BASELINES
+    }
+
+    fold = result.folds[0]
+    validation = panel.copy()
+    validation["date"] = pd.to_datetime(validation["date"]).dt.date.astype(str)
+    validation.index = pd.Index(
+        validation["date"].astype(str) + "|" + validation["ticker"].astype(str),
+        name="sample_id",
+    )
+    validation = validation.loc[list(fold.validation_indices)]
+    raw_matrix = validation[list(manifest.ordered_feature_names)].to_numpy(dtype=np.float64)
+
+    for model_name in ("logistic", "ridge"):
+        state = next(
+            item
+            for item in states
+            if item["fold_id"] == fold.fold_id and item["model_name"] == model_name
+        )
+        assert state["schema_version"] == "1"
+        assert state["model_version"]
+        assert state["training_end"] == fold.train_window.date_end
+        assert state["feature_manifest_hash"] == manifest.manifest_hash
+        assert state["ordered_feature_names"] == list(manifest.ordered_feature_names)
+        assert state["training_row_count"] == len(fold.train_indices)
+
+        preprocessing = state["preprocessing"]
+        imputation = np.asarray(preprocessing["imputation_values"], dtype=np.float64)
+        means = np.asarray(preprocessing["means"], dtype=np.float64)
+        scales = np.asarray(preprocessing["scales"], dtype=np.float64)
+        missing = np.isnan(raw_matrix)
+        normalized = (np.where(missing, imputation, raw_matrix) - means) / scales
+        prepared = np.concatenate([normalized, missing.astype(np.float64)], axis=1)
+        assert preprocessing["transformed_feature_names"] == [
+            *manifest.ordered_feature_names,
+            *(f"{name}__missing" for name in manifest.ordered_feature_names),
+        ]
+
+        estimator = state["estimator"]
+        expected = result.predictions.loc[
+            (result.predictions["fold_id"] == fold.fold_id)
+            & (result.predictions["model_name"] == model_name)
+        ].sort_values(["date", "ticker"], kind="stable")
+        if model_name == "logistic":
+            coefficients = np.asarray(estimator["coefficients"], dtype=np.float64)[0]
+            intercept = float(estimator["intercept"][0])
+            probability = 1.0 / (1.0 + np.exp(-(prepared @ coefficients + intercept)))
+            mapping = state["prediction_mapping"]
+            predicted_return = probability * float(mapping["positive_mean_return"]) + (
+                1.0 - probability
+            ) * float(mapping["negative_mean_return"])
+            np.testing.assert_allclose(
+                probability,
+                expected["predicted_probability"].to_numpy(dtype=np.float64),
+            )
+        else:
+            coefficients = np.asarray(estimator["coefficients"], dtype=np.float64)
+            intercept = float(estimator["intercept"])
+            predicted_return = prepared @ coefficients + intercept
+            probability_scale = float(state["prediction_mapping"]["probability_scale"])
+            probability = np.asarray(
+                [
+                    0.5 * (1.0 + math.erf(value / (max(probability_scale, 1e-12) * math.sqrt(2.0))))
+                    for value in predicted_return
+                ],
+                dtype=np.float64,
+            )
+            np.testing.assert_allclose(
+                probability,
+                expected["predicted_probability"].to_numpy(dtype=np.float64),
+            )
+        np.testing.assert_allclose(
+            predicted_return,
+            expected["predicted_return"].to_numpy(dtype=np.float64),
+        )
+
+
 def test_ticker_and_row_order_cannot_change_baseline_predictions() -> None:
     panel = _panel()
     manifest = _manifest()
-    expected = run_baseline_benchmark(panel, manifest, _splitter()).predictions
+    expected = run_baseline_benchmark(panel, manifest, _splitter())
     shuffled = panel.sample(frac=1.0, random_state=991).reset_index(drop=True)
 
-    actual = run_baseline_benchmark(shuffled, manifest, _splitter()).predictions
+    actual = run_baseline_benchmark(shuffled, manifest, _splitter())
 
-    pdt.assert_frame_equal(_sorted_predictions(actual), _sorted_predictions(expected))
+    pdt.assert_frame_equal(
+        _sorted_predictions(actual.predictions),
+        _sorted_predictions(expected.predictions),
+    )
+    assert actual.fitted_model_states == expected.fitted_model_states
 
 
 def test_future_target_changes_cannot_rewrite_prior_predictions() -> None:
