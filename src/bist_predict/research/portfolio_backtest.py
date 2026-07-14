@@ -211,9 +211,16 @@ class _Candidate:
 class PortfolioBacktester:
     """Execute cost-aware top-k signals at observed next-session opens."""
 
-    def __init__(self, *, strategy: StrategyConfig, costs: CostModel) -> None:
+    def __init__(
+        self,
+        *,
+        strategy: StrategyConfig,
+        costs: CostModel,
+        selection_costs: CostModel | None = None,
+    ) -> None:
         self._strategy = strategy
         self._costs = costs
+        self._selection_costs = selection_costs or costs
 
     @staticmethod
     def _next_bar(
@@ -281,12 +288,12 @@ class PortfolioBacktester:
 
     def _estimated_round_trip_cost_rate(self, participation_rate: float) -> float:
         one_way = (
-            self._costs.commission_rate
-            + self._costs.bid_ask_spread_rate / 2.0
-            + self._costs.slippage_rate
-            + self._costs.market_impact_coefficient * math.sqrt(participation_rate)
+            self._selection_costs.commission_rate
+            + self._selection_costs.bid_ask_spread_rate / 2.0
+            + self._selection_costs.slippage_rate
+            + self._selection_costs.market_impact_coefficient * math.sqrt(participation_rate)
         )
-        return 2.0 * one_way + self._costs.tax_rate
+        return 2.0 * one_way + self._selection_costs.tax_rate
 
     def _affordable_quantity(self, bar: OHLCVBar, budget: float) -> int:
         volume_limit = math.floor(bar.volume * self._strategy.max_participation)

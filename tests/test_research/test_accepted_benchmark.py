@@ -55,6 +55,17 @@ def test_synthetic_methodology_smoke_runs_and_replays_from_bundled_inputs(
         "liquidity_bucket",
         "market_regime",
     }
+    sensitivity = metrics["cost_sensitivity"]
+    assert (
+        sensitivity["0.0x"]["metrics"]["trade_count"]
+        == sensitivity["1.0x"]["metrics"]["trade_count"]
+        == sensitivity["2.0x"]["metrics"]["trade_count"]
+    )
+    assert (
+        sensitivity["0.0x"]["metrics"]["net_return"]
+        >= sensitivity["1.0x"]["metrics"]["net_return"]
+        >= sensitivity["2.0x"]["metrics"]["net_return"]
+    )
     assert (bundle.path / "input_prices.parquet").exists()
     assert (bundle.path / "corporate_action_coverage.parquet").exists()
     assert (bundle.path / "corporate_actions.parquet").exists()

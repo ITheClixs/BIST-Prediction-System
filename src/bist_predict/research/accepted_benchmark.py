@@ -591,9 +591,12 @@ def run_accepted_benchmark(
     session_dates = [snapshot.date for snapshot in portfolio.daily_snapshots]
     equal_weight_returns = _equal_weight_returns(panel, session_dates)
     sensitivity: dict[str, object] = {}
+    selection_costs = _cost_model(config)
     for multiplier in (0.0, 1.0, 2.0):
         result = PortfolioBacktester(
-            strategy=_strategy(config), costs=_cost_model(config, multiplier)
+            strategy=_strategy(config),
+            costs=_cost_model(config, multiplier),
+            selection_costs=selection_costs,
         ).run(
             benchmark.predictions,
             bars,

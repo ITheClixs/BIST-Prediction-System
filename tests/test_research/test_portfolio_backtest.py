@@ -163,12 +163,27 @@ def test_proxy_open_is_rejected_before_order_submission() -> None:
 
 
 def test_higher_realized_costs_cannot_improve_net_performance() -> None:
-    predictions = _predictions((0.10, 0.08))
-    low = _backtester(CostModel(0.0001, 0.0005, 0.0001, 0.00005, 0.0)).run(
-        predictions, _prices(), model_name="ridge", starting_equity=100_000.0
+    predictions = _predictions()
+    selection_costs = CostModel(0.0002, 0.001, 0.0003, 0.0001, 0.0)
+    low = PortfolioBacktester(
+        strategy=StrategyConfig(top_k=2, decision_cost_rate=0.002, max_participation=0.01),
+        costs=CostModel(0.0001, 0.0005, 0.0001, 0.00005, 0.0),
+        selection_costs=selection_costs,
+    ).run(
+        predictions,
+        _prices(),
+        model_name="ridge",
+        starting_equity=100_000.0,
     )
-    high = _backtester(CostModel(0.001, 0.005, 0.002, 0.001, 0.001)).run(
-        predictions, _prices(), model_name="ridge", starting_equity=100_000.0
+    high = PortfolioBacktester(
+        strategy=StrategyConfig(top_k=2, decision_cost_rate=0.002, max_participation=0.01),
+        costs=CostModel(0.001, 0.005, 0.002, 0.001, 0.001),
+        selection_costs=selection_costs,
+    ).run(
+        predictions,
+        _prices(),
+        model_name="ridge",
+        starting_equity=100_000.0,
     )
 
     assert len(low.fills) == len(high.fills)
