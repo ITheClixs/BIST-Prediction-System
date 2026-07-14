@@ -1,6 +1,6 @@
 schema_version: 1
 scope: fixed_bist_large_cap_prototype
-generated_from_commit: 72281e3
+generated_from_commit: 49c241c
 status_definitions:
   implemented: "Executable code exists; scaffold and partial identify incomplete contracts."
   integrated: "The component participates in the current default CLI path."
@@ -373,16 +373,16 @@ components:
     note: "Core prediction metrics recompute from immutable OOS rows; grouped and block-bootstrap reports remain pending."
 
   portfolio_backtest:
-    package: bist_predict.evaluation
-    implemented: scaffold
-    integrated: true
+    package: bist_predict.research
+    implemented: true
+    integrated: false
     evaluated: false
     production_inference: false
     accepted_default: false
     evidence:
-      - src/bist_predict/evaluation/backtest.py
-      - src/bist_predict/research/ensemble_pipeline.py
-    note: "Scalar cost deduction only; no order, fill, position, cash, or cost ledger."
+      - src/bist_predict/research/portfolio_backtest.py
+      - tests/test_research/test_portfolio_backtest.py
+    note: "Observed-open top-k execution now persists signals, orders, fills, positions, cash, component costs, and daily equity with accounting and cost-monotonicity tests; accepted runner integration remains pending."
 
   live_prediction_tracking:
     package: bist_predict.evaluation
