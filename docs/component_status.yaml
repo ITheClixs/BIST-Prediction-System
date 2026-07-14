@@ -1,6 +1,6 @@
 schema_version: 1
 scope: fixed_bist_large_cap_prototype
-generated_from_commit: 9d6b2d6
+generated_from_commit: 721ab35
 status_definitions:
   implemented: "Executable code exists; scaffold and partial identify incomplete contracts."
   integrated: "The component participates in the current default CLI path."
@@ -263,12 +263,28 @@ components:
 
   statistical_baselines:
     package: bist_predict.research
-    implemented: false
+    implemented: true
     integrated: false
     evaluated: false
     production_inference: false
     accepted_default: false
-    evidence: []
+    evidence:
+      - src/bist_predict/research/baselines.py
+      - tests/test_research/test_baselines.py
+    note: "Seven baselines share immutable features, date-grouped folds, train-only preprocessing, and OOS rows; only synthetic invariant tests have run."
+
+  oos_prediction_artifacts:
+    package: bist_predict.research
+    implemented: true
+    integrated: false
+    evaluated: false
+    production_inference: false
+    accepted_default: false
+    evidence:
+      - src/bist_predict/research/predictions.py
+      - src/bist_predict/research/prediction_metrics.py
+      - tests/test_research/test_baselines.py
+    note: "Immutable Parquet rows round-trip with SHA-256 identity and recompute all prediction metrics; no accepted market-data run exists yet."
 
   xgboost:
     package: bist_predict.models

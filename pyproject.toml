@@ -20,6 +20,7 @@ dependencies = [
     "lightgbm>=4.0",
     "torch>=2.2",
     "pandas>=2.1",
+    "pyarrow>=18.0",
 ]
 
 [project.scripts]
