@@ -1,6 +1,6 @@
 schema_version: 1
 scope: fixed_bist_large_cap_prototype
-generated_from_commit: 3f48fe7
+generated_from_commit: 9d6b2d6
 status_definitions:
   implemented: "Executable code exists; scaffold and partial identify incomplete contracts."
   integrated: "The component participates in the current default CLI path."
@@ -153,7 +153,20 @@ components:
     accepted_default: false
     evidence:
       - src/bist_predict/features/preprocessing.py
-    note: "Train-only linear/neural preprocessing and native tree missing values are implemented."
+      - src/bist_predict/research/missingness.py
+    note: "Train-only linear/neural preprocessing, native tree missing values, and fold/source-aware reports are implemented."
+
+  stationary_pooled_features:
+    package: bist_predict.research
+    implemented: true
+    integrated: false
+    evaluated: false
+    production_inference: false
+    accepted_default: false
+    evidence:
+      - src/bist_predict/research/stationary_features.py
+      - tests/test_research/test_stationary_features.py
+    note: "Scale-free price, volume, volatility, cross-sectional, and cyclic calendar features are point-in-time tested; accepted runner integration remains pending."
 
   rust_technical_indicators:
     package: bist_features
@@ -176,7 +189,7 @@ components:
     accepted_default: false
     evidence:
       - src/bist_predict/features/engine.py
-    note: "The log claims a fallback but the technical family is skipped."
+    note: "No fallback exists; the engine now explicitly reports Rust indicators as disabled when the extension is unavailable."
 
   macro_collection:
     package: bist_predict.ingest

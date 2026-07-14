@@ -8,6 +8,7 @@ from pathlib import Path
 import numpy as np
 import pytest
 
+import bist_predict.features.engine as engine_module
 from bist_predict.features.engine import FeatureEngine
 from bist_predict.features.store import FeatureStore
 from bist_predict.storage.database import Database
@@ -38,6 +39,13 @@ def db(tmp_db_path: Path) -> Database:
 
 
 class TestFeatureEngine:
+    def test_missing_rust_backend_is_reported_as_disabled(
+        self, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        monkeypatch.setattr(engine_module, "HAS_RUST", False)
+
+        assert engine_module.indicator_backend_status() == "rust_disabled"
+
     def test_compute_features_for_ticker(self, db: Database) -> None:
         engine = FeatureEngine(db)
         features = engine.compute_for_ticker("THYAO", "2026-04-01")

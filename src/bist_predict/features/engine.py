@@ -24,11 +24,16 @@ try:
     HAS_RUST = True
 except ImportError:
     HAS_RUST = False
-    logger.warning("Rust bist_features module not available — using Python fallback")
+    logger.warning("Rust technical indicators are disabled; no Python fallback is configured")
 
 # Moving average periods
 SMA_PERIODS = [5, 10, 20, 50, 100, 200]
 EMA_PERIODS = [5, 10, 20, 50, 100, 200]
+
+
+def indicator_backend_status() -> str:
+    """Report the technical-indicator backend without implying skipped work ran."""
+    return "rust_enabled" if HAS_RUST else "rust_disabled"
 
 
 class FeatureEngine:
