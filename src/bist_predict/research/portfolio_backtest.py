@@ -11,6 +11,7 @@ from typing import Any, Iterable
 import pandas as pd
 
 from bist_predict.ingest.corporate_actions import CorporateAction
+from bist_predict.ingest.calendar import OfficialTradingCalendar
 from bist_predict.ingest.types import OHLCVBar, OpenQuality, VolumeQuality
 from bist_predict.research.predictions import validate_predictions
 
@@ -231,9 +232,11 @@ class PortfolioBacktester:
         signal_date = date.fromisoformat(str(prediction["date"]))
         bar = self._next_bar(bars_by_ticker, str(prediction["ticker"]), signal_date)
         certainty = 2.0 * abs(float(prediction["predicted_probability"]) - 0.5)
-        score = (
-            float(prediction["predicted_return"]) * certainty - self._strategy.decision_cost_rate
+        estimated_cost_rate = max(
+            self._strategy.decision_cost_rate,
+            self._estimated_round_trip_cost_rate(self._strategy.max_participation),
         )
+        score = float(prediction["predicted_return"]) * certainty - estimated_cost_rate
         reason: str | None = None
         if bar is None:
             reason = "missing_execution_price"
@@ -276,6 +279,36 @@ class PortfolioBacktester:
             total_cost=total,
         )
 
+    def _estimated_round_trip_cost_rate(self, participation_rate: float) -> float:
+        one_way = (
+            self._costs.commission_rate
+            + self._costs.bid_ask_spread_rate / 2.0
+            + self._costs.slippage_rate
+            + self._costs.market_impact_coefficient * math.sqrt(participation_rate)
+        )
+        return 2.0 * one_way + self._costs.tax_rate
+
+    def _affordable_quantity(self, bar: OHLCVBar, budget: float) -> int:
+        volume_limit = math.floor(bar.volume * self._strategy.max_participation)
+        cash_limit = math.floor(budget / bar.open)
+        low = 0
+        high = min(volume_limit, cash_limit)
+        while low < high:
+            candidate = (low + high + 1) // 2
+            notional = candidate * bar.open
+            participation = candidate / bar.volume
+            estimated_cost = self._cost_record(
+                "buy-cost-estimate",
+                "buy",
+                notional,
+                participation,
+            ).total_cost
+            if notional + estimated_cost <= budget:
+                low = candidate
+            else:
+                high = candidate - 1
+        return low
+
     def run(
         self,
         predictions: pd.DataFrame,
@@ -284,6 +317,7 @@ class PortfolioBacktester:
         model_name: str,
         starting_equity: float,
         corporate_actions: Iterable[CorporateAction] = (),
+        calendar: OfficialTradingCalendar | None = None,
     ) -> PortfolioBacktestResult:
         """Run the one-session strategy and preserve every state transition."""
         validate_predictions(predictions)
@@ -325,6 +359,14 @@ class PortfolioBacktester:
         cash = starting_equity
 
         for execution_date in sorted(by_execution):
+            execution_session = date.fromisoformat(execution_date)
+            if calendar is None:
+                open_timestamp = f"{execution_date}T10:00:00+03:00"
+                close_timestamp = f"{execution_date}T18:00:00+03:00"
+            else:
+                session_open, session_close = calendar.session_bounds(execution_session)
+                open_timestamp = session_open.isoformat()
+                close_timestamp = session_close.isoformat()
             day_candidates = by_execution[execution_date]
             eligible = sorted(
                 (candidate for candidate in day_candidates if candidate.rejection_reason is None),
@@ -377,7 +419,7 @@ class PortfolioBacktester:
             # Corporate actions effective at the open are processed before entry.
             # The benchmark carries no overnight position, so these events cannot
             # create a distribution or alter an existing holding.
-            if date.fromisoformat(execution_date) in action_dates:
+            if execution_session in action_dates:
                 day_distributions += 0.0
 
             for candidate in selected:
@@ -388,13 +430,9 @@ class PortfolioBacktester:
                     str(candidate.prediction["ticker"]),
                 )
                 signal = candidate_signals[prediction_key]
-                fixed_cost_reserve = 1.0 + self._strategy.decision_cost_rate / 2.0
-                allocation = day_starting_equity * target_weight / fixed_cost_reserve
-                quantity_by_cash = math.floor(allocation / bar.open)
-                quantity_by_volume = math.floor(bar.volume * self._strategy.max_participation)
-                quantity = min(quantity_by_cash, quantity_by_volume)
+                allocation = min(cash, day_starting_equity * target_weight)
+                quantity = self._affordable_quantity(bar, allocation)
                 buy_order_id = _identifier(signal.signal_id, "buy", execution_date)
-                open_timestamp = f"{execution_date}T10:00:00+03:00"
                 if quantity <= 0 or quantity * bar.open < self._strategy.min_trade_value:
                     orders.append(
                         Order(
@@ -465,6 +503,8 @@ class PortfolioBacktester:
                         buy_fill_id,
                     )
                 )
+                if cash < -1e-8:
+                    raise RuntimeError("buy notional and costs exceeded available cash")
                 positions.append(
                     Position(
                         timestamp=open_timestamp,
@@ -478,7 +518,6 @@ class PortfolioBacktester:
                     )
                 )
 
-                close_timestamp = f"{execution_date}T18:00:00+03:00"
                 sell_order_id = _identifier(signal.signal_id, "sell", execution_date)
                 sell_notional = quantity * bar.close
                 orders.append(
