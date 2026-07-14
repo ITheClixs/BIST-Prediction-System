@@ -65,7 +65,8 @@ class ChronologicalStackingResult:
 
     test_predictions: pd.DataFrame
     stacking_lineage: pd.DataFrame
-    calibration_metrics: dict[str, object]
+    calibration_fit_metrics: dict[str, object]
+    final_test_calibration_metrics: dict[str, object]
 
 
 def _validated_long(frame: pd.DataFrame, periods: StackingPeriods) -> pd.DataFrame:
@@ -96,8 +97,11 @@ def _validated_long(frame: pd.DataFrame, periods: StackingPeriods) -> pd.DataFra
     if (working["_training_end"] > pd.Timestamp(periods.base_training_end)).any():
         raise StackingLeakageError("base model training extends beyond base-training period")
     prediction_dates = working["_prediction_time"].dt.tz_convert(None).dt.normalize()
+    working["_prediction_date"] = prediction_dates
     if (working["_training_end"] >= prediction_dates).any():
         raise StackingLeakageError("base model training must precede its prediction")
+    if (prediction_dates > working["_date"].dt.normalize()).any():
+        raise StackingLeakageError("prediction timestamp cannot postdate its row session")
 
     for row in working.itertuples(index=False):
         training_ids = row.base_training_row_ids
@@ -133,6 +137,10 @@ def _validate_period(
     upper = pd.Timestamp(end)
     if not frame["_date"].between(lower, upper, inclusive="both").all():
         raise StackingLeakageError(f"{label} rows fall outside their declared period")
+    if not frame["_prediction_date"].between(lower, upper, inclusive="both").all():
+        raise StackingLeakageError(
+            f"{label} prediction timestamps fall outside their declared period"
+        )
 
 
 def _model_matrices(
@@ -252,7 +260,7 @@ class ChronologicalStackingPipeline:
             if calibrator.is_fitted
             else raw_calibration_probability
         )
-        calibration_metrics = _reliability_metrics(calibration_labels, calibrated_probability)
+        calibration_fit_metrics = _reliability_metrics(calibration_labels, calibrated_probability)
 
         raw_test_probability, test_return = combiner.predict(test_predictions)
         test_probability = (
@@ -263,10 +271,15 @@ class ChronologicalStackingPipeline:
         final_predictions = test_metadata.copy()
         final_predictions["predicted_probability"] = test_probability
         final_predictions["predicted_return"] = test_return
+        final_test_calibration_metrics = _reliability_metrics(
+            test_metadata["target_direction"].to_numpy(dtype=np.int64),
+            final_predictions["predicted_probability"].to_numpy(dtype=np.float64),
+        )
 
         lineage = stacking[list(LINEAGE_COLUMNS)].copy().reset_index(drop=True)
         return ChronologicalStackingResult(
             test_predictions=final_predictions,
             stacking_lineage=lineage,
-            calibration_metrics=calibration_metrics,
+            calibration_fit_metrics=calibration_fit_metrics,
+            final_test_calibration_metrics=final_test_calibration_metrics,
         )

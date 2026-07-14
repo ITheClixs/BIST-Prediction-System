@@ -68,6 +68,34 @@ def test_stacker_rejects_base_prediction_for_its_own_training_row() -> None:
         )
 
 
+def test_stacker_rejects_prediction_timestamp_after_row_session() -> None:
+    stacking = _long_predictions("2024-01-02", 20, "stack")
+    stacking.loc[stacking["row_id"] == "stack-000", "prediction_timestamp"] = pd.Timestamp(
+        "2024-01-03T18:10:00Z"
+    )
+
+    with pytest.raises(StackingLeakageError, match="prediction timestamp.*row session"):
+        ChronologicalStackingPipeline(_periods()).fit_predict(
+            stacking,
+            _long_predictions("2024-02-01", 20, "calibration"),
+            _long_predictions("2024-03-01", 20, "test"),
+        )
+
+
+def test_stacker_rejects_prediction_timestamp_outside_declared_period() -> None:
+    stacking = _long_predictions("2024-01-02", 20, "stack")
+    stacking.loc[stacking["row_id"] == "stack-000", "prediction_timestamp"] = pd.Timestamp(
+        "2024-01-01T18:10:00Z"
+    )
+
+    with pytest.raises(StackingLeakageError, match="stacking prediction timestamps"):
+        ChronologicalStackingPipeline(_periods()).fit_predict(
+            stacking,
+            _long_predictions("2024-02-01", 20, "calibration"),
+            _long_predictions("2024-03-01", 20, "test"),
+        )
+
+
 def test_periods_must_be_strictly_chronological_and_non_overlapping() -> None:
     with pytest.raises(ValueError, match="strictly ordered"):
         replace(_periods(), calibration_end="2024-03-05", test_start="2024-03-01")
@@ -90,7 +118,7 @@ def test_pipeline_persists_oof_lineage_and_calibrates_before_test() -> None:
     ]
     assert len(result.stacking_lineage) == len(stacking)
     assert result.test_predictions["predicted_probability"].between(0.0, 1.0).all()
-    assert set(result.calibration_metrics) == {
+    expected_metric_names = {
         "brier_score",
         "log_loss",
         "expected_calibration_error",
@@ -98,6 +126,8 @@ def test_pipeline_persists_oof_lineage_and_calibrates_before_test() -> None:
         "calibration_intercept",
         "reliability_buckets",
     }
+    assert set(result.calibration_fit_metrics) == expected_metric_names
+    assert set(result.final_test_calibration_metrics) == expected_metric_names
 
 
 def test_test_labels_cannot_change_stacker_or_calibrator_outputs() -> None:
@@ -121,4 +151,5 @@ def test_test_labels_cannot_change_stacker_or_calibrator_outputs() -> None:
         actual.test_predictions["predicted_return"],
         expected.test_predictions["predicted_return"],
     )
-    assert actual.calibration_metrics == expected.calibration_metrics
+    assert actual.calibration_fit_metrics == expected.calibration_fit_metrics
+    assert actual.final_test_calibration_metrics != expected.final_test_calibration_metrics
