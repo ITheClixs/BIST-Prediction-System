@@ -156,3 +156,28 @@ def test_run_bundle_rejects_unsafe_or_reserved_input_artifact_names(tmp_path) ->
         writer.write(**common, input_frames={"../prices": pd.DataFrame()})
     with pytest.raises(ValueError, match="reserved"):
         writer.write(**common, input_frames={"predictions": pd.DataFrame()})
+
+
+def test_artifact_verification_rejects_unexpected_files(tmp_path) -> None:
+    writer = RunBundleWriter(
+        tmp_path / "runs",
+        git_sha="abcdef123456",
+        dirty_working_tree=False,
+        now=datetime(2024, 4, 5, 12, 0, tzinfo=UTC),
+    )
+    result = writer.write(
+        config={"scope": "synthetic_methodology_smoke"},
+        data_manifest={"dataset_id": "synthetic-001", "sha256": "b" * 64},
+        universe_manifest={"universe_version": "fixed-v1", "tickers": ["THYAO"]},
+        feature_manifest=_manifest(),
+        folds=(),
+        predictions=_predictions().assign(feature_manifest_hash=_manifest().manifest_hash),
+        portfolio=_portfolio(),
+        model_artifact={"accepted_models": ["zero_return"]},
+        trials=(),
+        seeds=(42,),
+        command="make reproduce-smoke",
+    )
+    (result.path / "untracked.txt").write_text("not part of the run\n")
+
+    assert verify_artifact_hashes(result.path)["untracked.txt"] == "unexpected"

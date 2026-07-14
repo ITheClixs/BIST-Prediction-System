@@ -23,14 +23,16 @@ from bist_predict.ingest.types import (
     PriceRepresentation,
     VolumeQuality,
 )
+from bist_predict.features.lineage import FeatureArtifactLineage
 from bist_predict.research.baselines import ACCEPTED_BASELINES, run_baseline_benchmark
+from bist_predict.research.missingness import build_missingness_report
 from bist_predict.research.panel import build_canonical_panel, panel_to_frame
 from bist_predict.research.portfolio_backtest import (
     CostModel,
     PortfolioBacktester,
     StrategyConfig,
 )
-from bist_predict.research.reporting import compute_portfolio_metrics
+from bist_predict.research.reporting import compute_portfolio_metrics, grouped_portfolio_metrics
 from bist_predict.research.run_artifacts import RunBundle, RunBundleWriter
 from bist_predict.research.splits import ExpandingWindowSplitter
 from bist_predict.research.stationary_features import (
@@ -44,7 +46,7 @@ class AcceptedBenchmarkConfig:
     """Complete declared choices for the accepted baseline experiment."""
 
     experiment_scope: str = "fixed_bist_large_cap_prototype"
-    methodology_version: str = "accepted-baseline-v1"
+    methodology_version: str = "accepted-baseline-v2"
     min_train_dates: int = 24
     validation_dates: int = 10
     step_dates: int = 10
@@ -526,6 +528,80 @@ def _strategy(config: AcceptedBenchmarkConfig) -> StrategyConfig:
     )
 
 
+def _feature_evidence(
+    panel: pd.DataFrame,
+    bars: tuple[OHLCVBar, ...],
+    folds: tuple[object, ...],
+    *,
+    data_manifest: Mapping[str, object],
+    git_sha: str,
+    calculation_timestamp: datetime,
+    code_version: str,
+) -> tuple[
+    pd.DataFrame,
+    pd.DataFrame,
+    tuple[tuple[FeatureArtifactLineage, list[dict[str, object]]], ...],
+]:
+    """Build fold-aware missingness and content-addressed feature evidence."""
+    source_by_key = {(bar.date.isoformat(), bar.ticker): bar.source for bar in bars}
+    validation_fold_by_sample: dict[str, str] = {}
+    for fold in folds:
+        fold_id = str(getattr(fold, "fold_id"))
+        for sample_id in getattr(fold, "validation_indices"):
+            validation_fold_by_sample[str(sample_id)] = f"{fold_id}_validation"
+    source_by_sample: dict[object, str] = {}
+    fold_by_sample: dict[object, str] = {}
+    for sample_index, sample in panel.iterrows():
+        key = (str(sample["date"]), str(sample["ticker"]))
+        if key not in source_by_key:
+            raise ValueError(f"feature source is missing for sample: {key}")
+        source_by_sample[sample_index] = source_by_key[key]
+        sample_id = f"{key[0]}|{key[1]}"
+        fold_by_sample[sample_index] = validation_fold_by_sample.get(
+            sample_id, "pre_validation_history"
+        )
+    missingness = build_missingness_report(
+        panel,
+        STATIONARY_FEATURE_MANIFEST,
+        source_by_sample=source_by_sample,
+        fold_by_sample=fold_by_sample,
+    )
+    data_manifest_hash = hashlib.sha256(
+        json.dumps(data_manifest, sort_keys=True, separators=(",", ":")).encode()
+    ).hexdigest()
+    lineages: list[FeatureArtifactLineage] = []
+    artifacts: list[tuple[FeatureArtifactLineage, list[dict[str, object]]]] = []
+    feature_columns = [
+        "date",
+        "ticker",
+        *STATIONARY_FEATURE_MANIFEST.ordered_feature_names,
+        *(f"{name}__missing_reason" for name in STATIONARY_FEATURE_MANIFEST.ordered_feature_names),
+    ]
+    for ticker, ticker_panel in panel.groupby("ticker", sort=True):
+        dates = pd.to_datetime(ticker_panel["date"]).dt.date
+        lineage = FeatureArtifactLineage(
+            feature_manifest_hash=STATIONARY_FEATURE_MANIFEST.manifest_hash,
+            git_commit=git_sha,
+            input_data_manifest_hash=data_manifest_hash,
+            calculation_timestamp=calculation_timestamp,
+            code_version=code_version,
+            ticker=str(ticker),
+            start_date=min(dates),
+            end_date=max(dates),
+        )
+        rows = (
+            ticker_panel.loc[:, feature_columns]
+            .where(pd.notna(ticker_panel.loc[:, feature_columns]), None)
+            .to_dict(orient="records")
+        )
+        lineages.append(lineage)
+        artifacts.append((lineage, rows))
+    lineage_frame = pd.DataFrame.from_records(
+        [{**lineage.to_dict(), "artifact_id": lineage.artifact_id} for lineage in lineages]
+    )
+    return missingness, lineage_frame, tuple(artifacts)
+
+
 def run_accepted_benchmark(
     prices: Iterable[OHLCVBar],
     *,
@@ -654,11 +730,25 @@ def run_accepted_benchmark(
         "end": data_manifest["end"],
     }
     metadata = _sample_metadata(panel, bars)
+    portfolio_grouped = grouped_portfolio_metrics(
+        portfolio,
+        benchmark.predictions,
+        metadata,
+    )
     writer = RunBundleWriter(
         runs_root,
         git_sha=git_sha,
         dirty_working_tree=dirty_working_tree,
         now=effective_now,
+    )
+    missingness, feature_lineage, feature_artifacts = _feature_evidence(
+        panel,
+        bars,
+        benchmark.folds,
+        data_manifest=data_manifest,
+        git_sha=writer.git_sha,
+        calculation_timestamp=effective_now,
+        code_version=config.methodology_version,
     )
     return writer.write(
         config=config.to_dict(),
@@ -669,10 +759,12 @@ def run_accepted_benchmark(
         predictions=benchmark.predictions,
         portfolio=portfolio,
         model_artifact={
+            "schema_version": 2,
             "methodology_version": config.methodology_version,
             "accepted_models": list(ACCEPTED_BASELINES),
             "portfolio_model": config.portfolio_model,
             "fit_scope": "per-fold train rows only",
+            "fitted_model_states": list(benchmark.fitted_model_states),
             "corporate_action_policy": (
                 "execution uses post-action observed opens and closes; positions carry no overnight entitlement"
             ),
@@ -685,9 +777,12 @@ def run_accepted_benchmark(
             "corporate_actions": action_frame,
             "input_prices": price_frame,
             "official_calendar": calendar_frame,
+            "feature_lineage": feature_lineage,
+            "missingness": missingness,
             "panel": panel,
             "sample_metadata": metadata,
         },
+        feature_artifacts=feature_artifacts,
         sample_metadata=metadata,
         benchmark_returns=equal_weight_returns,
         additional_metrics={
@@ -699,12 +794,20 @@ def run_accepted_benchmark(
                 "relevant_bist_index": {"status": "not_available_in_input_dataset"},
             },
             "cost_sensitivity": sensitivity,
+            "portfolio_grouped": portfolio_grouped,
         },
     )
 
 
 def reproduce_run(run_path: Path, *, scratch_root: Path) -> dict[str, str]:
-    """Replay a run from its bundled prices and report byte-level hash drift."""
+    """Replay bundled inputs and report byte-level scientific artifact drift.
+
+    ``environment.json`` and ``run_manifest.json`` preserve the environment in
+    which a run was created.  They are provenance, not scientific outputs, so a
+    replay on another checkout, Python patch release, or operating system is
+    allowed to differ in those two files.  All other recorded artifacts remain
+    byte-for-byte replay requirements.
+    """
     expected = json.loads((run_path / "artifact_hashes.json").read_text())
     run_manifest = json.loads((run_path / "run_manifest.json").read_text())
     config = AcceptedBenchmarkConfig.from_mapping(
@@ -730,7 +833,10 @@ def reproduce_run(run_path: Path, *, scratch_root: Path) -> dict[str, str]:
     )
     actual = json.loads((replay.path / "artifact_hashes.json").read_text())
     failures: dict[str, str] = {}
-    for name in sorted(set(expected) | set(actual)):
+    provenance_artifacts = {"environment.json", "run_manifest.json"}
+    expected_scientific = set(expected).difference(provenance_artifacts)
+    actual_scientific = set(actual).difference(provenance_artifacts)
+    for name in sorted(expected_scientific | actual_scientific):
         if name not in actual:
             failures[name] = "missing_from_replay"
         elif name not in expected:

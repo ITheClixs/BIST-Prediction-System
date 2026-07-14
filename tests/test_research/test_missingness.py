@@ -45,6 +45,7 @@ def test_report_records_feature_ticker_date_source_fold_and_reason() -> None:
     )
 
     assert list(report.columns) == [
+        "feature_manifest_hash",
         "feature",
         "ticker",
         "date",
@@ -54,6 +55,7 @@ def test_report_records_feature_ticker_date_source_fold_and_reason() -> None:
         "missing_reason",
     ]
     assert report.loc[1].to_dict() == {
+        "feature_manifest_hash": _manifest().manifest_hash,
         "feature": "return_1d",
         "ticker": "THYAO",
         "date": "2026-01-06",

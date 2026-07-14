@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from dataclasses import replace
 from datetime import date, datetime
 from zoneinfo import ZoneInfo
 
@@ -164,6 +165,24 @@ def test_panel_rejects_proxy_open_for_execution(manifest: FeatureManifest) -> No
 
     with pytest.raises(PanelBuildError, match="observed open"):
         build_canonical_panel([snapshot], [proxy_bar], manifest)
+
+
+def test_panel_rejects_signal_generated_at_or_after_execution(
+    manifest: FeatureManifest,
+) -> None:
+    feature_date = date(2026, 1, 5)
+    target_date = date(2026, 1, 6)
+    snapshot = replace(
+        _snapshot("THYAO", feature_date, manifest),
+        feature_available_at=datetime(2026, 1, 6, 9, 59, tzinfo=ISTANBUL),
+    )
+
+    with pytest.raises(PanelBuildError, match="signal timestamps must precede execution"):
+        build_canonical_panel(
+            [snapshot],
+            [_bar("THYAO", target_date, open_price=100.0, close=101.0)],
+            manifest,
+        )
 
 
 def test_panel_frame_keeps_timestamps_targets_and_manifest_order(

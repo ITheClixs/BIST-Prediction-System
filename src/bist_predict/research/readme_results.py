@@ -8,10 +8,16 @@ from collections.abc import Mapping, Sequence
 from pathlib import Path
 from typing import Any
 
+import pandas as pd
+
+from bist_predict.research.prediction_metrics import recompute_prediction_metrics
+from bist_predict.research.run_artifacts import verify_artifact_hashes
+
 
 START_MARKER = "<!-- ACCEPTED_RESULTS:START -->"
 END_MARKER = "<!-- ACCEPTED_RESULTS:END -->"
 REQUIRED_ARTIFACTS = (
+    "artifact_hashes.json",
     "metrics.json",
     "run_manifest.json",
     "data_manifest.json",
@@ -271,11 +277,26 @@ def _negative_results(
 def render_accepted_results(run_path: Path | str) -> str:
     """Render deterministic Markdown from one immutable accepted run directory."""
     run_directory = Path(run_path)
+    if not (run_directory / "artifact_hashes.json").is_file():
+        raise ReadmeResultsError("required run artifact is missing: artifact_hashes.json")
+    integrity_failures = verify_artifact_hashes(run_directory)
+    if integrity_failures:
+        detail = ", ".join(
+            f"{name}={reason}" for name, reason in sorted(integrity_failures.items())
+        )
+        raise ReadmeResultsError(f"run artifact integrity check failed: {detail}")
     artifacts = {name: _load_mapping(run_directory / name) for name in REQUIRED_ARTIFACTS}
     metrics = artifacts["metrics.json"]
     run_manifest = artifacts["run_manifest.json"]
     data_manifest = artifacts["data_manifest.json"]
     universe_manifest = artifacts["universe_manifest.json"]
+    prediction_path = run_directory / "predictions.parquet"
+    if not prediction_path.is_file():
+        raise ReadmeResultsError("required run artifact is missing: predictions.parquet")
+    try:
+        recomputed_prediction = recompute_prediction_metrics(pd.read_parquet(prediction_path))
+    except (OSError, ValueError) as error:
+        raise ReadmeResultsError(f"could not recompute predictions.parquet: {error}") from error
 
     run_id = _text(run_manifest, "run_id", field="run_manifest")
     git_sha = _text(run_manifest, "git_sha", field="run_manifest")
@@ -294,6 +315,10 @@ def render_accepted_results(run_path: Path | str) -> str:
     prediction = _mapping(
         _required(metrics, "prediction", field="metrics"), field="metrics.prediction"
     )
+    if prediction != recomputed_prediction:
+        raise ReadmeResultsError(
+            "metrics.prediction does not match recomputation from predictions.parquet"
+        )
     portfolio = _mapping(
         _required(metrics, "portfolio", field="metrics"), field="metrics.portfolio"
     )

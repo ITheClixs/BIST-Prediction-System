@@ -14,11 +14,12 @@ from collections.abc import Sequence
 from dataclasses import dataclass
 from datetime import UTC, datetime
 from pathlib import Path
-from typing import Iterable, Mapping
+from typing import Any, Iterable, Mapping
 
 import pandas as pd
 
 from bist_predict.features.manifest import FeatureManifest
+from bist_predict.features.lineage import FeatureArtifactLineage, write_feature_artifact
 from bist_predict.research.portfolio_backtest import PortfolioBacktestResult
 from bist_predict.research.prediction_metrics import recompute_prediction_metrics
 from bist_predict.research.predictions import write_prediction_artifact
@@ -32,11 +33,14 @@ _SAFE_ARTIFACT_STEM = re.compile(r"^[a-z][a-z0-9_]*$")
 _RESERVED_ARTIFACT_STEMS = {
     "artifact_hashes",
     "config",
+    "corporate_action_ledger",
     "costs",
+    "cash_ledger",
     "daily_equity",
     "data_manifest",
     "environment",
     "feature_manifest",
+    "feature_artifacts",
     "fills",
     "folds",
     "model_artifact",
@@ -132,6 +136,11 @@ class RunBundleWriter:
         timestamp = self._now.astimezone(UTC).strftime("%Y%m%dT%H%M%SZ")
         return f"{timestamp}-{self._git_sha[:7]}-{config_hash}"
 
+    @property
+    def git_sha(self) -> str:
+        """Return the exact Git identity that will be persisted for this run."""
+        return self._git_sha
+
     def write(
         self,
         *,
@@ -147,6 +156,7 @@ class RunBundleWriter:
         seeds: Iterable[int],
         command: str,
         input_frames: Mapping[str, pd.DataFrame] | None = None,
+        feature_artifacts: Iterable[tuple[FeatureArtifactLineage, Sequence[dict[str, Any]]]] = (),
         sample_metadata: pd.DataFrame | None = None,
         benchmark_returns: Sequence[float] | None = None,
         additional_metrics: Mapping[str, object] | None = None,
@@ -184,6 +194,9 @@ class RunBundleWriter:
 
         for name, frame in sorted(frames.items()):
             frame.to_parquet(run_path / f"{name}.parquet", index=False, compression="zstd")
+
+        for lineage, rows in feature_artifacts:
+            write_feature_artifact(run_path / "feature_artifacts", lineage, rows)
 
         for name, frame in portfolio.artifact_frames().items():
             frame.to_parquet(run_path / f"{name}.parquet", index=False, compression="zstd")
@@ -240,8 +253,8 @@ class RunBundleWriter:
         _write_json(run_path / "run_manifest.json", run_manifest)
 
         hashes = {
-            path.name: _sha256(path)
-            for path in sorted(run_path.iterdir())
+            path.relative_to(run_path).as_posix(): _sha256(path)
+            for path in sorted(run_path.rglob("*"))
             if path.is_file() and path.name != "artifact_hashes.json"
         }
         _write_json(run_path / "artifact_hashes.json", hashes)
@@ -249,7 +262,7 @@ class RunBundleWriter:
 
 
 def verify_artifact_hashes(run_path: Path) -> dict[str, str]:
-    """Return missing or changed artifacts; an empty mapping is a clean run."""
+    """Return missing, changed, or unexpected artifacts for an immutable run."""
     expected = json.loads((run_path / "artifact_hashes.json").read_text())
     failures: dict[str, str] = {}
     for name, digest in expected.items():
@@ -258,4 +271,11 @@ def verify_artifact_hashes(run_path: Path) -> dict[str, str]:
             failures[name] = "missing"
         elif _sha256(path) != digest:
             failures[name] = "sha256_mismatch"
+    actual_names = {
+        path.relative_to(run_path).as_posix()
+        for path in run_path.rglob("*")
+        if path.is_file() and path.name != "artifact_hashes.json"
+    }
+    for name in sorted(actual_names.difference(expected)):
+        failures[name] = "unexpected"
     return failures

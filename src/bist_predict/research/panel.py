@@ -172,8 +172,8 @@ def build_canonical_panel(
             except ValueError as error:
                 raise PanelBuildError(str(error)) from error
         signal_generated_at = snapshot.feature_available_at + timedelta(minutes=1)
-        if not snapshot.feature_available_at < target_start:
-            raise PanelBuildError("feature availability must precede execution")
+        if not snapshot.feature_available_at < signal_generated_at < target_start:
+            raise PanelBuildError("feature and signal timestamps must precede execution")
 
         target_return = target_bar.close / target_bar.open - 1.0
         rows.append(

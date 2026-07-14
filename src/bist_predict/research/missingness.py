@@ -44,6 +44,7 @@ def build_missingness_report(
                 )
             records.append(
                 {
+                    "feature_manifest_hash": manifest.manifest_hash,
                     "feature": feature,
                     "ticker": str(sample["ticker"]),
                     "date": str(sample["date"]),
@@ -57,6 +58,7 @@ def build_missingness_report(
     return pd.DataFrame.from_records(
         records,
         columns=[
+            "feature_manifest_hash",
             "feature",
             "ticker",
             "date",

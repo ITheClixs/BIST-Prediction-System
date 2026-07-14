@@ -3,10 +3,14 @@
 from __future__ import annotations
 
 import json
+import hashlib
 from pathlib import Path
 
+import pandas as pd
 import pytest
 
+from bist_predict.research.prediction_metrics import recompute_prediction_metrics
+from bist_predict.research.predictions import PREDICTION_COLUMNS
 from bist_predict.research.readme_results import (
     ReadmeResultsError,
     main,
@@ -26,31 +30,34 @@ def _write_json(path: Path, payload: object) -> None:
 def _run_directory(tmp_path: Path) -> Path:
     run_path = tmp_path / "runs" / "20260714T120000Z-abc1234-deadbe"
     run_path.mkdir(parents=True)
+    predictions = pd.DataFrame.from_records(
+        [
+            {
+                "date": f"2025-01-{day:02d}",
+                "ticker": "THYAO",
+                "fold_id": "fold_0001",
+                "model_name": model_name,
+                "model_version": f"{model_name}-v1",
+                "training_end": "2024-12-31",
+                "feature_manifest_hash": "a" * 64,
+                "target": target,
+                "prediction": int(predicted_return > 0.0),
+                "predicted_probability": probability,
+                "predicted_return": predicted_return,
+            }
+            for model_name, predicted_return, probability in (
+                ("ridge", 0.008, 0.6),
+                ("zero_return", 0.0, 0.5),
+            )
+            for day, target in enumerate((0.01, -0.02, 0.015, -0.005), start=2)
+        ],
+        columns=PREDICTION_COLUMNS,
+    )
+    predictions.to_parquet(run_path / "predictions.parquet", index=False)
     _write_json(
         run_path / "metrics.json",
         {
-            "prediction": {
-                "ridge": {
-                    "sample_count": 40,
-                    "mae": 0.018,
-                    "rmse": 0.024,
-                    "zero_mean_r_squared": -0.12,
-                    "pearson_ic": 0.03,
-                    "spearman_ic": 0.02,
-                    "directional_accuracy": 0.525,
-                    "balanced_accuracy": 0.51,
-                },
-                "zero_return": {
-                    "sample_count": 40,
-                    "mae": 0.017,
-                    "rmse": 0.022,
-                    "zero_mean_r_squared": 0.0,
-                    "pearson_ic": None,
-                    "spearman_ic": None,
-                    "directional_accuracy": 0.55,
-                    "balanced_accuracy": 0.5,
-                },
-            },
+            "prediction": recompute_prediction_metrics(predictions),
             "portfolio": {
                 "gross_return": -0.01,
                 "net_return": -0.06,
@@ -134,6 +141,12 @@ def _run_directory(tmp_path: Path) -> Path:
             "tickers": ["GARAN", "ISCTR", "KCHOL", "THYAO"],
         },
     )
+    hashes = {
+        path.name: hashlib.sha256(path.read_bytes()).hexdigest()
+        for path in run_path.iterdir()
+        if path.is_file() and path.name != "artifact_hashes.json"
+    }
+    _write_json(run_path / "artifact_hashes.json", hashes)
     return run_path
 
 
@@ -147,7 +160,8 @@ def test_render_accepted_results_is_deterministic_and_evidence_based(tmp_path: P
     assert "`20260714T120000Z-abc1234-deadbe`" in first
     assert "fixed_bist_large_cap_prototype" in first
     assert "GARAN, ISCTR, KCHOL, THYAO" in first
-    assert "| ridge | 40 | 1.8000% | 2.4000% | -0.1200 | 0.0200 | 52.50% | 51.00% |" in first
+    assert "| ridge | 4 |" in first
+    assert "| zero_return | 4 |" in first
     assert first.index("| 0.0x |") < first.index("| 1.0x |") < first.index("| 2.0x |")
     assert "No evaluated model achieved positive zero-mean R-squared" in first
     assert "The 95% block-bootstrap interval for annualized return spans zero" in first
@@ -192,15 +206,35 @@ def test_update_rejects_missing_or_duplicate_markers(tmp_path: Path, content: st
 
 @pytest.mark.parametrize(
     "artifact_name",
-    ["metrics.json", "run_manifest.json", "data_manifest.json", "universe_manifest.json"],
+    [
+        "artifact_hashes.json",
+        "metrics.json",
+        "run_manifest.json",
+        "data_manifest.json",
+        "universe_manifest.json",
+        "predictions.parquet",
+    ],
 )
 def test_render_rejects_missing_required_artifacts(tmp_path: Path, artifact_name: str) -> None:
     run_path = _run_directory(tmp_path)
     (run_path / artifact_name).unlink()
 
-    with pytest.raises(
-        ReadmeResultsError, match=f"required run artifact is missing: {artifact_name}"
-    ):
+    with pytest.raises(ReadmeResultsError, match="missing|integrity"):
+        render_accepted_results(run_path)
+
+
+def test_render_rejects_metrics_that_do_not_recompute_from_predictions(tmp_path: Path) -> None:
+    run_path = _run_directory(tmp_path)
+    metrics_path = run_path / "metrics.json"
+    metrics = json.loads(metrics_path.read_text())
+    metrics["prediction"]["ridge"]["mae"] = 999.0
+    _write_json(metrics_path, metrics)
+    hashes_path = run_path / "artifact_hashes.json"
+    hashes = json.loads(hashes_path.read_text())
+    hashes["metrics.json"] = hashlib.sha256(metrics_path.read_bytes()).hexdigest()
+    _write_json(hashes_path, hashes)
+
+    with pytest.raises(ReadmeResultsError, match="does not match recomputation"):
         render_accepted_results(run_path)
 
 
