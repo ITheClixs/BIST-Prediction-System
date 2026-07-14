@@ -7,8 +7,10 @@ import importlib.metadata
 import json
 import os
 import platform
+import re
 import subprocess
 import sys
+from collections.abc import Sequence
 from dataclasses import dataclass
 from datetime import UTC, datetime
 from pathlib import Path
@@ -23,7 +25,29 @@ from bist_predict.research.predictions import write_prediction_artifact
 from bist_predict.research.reporting import (
     block_bootstrap_intervals,
     compute_portfolio_metrics,
+    grouped_prediction_metrics,
 )
+
+_SAFE_ARTIFACT_STEM = re.compile(r"^[a-z][a-z0-9_]*$")
+_RESERVED_ARTIFACT_STEMS = {
+    "artifact_hashes",
+    "config",
+    "costs",
+    "daily_equity",
+    "data_manifest",
+    "environment",
+    "feature_manifest",
+    "fills",
+    "folds",
+    "model_artifact",
+    "orders",
+    "positions",
+    "predictions",
+    "run_manifest",
+    "signals",
+    "trials",
+    "universe_manifest",
+}
 
 
 @dataclass(frozen=True)
@@ -126,9 +150,19 @@ class RunBundleWriter:
         trials: Iterable[Mapping[str, object]],
         seeds: Iterable[int],
         command: str,
+        input_frames: Mapping[str, pd.DataFrame] | None = None,
+        sample_metadata: pd.DataFrame | None = None,
+        benchmark_returns: Sequence[float] | None = None,
+        additional_metrics: Mapping[str, object] | None = None,
     ) -> RunBundle:
         """Write a complete run once; any existing run ID is immutable."""
         seed_values = tuple(seeds)
+        frames = dict(input_frames or {})
+        for name in frames:
+            if not _SAFE_ARTIFACT_STEM.fullmatch(name):
+                raise ValueError(f"input artifact name must be a safe stem: {name}")
+            if name in _RESERVED_ARTIFACT_STEMS:
+                raise ValueError(f"input artifact name is reserved: {name}")
         run_id = self._run_id(config)
         run_path = self._runs_root / run_id
         if run_path.exists():
@@ -153,13 +187,20 @@ class RunBundleWriter:
         )
         _write_json(run_path / "model_artifact.json", dict(model_artifact))
 
+        for name, frame in sorted(frames.items()):
+            frame.to_parquet(
+                run_path / f"{name}.parquet", index=False, compression="zstd"
+            )
+
         for name, frame in portfolio.artifact_frames().items():
             frame.to_parquet(run_path / f"{name}.parquet", index=False, compression="zstd")
 
         net_returns = [snapshot.net_return for snapshot in portfolio.daily_snapshots]
         metrics: dict[str, object] = {
             "prediction": recompute_prediction_metrics(predictions),
-            "portfolio": compute_portfolio_metrics(portfolio),
+            "portfolio": compute_portfolio_metrics(
+                portfolio, benchmark_returns=benchmark_returns
+            ),
             "bootstrap": (
                 block_bootstrap_intervals(
                     net_returns,
@@ -171,6 +212,17 @@ class RunBundleWriter:
                 else {"status": "no_portfolio_sessions"}
             ),
         }
+        if sample_metadata is not None:
+            metrics["grouped"] = grouped_prediction_metrics(
+                predictions, sample_metadata
+            )
+        if additional_metrics is not None:
+            overlap = set(metrics).intersection(additional_metrics)
+            if overlap:
+                raise ValueError(
+                    f"additional metric names are reserved: {', '.join(sorted(overlap))}"
+                )
+            metrics.update(additional_metrics)
         _write_json(run_path / "metrics.json", metrics)
         environment = _environment()
         _write_json(run_path / "environment.json", environment)

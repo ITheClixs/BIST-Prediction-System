@@ -13,6 +13,7 @@ target/
 # Data
 data/
 *.db
+runs/
 
 # IDE
 .idea/

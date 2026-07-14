@@ -4,7 +4,9 @@ from __future__ import annotations
 
 import asyncio
 import logging
+import tempfile
 from datetime import date, timedelta
+from pathlib import Path
 
 import click
 
@@ -238,6 +240,86 @@ def config() -> None:
     click.echo(f"  Backtest slippage: {cfg.backtest.slippage}")
 
 
+@main.command("reproduce-smoke")
+@click.option(
+    "--runs-root",
+    type=click.Path(path_type=Path),
+    default=Path("runs"),
+    show_default=True,
+)
+def reproduce_smoke(runs_root: Path) -> None:
+    """Run the deterministic synthetic methodology smoke benchmark."""
+    from bist_predict.research.accepted_benchmark import (
+        AcceptedBenchmarkConfig,
+        generate_synthetic_prices,
+        run_accepted_benchmark,
+    )
+
+    bundle = run_accepted_benchmark(
+        generate_synthetic_prices(),
+        runs_root=runs_root,
+        config=AcceptedBenchmarkConfig.synthetic_smoke(),
+        command="make reproduce-smoke",
+    )
+    click.echo(f"Created {bundle.run_id}")
+    click.echo(f"Artifacts: {bundle.path}")
+    click.echo("Scope: synthetic methodology smoke; not market-performance evidence.")
+
+
+@main.command()
+@click.option(
+    "--prices",
+    type=click.Path(path_type=Path, exists=True, dir_okay=False),
+    required=True,
+    help="Provider-quality input_prices.parquet with observed opens and provenance.",
+)
+@click.option(
+    "--runs-root",
+    type=click.Path(path_type=Path),
+    default=Path("runs"),
+    show_default=True,
+)
+def benchmark(prices: Path, runs_root: Path) -> None:
+    """Run the accepted fixed-universe baseline benchmark on explicit inputs."""
+    from bist_predict.research.accepted_benchmark import (
+        AcceptedBenchmarkConfig,
+        load_price_artifact,
+        run_accepted_benchmark,
+    )
+
+    bundle = run_accepted_benchmark(
+        load_price_artifact(prices),
+        runs_root=runs_root,
+        config=AcceptedBenchmarkConfig(),
+        command=f"bist-predict benchmark --prices {prices}",
+    )
+    click.echo(f"Created {bundle.run_id}")
+    click.echo(f"Artifacts: {bundle.path}")
+
+
+@main.command()
+@click.argument("run_id")
+@click.option(
+    "--runs-root",
+    type=click.Path(path_type=Path, exists=True, file_okay=False),
+    default=Path("runs"),
+    show_default=True,
+)
+def reproduce(run_id: str, runs_root: Path) -> None:
+    """Replay a run from bundled inputs and require exact artifact hashes."""
+    from bist_predict.research.accepted_benchmark import reproduce_run
+
+    run_path = runs_root / run_id
+    if not run_path.is_dir():
+        raise click.ClickException(f"run does not exist: {run_path}")
+    with tempfile.TemporaryDirectory(prefix="bist-reproduce-") as scratch:
+        failures = reproduce_run(run_path, scratch_root=Path(scratch))
+    if failures:
+        details = ", ".join(f"{name}={reason}" for name, reason in failures.items())
+        raise click.ClickException(f"artifact reproduction failed: {details}")
+    click.echo(f"Reproduced {run_id}: all artifact hashes match.")
+
+
 @main.command()
 @click.option("--ticker", default=None, help="Train for a single ticker")
 @click.option("--models", "model_names", default=None, help="Comma-separated base models")
@@ -249,7 +331,7 @@ def train(
     include_neural: bool,
     seq_len: int | None,
 ) -> None:
-    """Train or retrain prediction models."""
+    """EXPERIMENTAL: train the unaccepted legacy ensemble path."""
     _train_models(ticker, model_names, include_neural, seq_len)
 
 
@@ -304,7 +386,7 @@ def _train_models(
 @click.option("--ticker", default=None, help="Get signal for a single ticker")
 @click.option("--detail", is_flag=True, help="Show detailed signal breakdown")
 def signals(ticker: str | None, detail: bool) -> None:
-    """Get today's trading signals."""
+    """EXPERIMENTAL: emit unaccepted legacy model signals."""
     _generate_signals(ticker, detail)
 
 
@@ -446,7 +528,7 @@ def _print_predictions(predictions: list[object], detail: bool) -> None:
 @click.option("--ticker", default=None, help="Run the pipeline for a single ticker")
 @click.option("--detail", is_flag=True, help="Show detailed signal breakdown")
 def pipeline(days: int, ticker: str | None, detail: bool) -> None:
-    """Run fetch, feature generation, training, and signals end-to-end."""
+    """EXPERIMENTAL: run the unaccepted legacy live-model path."""
     click.echo("Step 1/4: Fetching latest data...")
     asyncio.run(_fetch(days, ticker))
 
@@ -477,7 +559,7 @@ def backtest(
     val_window: int,
     step_size: int,
 ) -> None:
-    """Run walk-forward backtest."""
+    """EXPERIMENTAL: run the unaccepted legacy ensemble backtest."""
     from bist_predict.models.factory import parse_model_names
     from bist_predict.research.ensemble_pipeline import (
         EnsembleBacktestConfig,

@@ -99,3 +99,17 @@ def test_cli_describes_the_fixed_prototype_universe_truthfully() -> None:
     assert result.exit_code == 0
     assert "fixed BIST large-cap prototype" in result.output
     assert "BIST-100 Stock Market Prediction System" not in result.output
+
+
+def test_cli_exposes_accepted_benchmark_and_labels_legacy_research_experimental() -> None:
+    help_result = CliRunner().invoke(main, ["--help"])
+
+    assert help_result.exit_code == 0
+    assert "benchmark" in help_result.output
+    assert "reproduce-smoke" in help_result.output
+    assert "reproduce" in help_result.output
+
+    for command in ("train", "signals", "pipeline", "backtest"):
+        result = CliRunner().invoke(main, [command, "--help"])
+        assert result.exit_code == 0
+        assert "EXPERIMENTAL" in result.output

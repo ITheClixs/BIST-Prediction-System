@@ -1,6 +1,6 @@
 schema_version: 1
 scope: fixed_bist_large_cap_prototype
-generated_from_commit: b08dd6f
+generated_from_commit: fb68ef6
 status_definitions:
   implemented: "Executable code exists; scaffold and partial identify incomplete contracts."
   integrated: "The component participates in the current default CLI path."
@@ -123,34 +123,34 @@ components:
   immutable_feature_manifest:
     package: bist_predict.features
     implemented: true
-    integrated: false
+    integrated: true
     evaluated: false
     production_inference: false
-    accepted_default: false
+    accepted_default: true
     evidence:
       - src/bist_predict/features/manifest.py
       - src/bist_predict/features/lineage.py
-    note: "Strict identity and lineage contracts exist; accepted runner integration remains pending."
+    note: "Strict feature identity and lineage are enforced by the accepted benchmark runner and persisted in every run bundle."
 
   canonical_panel:
     package: bist_predict.research
     implemented: true
-    integrated: false
+    integrated: true
     evaluated: false
     production_inference: false
-    accepted_default: false
+    accepted_default: true
     evidence:
       - src/bist_predict/research/panel.py
       - tests/test_research/test_panel.py
-    note: "The immutable date-ticker panel is implemented; the accepted runner must replace the legacy per-ticker path."
+    note: "The accepted benchmark builds and persists one date-ticker panel before splitting or fitting."
 
   missing_value_policy:
     package: bist_predict.models
     implemented: true
-    integrated: false
+    integrated: true
     evaluated: false
     production_inference: false
-    accepted_default: false
+    accepted_default: true
     evidence:
       - src/bist_predict/features/preprocessing.py
       - src/bist_predict/research/missingness.py
@@ -159,14 +159,14 @@ components:
   stationary_pooled_features:
     package: bist_predict.research
     implemented: true
-    integrated: false
+    integrated: true
     evaluated: false
     production_inference: false
-    accepted_default: false
+    accepted_default: true
     evidence:
       - src/bist_predict/research/stationary_features.py
       - tests/test_research/test_stationary_features.py
-    note: "Scale-free price, volume, volatility, cross-sectional, and cyclic calendar features are point-in-time tested; accepted runner integration remains pending."
+    note: "Scale-free price, volume, volatility, cross-sectional, and cyclic calendar features are the only features used by the accepted runner."
 
   rust_technical_indicators:
     package: bist_features
@@ -241,45 +241,45 @@ components:
   date_grouped_purged_validation:
     package: bist_predict.evaluation
     implemented: true
-    integrated: false
+    integrated: true
     evaluated: false
     production_inference: false
-    accepted_default: false
+    accepted_default: true
     evidence:
       - src/bist_predict/research/splits.py
-    note: "Invariant-tested date-grouped folds exist; legacy ensemble integration remains pending."
+    note: "The accepted runner uses expanding date groups with target-window purge and a declared embargo."
 
   executable_next_open_target:
     package: bist_predict.research
     implemented: true
-    integrated: false
+    integrated: true
     evaluated: false
     production_inference: false
-    accepted_default: false
+    accepted_default: true
     evidence:
       - src/bist_predict/research/panel.py
       - tests/test_research/test_panel.py
-    note: "Labels use observed next-session open-to-close returns with explicit availability, signal, execution, and target timestamps; accepted runner integration remains pending."
+    note: "Accepted labels use observed next-session open-to-close returns with explicit availability, signal, execution, and target timestamps."
 
   statistical_baselines:
     package: bist_predict.research
     implemented: true
-    integrated: false
+    integrated: true
     evaluated: false
     production_inference: false
-    accepted_default: false
+    accepted_default: true
     evidence:
       - src/bist_predict/research/baselines.py
       - tests/test_research/test_baselines.py
-    note: "Seven baselines share immutable features, date-grouped folds, train-only preprocessing, and OOS rows; only synthetic invariant tests have run."
+    note: "Seven accepted baselines share immutable features, date-grouped folds, train-only preprocessing, and OOS rows; only synthetic methodology evidence exists so far."
 
   oos_prediction_artifacts:
     package: bist_predict.research
     implemented: true
-    integrated: false
+    integrated: true
     evaluated: false
     production_inference: false
-    accepted_default: false
+    accepted_default: true
     evidence:
       - src/bist_predict/research/predictions.py
       - src/bist_predict/research/prediction_metrics.py
@@ -377,14 +377,14 @@ components:
   portfolio_backtest:
     package: bist_predict.research
     implemented: true
-    integrated: false
+    integrated: true
     evaluated: false
     production_inference: false
-    accepted_default: false
+    accepted_default: true
     evidence:
       - src/bist_predict/research/portfolio_backtest.py
       - tests/test_research/test_portfolio_backtest.py
-    note: "Observed-open top-k execution now persists signals, orders, fills, positions, cash, component costs, and daily equity with accounting and cost-monotonicity tests; accepted runner integration remains pending."
+    note: "The accepted runner persists observed-open top-k signals, orders, fills, positions, cash, component costs, daily equity, and cost sensitivity."
 
   live_prediction_tracking:
     package: bist_predict.research
@@ -413,23 +413,27 @@ components:
   immutable_run_governance:
     package: bist_predict.research
     implemented: true
-    integrated: false
+    integrated: true
     evaluated: false
     production_inference: false
-    accepted_default: false
+    accepted_default: true
     evidence:
       - src/bist_predict/research/run_artifacts.py
       - tests/test_research/test_run_artifacts.py
-    note: "Create-only run IDs bind UTC time, Git SHA, and config hash; all required manifests, ledgers, predictions, metrics, environment metadata, and artifact hashes are written and verified."
+    note: "The accepted runner creates run IDs from UTC time, Git SHA, and config hash, then writes and verifies all manifests, ledgers, inputs, predictions, metrics, environment metadata, and hashes."
 
   reproduction_commands:
     package: repository
-    implemented: false
-    integrated: false
+    implemented: true
+    integrated: true
     evaluated: false
     production_inference: false
-    accepted_default: false
-    evidence: []
+    accepted_default: true
+    evidence:
+      - Makefile
+      - src/bist_predict/research/accepted_benchmark.py
+      - tests/test_research/test_accepted_benchmark.py
+    note: "make reproduce-smoke runs a bounded synthetic methodology check; make reproduce RUN_ID=... rebuilds a saved run from bundled inputs and requires exact artifact hashes."
 
   continuous_integration:
     package: repository
