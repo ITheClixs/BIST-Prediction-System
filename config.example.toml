@@ -23,3 +23,16 @@ hurst_window = 252
 [backtest]
 commission = 0.001
 slippage = 0.0005
+
+[research]
+experiment_scope = "fixed_bist_large_cap_prototype"
+enabled_feature_families = ["stationary_price", "cross_sectional", "temporal"]
+accepted_models = [
+  "zero_return",
+  "majority_direction",
+  "previous_return",
+  "market_direction",
+  "rolling_mean",
+  "logistic",
+  "ridge",
+]

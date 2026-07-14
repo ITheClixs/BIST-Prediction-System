@@ -20,7 +20,7 @@ from bist_predict.storage.database import Database
 @click.group()
 @click.option("--verbose", "-v", is_flag=True, help="Enable verbose logging")
 def main(verbose: bool) -> None:
-    """BIST-100 Stock Market Prediction System."""
+    """Forecasting research for a fixed BIST large-cap prototype universe."""
     level = logging.DEBUG if verbose else logging.INFO
     logging.basicConfig(level=level, format="%(levelname)s: %(message)s")
 
@@ -76,7 +76,7 @@ def _get_feature_dates_to_compute(
 
 @main.command()
 @click.option("--days", default=30, help="Number of days of history to fetch")
-@click.option("--ticker", default=None, help="Fetch a single ticker instead of all BIST-100")
+@click.option("--ticker", default=None, help="Fetch one ticker instead of the configured universe")
 def fetch(days: int, ticker: str | None) -> None:
     """Fetch latest market data from all sources."""
     asyncio.run(_fetch(days, ticker))
@@ -224,6 +224,8 @@ def config() -> None:
     click.echo("Current Configuration:")
     click.echo("=" * 40)
     click.echo(f"  Database: {cfg.db_path}")
+    click.echo(f"  Experiment scope: {cfg.research.experiment_scope}")
+    click.echo(f"  Accepted models: {','.join(cfg.research.accepted_models)}")
     click.echo(f"  TCMB API key: {'set' if cfg.data.tcmb_api_key else 'not set'}")
     click.echo(f"  Fetch retries: {cfg.data.fetch_retries}")
     click.echo(f"  Rate limit delay: {cfg.data.rate_limit_delay}s")

@@ -1,0 +1,396 @@
+schema_version: 1
+scope: fixed_bist_large_cap_prototype
+generated_from_commit: 9950271
+status_definitions:
+  implemented: "Executable code exists; scaffold and partial identify incomplete contracts."
+  integrated: "The component participates in the current default CLI path."
+  evaluated: "Research evidence exists beyond construction, shape, or serialization tests."
+  production_inference: "The component is used by the current model inference path."
+  accepted_default: "The component satisfies the benchmark methodology and is accepted."
+
+components:
+  fixed_seed_universe:
+    package: bist_predict.storage
+    implemented: true
+    integrated: true
+    evaluated: false
+    production_inference: true
+    accepted_default: false
+    evidence:
+      - src/bist_predict/storage/database.py
+    note: "Thirty mutable seed tickers; not a point-in-time BIST-100 universe."
+
+  point_in_time_universe:
+    package: bist_predict.storage
+    implemented: false
+    integrated: false
+    evaluated: false
+    production_inference: false
+    accepted_default: false
+    evidence: []
+    note: "No dated membership records or members_on(date) API."
+
+  is_yatirim_price_collection:
+    package: bist_predict.ingest
+    implemented: partial
+    integrated: true
+    evaluated: false
+    production_inference: false
+    accepted_default: false
+    evidence:
+      - src/bist_predict/ingest/isyatirim.py
+    note: "Close/high/low are observed; open and volume are proxies."
+
+  yahoo_price_collection:
+    package: bist_predict.ingest
+    implemented: true
+    integrated: true
+    evaluated: false
+    production_inference: false
+    accepted_default: false
+    evidence:
+      - src/bist_predict/ingest/yahoo.py
+    note: "All-or-nothing fallback; overlapping observations are not reconciled."
+
+  provider_reconciliation:
+    package: bist_predict.ingest
+    implemented: false
+    integrated: false
+    evaluated: false
+    production_inference: false
+    accepted_default: false
+    evidence: []
+    note: "No partial-gap repair, deviation report, or per-record overlap provenance."
+
+  market_price_representations:
+    package: bist_predict.ingest
+    implemented: partial
+    integrated: true
+    evaluated: false
+    production_inference: false
+    accepted_default: false
+    evidence:
+      - src/bist_predict/ingest/types.py
+      - src/bist_predict/storage/database.py
+    note: "Raw close and adjusted close share one record; no total-return series."
+
+  corporate_actions:
+    package: bist_predict.ingest
+    implemented: false
+    integrated: false
+    evaluated: false
+    production_inference: false
+    accepted_default: false
+    evidence: []
+    note: "No split, dividend, rights, bonus, ticker-change, or delisting contract."
+
+  trading_calendar:
+    package: bist_predict.ingest
+    implemented: false
+    integrated: false
+    evaluated: false
+    production_inference: false
+    accepted_default: false
+    evidence: []
+    note: "No official-session, holiday, timezone, or duplicate-session validation."
+
+  immutable_data_manifests:
+    package: bist_predict.research
+    implemented: false
+    integrated: false
+    evaluated: false
+    production_inference: false
+    accepted_default: false
+    evidence: []
+
+  feature_store:
+    package: bist_predict.features
+    implemented: true
+    integrated: true
+    evaluated: false
+    production_inference: true
+    accepted_default: false
+    evidence:
+      - src/bist_predict/features/store.py
+    note: "Feature versions are mutable upserts without content-addressed lineage."
+
+  immutable_feature_manifest:
+    package: bist_predict.features
+    implemented: false
+    integrated: false
+    evaluated: false
+    production_inference: false
+    accepted_default: false
+    evidence: []
+    note: "Compatibility currently relies on feature count, not ordered identity."
+
+  canonical_panel:
+    package: bist_predict.models
+    implemented: scaffold
+    integrated: true
+    evaluated: false
+    production_inference: true
+    accepted_default: false
+    evidence:
+      - src/bist_predict/models/types.py
+      - src/bist_predict/research/ensemble_pipeline.py
+    note: "Per-ticker matrices are concatenated and sorted after construction."
+
+  missing_value_policy:
+    package: bist_predict.models
+    implemented: scaffold
+    integrated: true
+    evaluated: false
+    production_inference: true
+    accepted_default: false
+    evidence:
+      - src/bist_predict/models/types.py
+    note: "Missing and non-finite values are silently converted to zero."
+
+  rust_technical_indicators:
+    package: bist_features
+    implemented: true
+    integrated: partial
+    evaluated: false
+    production_inference: partial
+    accepted_default: false
+    evidence:
+      - rust/bist_features/src/indicators.rs
+      - src/bist_predict/features/engine.py
+    note: "Synthetic numerical tests exist; no Python equivalence or benchmark artifact."
+
+  python_indicator_fallback:
+    package: bist_predict.features
+    implemented: false
+    integrated: false
+    evaluated: false
+    production_inference: false
+    accepted_default: false
+    evidence:
+      - src/bist_predict/features/engine.py
+    note: "The log claims a fallback but the technical family is skipped."
+
+  macro_collection:
+    package: bist_predict.ingest
+    implemented: true
+    integrated: partial
+    evaluated: false
+    production_inference: partial
+    accepted_default: false
+    evidence:
+      - src/bist_predict/ingest/tcmb.py
+      - src/bist_predict/features/macro_features.py
+    note: "No release-availability timestamp; excluded from accepted benchmark."
+
+  sentiment_collection:
+    package: bist_predict.ingest
+    implemented: partial
+    integrated: partial
+    evaluated: false
+    production_inference: partial
+    accepted_default: false
+    evidence:
+      - src/bist_predict/ingest/sentiment.py
+    note: "Collectors store headlines with null scores and no publication cutoff."
+
+  sentiment_scoring:
+    package: bist_predict.features
+    implemented: false
+    integrated: false
+    evaluated: false
+    production_inference: false
+    accepted_default: false
+    evidence:
+      - src/bist_predict/features/sentiment_features.py
+
+  advanced_quant_features:
+    package: bist_predict.quant
+    implemented: partial
+    integrated: partial
+    evaluated: false
+    production_inference: partial
+    accepted_default: false
+    evidence:
+      - src/bist_predict/quant
+      - src/bist_predict/features/engine.py
+    note: "Kalman, OU, GARCH, and Hurst are wired; other families are disconnected."
+
+  date_grouped_purged_validation:
+    package: bist_predict.evaluation
+    implemented: false
+    integrated: false
+    evaluated: false
+    production_inference: false
+    accepted_default: false
+    evidence:
+      - src/bist_predict/evaluation/backtest.py
+      - src/bist_predict/research/ensemble_pipeline.py
+    note: "Current folds use pooled row indices and overlapping rolling windows."
+
+  executable_next_open_target:
+    package: bist_predict.models
+    implemented: false
+    integrated: false
+    evaluated: false
+    production_inference: false
+    accepted_default: false
+    evidence:
+      - src/bist_predict/models/types.py
+    note: "Current labels are close-to-close and lack availability/execution timestamps."
+
+  statistical_baselines:
+    package: bist_predict.research
+    implemented: false
+    integrated: false
+    evaluated: false
+    production_inference: false
+    accepted_default: false
+    evidence: []
+
+  xgboost:
+    package: bist_predict.models
+    implemented: true
+    integrated: true
+    evaluated: false
+    production_inference: true
+    accepted_default: false
+    evidence:
+      - src/bist_predict/models/xgboost_model.py
+    note: "No early stopping, bounded trials, multiple seeds, or accepted OOS result."
+
+  lightgbm:
+    package: bist_predict.models
+    implemented: true
+    integrated: true
+    evaluated: false
+    production_inference: true
+    accepted_default: false
+    evidence:
+      - src/bist_predict/models/lightgbm_model.py
+    note: "No early stopping, bounded trials, multiple seeds, or accepted OOS result."
+
+  lstm:
+    package: bist_predict.models
+    implemented: true
+    integrated: partial
+    evaluated: false
+    production_inference: partial
+    accepted_default: false
+    evidence:
+      - src/bist_predict/models/lstm_model.py
+    note: "Opt-in and sequence alignment differs between training and inference."
+
+  transformer:
+    package: bist_predict.models
+    implemented: true
+    integrated: partial
+    evaluated: false
+    production_inference: partial
+    accepted_default: false
+    evidence:
+      - src/bist_predict/models/transformer_model.py
+    note: "Opt-in and sequence alignment differs between training and inference."
+
+  stacking:
+    package: bist_predict.models
+    implemented: partial
+    integrated: true
+    evaluated: false
+    production_inference: true
+    accepted_default: false
+    evidence:
+      - src/bist_predict/models/ensemble.py
+      - src/bist_predict/research/ensemble_pipeline.py
+    note: "No persisted OOF lineage; not accepted until strict OOF proof exists."
+
+  probability_calibration:
+    package: bist_predict.models
+    implemented: partial
+    integrated: true
+    evaluated: false
+    production_inference: true
+    accepted_default: false
+    evidence:
+      - src/bist_predict/models/calibration.py
+      - src/bist_predict/research/ensemble_pipeline.py
+    note: "Fitted on the same meta block as the stacker; no separate calibration period."
+
+  immutable_oos_predictions:
+    package: bist_predict.research
+    implemented: false
+    integrated: false
+    evaluated: false
+    production_inference: false
+    accepted_default: false
+    evidence: []
+
+  prediction_metrics:
+    package: bist_predict.evaluation
+    implemented: partial
+    integrated: true
+    evaluated: false
+    production_inference: false
+    accepted_default: false
+    evidence:
+      - src/bist_predict/evaluation/metrics.py
+    note: "Missing IC, zero-mean R2, PR-AUC, MCC, and grouped/bootstrap reports."
+
+  portfolio_backtest:
+    package: bist_predict.evaluation
+    implemented: scaffold
+    integrated: true
+    evaluated: false
+    production_inference: false
+    accepted_default: false
+    evidence:
+      - src/bist_predict/evaluation/backtest.py
+      - src/bist_predict/research/ensemble_pipeline.py
+    note: "Scalar cost deduction only; no order, fill, position, cash, or cost ledger."
+
+  live_prediction_tracking:
+    package: bist_predict.evaluation
+    implemented: scaffold
+    integrated: partial
+    evaluated: false
+    production_inference: false
+    accepted_default: false
+    evidence:
+      - src/bist_predict/evaluation/tracker.py
+      - src/bist_predict/cli.py
+    note: "Accuracy is read-only; signal generation does not persist predictions."
+
+  prediction_maturation:
+    package: bist_predict.evaluation
+    implemented: false
+    integrated: false
+    evaluated: false
+    production_inference: false
+    accepted_default: false
+    evidence: []
+
+  immutable_run_governance:
+    package: bist_predict.research
+    implemented: false
+    integrated: false
+    evaluated: false
+    production_inference: false
+    accepted_default: false
+    evidence: []
+
+  reproduction_commands:
+    package: repository
+    implemented: false
+    integrated: false
+    evaluated: false
+    production_inference: false
+    accepted_default: false
+    evidence: []
+
+  continuous_integration:
+    package: repository
+    implemented: false
+    integrated: false
+    evaluated: false
+    production_inference: false
+    accepted_default: false
+    evidence: []

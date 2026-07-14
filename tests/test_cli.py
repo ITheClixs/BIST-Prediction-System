@@ -2,7 +2,9 @@
 
 from __future__ import annotations
 
-from bist_predict.cli import _get_feature_dates_to_compute, _resolve_tickers
+from click.testing import CliRunner
+
+from bist_predict.cli import _get_feature_dates_to_compute, _resolve_tickers, main
 from bist_predict.features.store import FeatureStore
 from bist_predict.storage.database import Database
 
@@ -89,3 +91,11 @@ def test_resolve_tickers_uses_db_universe_and_persists_manual_add(tmp_db_path) -
 
     assert _resolve_tickers(db, "BIOEN") == ["BIOEN"]
     assert "BIOEN" in db.list_tracked_stocks()
+
+
+def test_cli_describes_the_fixed_prototype_universe_truthfully() -> None:
+    result = CliRunner().invoke(main, ["--help"])
+
+    assert result.exit_code == 0
+    assert "fixed BIST large-cap prototype" in result.output
+    assert "BIST-100 Stock Market Prediction System" not in result.output

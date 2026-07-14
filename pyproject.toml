@@ -1,7 +1,7 @@
 [project]
 name = "bist-predict"
 version = "0.1.0"
-description = "BIST-100 Stock Market Prediction System"
+description = "Leakage-controlled benchmark for a fixed BIST large-cap prototype universe"
 requires-python = ">=3.12"
 dependencies = [
     "click>=8.1",
