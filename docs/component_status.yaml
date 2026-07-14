@@ -1,6 +1,6 @@
 schema_version: 1
 scope: fixed_bist_large_cap_prototype
-generated_from_commit: 9950271
+generated_from_commit: 3f48fe7
 status_definitions:
   implemented: "Executable code exists; scaffold and partial identify incomplete contracts."
   integrated: "The component participates in the current default CLI path."
@@ -133,16 +133,16 @@ components:
     note: "Strict identity and lineage contracts exist; accepted runner integration remains pending."
 
   canonical_panel:
-    package: bist_predict.models
-    implemented: scaffold
-    integrated: true
+    package: bist_predict.research
+    implemented: true
+    integrated: false
     evaluated: false
-    production_inference: true
+    production_inference: false
     accepted_default: false
     evidence:
-      - src/bist_predict/models/types.py
-      - src/bist_predict/research/ensemble_pipeline.py
-    note: "Per-ticker matrices are concatenated and sorted after construction."
+      - src/bist_predict/research/panel.py
+      - tests/test_research/test_panel.py
+    note: "The immutable date-ticker panel is implemented; the accepted runner must replace the legacy per-ticker path."
 
   missing_value_policy:
     package: bist_predict.models
@@ -235,15 +235,16 @@ components:
     note: "Invariant-tested date-grouped folds exist; legacy ensemble integration remains pending."
 
   executable_next_open_target:
-    package: bist_predict.models
-    implemented: false
+    package: bist_predict.research
+    implemented: true
     integrated: false
     evaluated: false
     production_inference: false
     accepted_default: false
     evidence:
-      - src/bist_predict/models/types.py
-    note: "Current labels are close-to-close and lack availability/execution timestamps."
+      - src/bist_predict/research/panel.py
+      - tests/test_research/test_panel.py
+    note: "Labels use observed next-session open-to-close returns with explicit availability, signal, execution, and target timestamps; accepted runner integration remains pending."
 
   statistical_baselines:
     package: bist_predict.research
