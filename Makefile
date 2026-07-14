@@ -1,4 +1,4 @@
-.PHONY: reproduce-smoke reproduce benchmark test research-invariants lint format-check typecheck rust-test rust-equivalence
+.PHONY: reproduce-smoke reproduce benchmark test research-invariants lint format-check typecheck coverage rust-test rust-equivalence provider-smoke
 
 UV_RUN = UV_CACHE_DIR=/tmp/bist-uv-cache PYTHONPATH=src uv run
 RUNS_ROOT ?= runs
@@ -18,7 +18,7 @@ test:
 	$(UV_RUN) pytest -q
 
 research-invariants:
-	$(UV_RUN) pytest tests/test_research tests/test_ingest/test_calendar.py tests/test_ingest/test_corporate_actions.py tests/test_ingest/test_reconciliation.py -q
+	$(UV_RUN) pytest tests/test_research --ignore=tests/test_research/test_rust_benchmark.py tests/test_ingest/test_calendar.py tests/test_ingest/test_corporate_actions.py tests/test_ingest/test_reconciliation.py -q
 
 lint:
 	$(UV_RUN) ruff check src tests
@@ -29,8 +29,15 @@ format-check:
 typecheck:
 	$(UV_RUN) mypy src
 
+coverage:
+	$(UV_RUN) coverage run -m pytest -q
+	$(UV_RUN) coverage report
+
 rust-test:
 	cargo test --workspace
 
 rust-equivalence:
 	$(UV_RUN) pytest tests/test_features/test_rust_equivalence.py -q
+
+provider-smoke:
+	$(UV_RUN) python -m bist_predict.ingest.provider_smoke --ticker THYAO --days 21

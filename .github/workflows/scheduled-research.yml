@@ -1,0 +1,35 @@
+name: Scheduled research checks
+
+on:
+  schedule:
+    - cron: "17 4 * * 1"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+env:
+  UV_FROZEN: "1"
+
+jobs:
+  provider-and-reproduction:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+      - uses: astral-sh/setup-uv@08807647e7069bb48b6ef5acd8ec9567f424441b # v8.1.0
+        with:
+          enable-cache: true
+      - run: uv sync --locked --all-groups
+      - name: Provider and calendar schema checks
+        run: |
+          uv run pytest -q tests/test_ingest/test_provider_smoke.py tests/test_ingest/test_calendar.py tests/test_ingest/test_reconciliation.py
+          make provider-smoke
+      - name: Chronological methodology smoke and artifact replay
+        shell: bash
+        run: |
+          make reproduce-smoke RUNS_ROOT="$RUNNER_TEMP/runs"
+          run_id="$(find "$RUNNER_TEMP/runs" -mindepth 1 -maxdepth 1 -type d -exec basename {} \;)"
+          make reproduce RUN_ID="$run_id" RUNS_ROOT="$RUNNER_TEMP/runs"
