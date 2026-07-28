@@ -16,15 +16,18 @@ from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any, Iterable, Mapping
 
+import numpy as np
 import pandas as pd
 
 from bist_predict.features.manifest import FeatureManifest
 from bist_predict.features.lineage import FeatureArtifactLineage, write_feature_artifact
 from bist_predict.research.portfolio_backtest import PortfolioBacktestResult
+from bist_predict.research.inference.snooping import stationary_block_length
 from bist_predict.research.prediction_metrics import recompute_prediction_metrics
 from bist_predict.research.predictions import write_prediction_artifact
 from bist_predict.research.reporting import (
     block_bootstrap_intervals,
+    block_size_sensitivity,
     compute_portfolio_metrics,
     grouped_prediction_metrics,
 )
@@ -160,6 +163,8 @@ class RunBundleWriter:
         sample_metadata: pd.DataFrame | None = None,
         benchmark_returns: Sequence[float] | None = None,
         additional_metrics: Mapping[str, object] | None = None,
+        bootstrap_iterations: int = 10_000,
+        bootstrap_block_sizes: Sequence[int] = (1, 2, 3, 5, 8, 13, 21),
     ) -> RunBundle:
         """Write a complete run once; any existing run ID is immutable."""
         seed_values = tuple(seeds)
@@ -202,18 +207,39 @@ class RunBundleWriter:
             frame.to_parquet(run_path / f"{name}.parquet", index=False, compression="zstd")
 
         net_returns = [snapshot.net_return for snapshot in portfolio.daily_snapshots]
+        seed = seed_values[0] if seed_values else 42
+        usable_blocks = [size for size in bootstrap_block_sizes if 1 <= size <= len(net_returns)]
+        primary_block = (
+            stationary_block_length(np.asarray(net_returns, dtype=np.float64).reshape(-1, 1))
+            if len(net_returns) >= 4
+            else 1.0
+        )
         metrics: dict[str, object] = {
             "prediction": recompute_prediction_metrics(predictions),
             "portfolio": compute_portfolio_metrics(portfolio, benchmark_returns=benchmark_returns),
             "bootstrap": (
-                block_bootstrap_intervals(
-                    net_returns,
-                    block_size=min(5, len(net_returns)),
-                    iterations=200,
-                    seed=seed_values[0] if seed_values else 42,
-                )
+                {
+                    **block_bootstrap_intervals(
+                        net_returns,
+                        block_size=max(1, min(round(primary_block), len(net_returns))),
+                        iterations=bootstrap_iterations,
+                        seed=seed,
+                    ),
+                    "block_size_selection": "politis_white_2009",
+                    "selected_block_length": float(primary_block),
+                }
                 if net_returns
                 else {"status": "no_portfolio_sessions"}
+            ),
+            "bootstrap_block_sensitivity": (
+                block_size_sensitivity(
+                    net_returns,
+                    block_sizes=usable_blocks,
+                    iterations=max(2_000, bootstrap_iterations // 5),
+                    seed=seed,
+                )
+                if net_returns and usable_blocks
+                else {}
             ),
         }
         if sample_metadata is not None:

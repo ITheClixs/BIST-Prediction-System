@@ -1,4 +1,4 @@
-.PHONY: reproduce-smoke reproduce reproduce-committed benchmark readme-results test research-invariants lint format-check typecheck coverage rust-test rust-equivalence provider-smoke
+.PHONY: reproduce-smoke reproduce reproduce-committed benchmark readme-results test research-invariants lint format-check typecheck coverage rust-test rust-equivalence provider-smoke mutation-check verify-claims figures
 
 UV_RUN = UV_CACHE_DIR=/tmp/bist-uv-cache PYTHONPATH=src uv run
 RUNS_ROOT ?= runs
@@ -48,6 +48,9 @@ rust-test:
 
 rust-equivalence:
 	$(UV_RUN) pytest tests/test_features/test_rust_equivalence.py -q
+
+mutation-check:
+	$(UV_RUN) python tools/mutation_check.py
 
 provider-smoke:
 	$(UV_RUN) python -m bist_predict.ingest.provider_smoke --ticker THYAO --days 21

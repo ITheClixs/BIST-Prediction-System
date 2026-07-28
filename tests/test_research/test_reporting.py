@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from datetime import date
 
+import numpy as np
 import pandas as pd
 import pytest
 
@@ -32,8 +33,12 @@ def _result() -> PortfolioBacktestResult:
         DailySnapshot("2024-01-03", 100.0, 80.0, -18.0, 0.0, 2.0, -0.18, -0.20, 1.0, 0.8, 0.8, 1.0),
         DailySnapshot("2024-01-04", 80.0, 90.0, 11.0, 0.0, 1.0, 0.1375, 0.125, 1.2, 0.9, 0.9, 0.5),
     )
+    # The live ledger writes an opening record at the execution open and a
+    # closing record at the official close of the same session.
     positions = (
+        Position("2024-01-03T10:00:00+03:00", "THYAO", 1, 100.0, 100.0, 100.0, 0.0, 0.0),
         Position("2024-01-03T18:00:00+03:00", "THYAO", 0, 100.0, 90.0, 0.0, 0.0, -10.0),
+        Position("2024-01-04T10:00:00+03:00", "GARAN", 1, 50.0, 50.0, 50.0, 0.0, 0.0),
         Position("2024-01-04T18:00:00+03:00", "GARAN", 0, 50.0, 55.0, 0.0, 0.0, 10.0),
     )
     costs = (
@@ -83,7 +88,7 @@ def test_portfolio_metrics_prepend_initial_capital_and_decompose_costs() -> None
     assert metrics["maximum_drawdown"] == pytest.approx(-0.20)
     assert metrics["trade_count"] == 2
     assert metrics["hit_rate"] == 0.5
-    assert metrics["average_holding_period_sessions"] == 1.0
+    assert metrics["average_holding_period_sessions"] == pytest.approx(1.0)
     assert metrics["cost_decomposition"] == {
         "commission": pytest.approx(0.8),
         "bid_ask_spread": pytest.approx(0.7),
@@ -332,3 +337,92 @@ def test_portfolio_attribution_rejects_unattributed_distributions() -> None:
 
     with pytest.raises(ValueError, match="distributions cannot be attributed"):
         grouped_portfolio_metrics(result, predictions, metadata)
+
+
+def _overnight_result() -> PortfolioBacktestResult:
+    """A position opened on one session and closed on the next."""
+    snapshots = (
+        DailySnapshot("2024-01-03", 100.0, 100.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0, 1.0, 1.0),
+        DailySnapshot("2024-01-04", 100.0, 110.0, 10.0, 0.0, 0.0, 0.10, 0.10, 1.0, 1.0, 1.0, 1.0),
+    )
+    positions = (
+        Position("2024-01-03T10:00:00+03:00", "THYAO", 1, 100.0, 100.0, 100.0, 0.0, 0.0),
+        Position("2024-01-04T18:00:00+03:00", "THYAO", 0, 100.0, 110.0, 0.0, 0.0, 10.0),
+    )
+    return PortfolioBacktestResult(
+        signals=(),
+        orders=(),
+        fills=(),
+        positions=positions,
+        cash_ledger=(),
+        costs=(),
+        daily_snapshots=snapshots,
+        portfolio=Portfolio(100.0, 110.0, 110.0, ()),
+    )
+
+
+def test_holding_period_counts_sessions_rather_than_assuming_one() -> None:
+    """A hardcoded 1.0 reports the same value for a one-session and a two-session hold."""
+    assert compute_portfolio_metrics(_overnight_result())[
+        "average_holding_period_sessions"
+    ] == pytest.approx(2.0)
+
+
+def test_holding_period_is_zero_when_nothing_was_ever_opened() -> None:
+    empty = PortfolioBacktestResult(
+        signals=(),
+        orders=(),
+        fills=(),
+        positions=(),
+        cash_ledger=(),
+        costs=(),
+        daily_snapshots=(
+            DailySnapshot("2024-01-03", 100.0, 100.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0),
+        ),
+        portfolio=Portfolio(100.0, 100.0, 100.0, ()),
+    )
+    assert compute_portfolio_metrics(empty)["average_holding_period_sessions"] == 0.0
+
+
+def test_a_flat_equity_curve_does_not_produce_an_astronomical_sharpe() -> None:
+    """Reproduces the guard failure: constant returns built from price ratios.
+
+    ``std(returns) > 0`` holds at about ``1.2e-16`` for this series, so a guard
+    written against zero admits the division and reports a Sharpe ratio of
+    order ``1e14``.
+    """
+    equity = [100.0 * (1.0007**step) for step in range(41)]
+    snapshots = tuple(
+        DailySnapshot(
+            f"2024-{1 + step // 28:02d}-{1 + step % 28:02d}",
+            equity[step],
+            equity[step + 1],
+            equity[step + 1] - equity[step],
+            0.0,
+            0.0,
+            equity[step + 1] / equity[step] - 1.0,
+            equity[step + 1] / equity[step] - 1.0,
+            0.0,
+            1.0,
+            1.0,
+            1.0,
+        )
+        for step in range(40)
+    )
+    result = PortfolioBacktestResult(
+        signals=(),
+        orders=(),
+        fills=(),
+        positions=(),
+        cash_ledger=(),
+        costs=(),
+        daily_snapshots=snapshots,
+        portfolio=Portfolio(equity[0], equity[40], equity[40], ()),
+    )
+    returns = [snapshot.net_return for snapshot in snapshots]
+    deviation = float(np.std(returns, ddof=1))
+    assert 0.0 < deviation < 1e-14
+    metrics = compute_portfolio_metrics(result)
+    assert metrics["sharpe"] == 0.0
+    assert metrics["sortino"] == 0.0
+    assert metrics["information_ratio"] == 0.0

@@ -7,7 +7,7 @@ import json
 from dataclasses import asdict, dataclass
 from datetime import UTC, date, datetime
 from pathlib import Path
-from typing import Iterable, Mapping
+from typing import Iterable, Mapping, cast
 
 import numpy as np
 import pandas as pd
@@ -32,13 +32,67 @@ from bist_predict.research.portfolio_backtest import (
     PortfolioBacktester,
     StrategyConfig,
 )
-from bist_predict.research.reporting import compute_portfolio_metrics, grouped_portfolio_metrics
+from bist_predict.research.inference_report import build_inference_report
+from bist_predict.research.reporting import (
+    TRADING_SESSIONS_PER_YEAR,
+    compute_portfolio_metrics,
+    grouped_portfolio_metrics,
+)
+from bist_predict.research.sensitivity import (
+    configuration_grid,
+    run_configuration_sensitivity,
+    summarise_sensitivity,
+)
 from bist_predict.research.run_artifacts import RunBundle, RunBundleWriter
 from bist_predict.research.splits import ExpandingWindowSplitter
 from bist_predict.research.stationary_features import (
     STATIONARY_FEATURE_MANIFEST,
     build_stationary_snapshots,
 )
+
+
+_GRID_AXES = {"train": "min_train_dates", "val": "validation_dates", "embargo": "embargo_dates"}
+
+
+def parse_block_sizes(spec: str) -> tuple[int, ...]:
+    """Parse a comma-separated block-length list into positive integers."""
+    try:
+        values = tuple(int(item) for item in spec.split(",") if item.strip())
+    except ValueError as error:
+        raise ValueError(f"bootstrap_block_sizes must be integers: {spec}") from error
+    if not values or any(value < 1 for value in values):
+        raise ValueError(f"bootstrap_block_sizes must be positive integers: {spec}")
+    return tuple(sorted(set(values)))
+
+
+def parse_sensitivity_grid(spec: str) -> dict[str, tuple[int, ...]]:
+    """Parse ``train=..|val=..|embargo=..|topk=..`` into declared axis values.
+
+    The grid lives in the configuration as one string rather than as a nested
+    structure so that ``config.yaml`` round-trips through JSON without changing
+    the configuration hash that names the run.
+    """
+    axes: dict[str, tuple[int, ...]] = {}
+    for section in spec.split("|"):
+        if "=" not in section:
+            raise ValueError(f"sensitivity_grid section must be name=values: {section}")
+        name, _, raw = section.partition("=")
+        key = _GRID_AXES.get(name.strip(), "top_k" if name.strip() == "topk" else None)
+        if key is None:
+            raise ValueError(f"unknown sensitivity_grid axis: {name}")
+        if key in axes:
+            raise ValueError(f"duplicate sensitivity_grid axis: {name}")
+        try:
+            values = tuple(int(item) for item in raw.split(",") if item.strip())
+        except ValueError as error:
+            raise ValueError(f"sensitivity_grid values must be integers: {section}") from error
+        if not values or any(value < 1 for value in values):
+            raise ValueError(f"sensitivity_grid values must be positive integers: {section}")
+        axes[key] = tuple(sorted(set(values)))
+    missing = sorted({"min_train_dates", "validation_dates", "embargo_dates", "top_k"} - set(axes))
+    if missing:
+        raise ValueError(f"sensitivity_grid is missing axes: {', '.join(missing)}")
+    return axes
 
 
 @dataclass(frozen=True)
@@ -64,6 +118,15 @@ class AcceptedBenchmarkConfig:
     market_impact_coefficient: float = 0.0001
     tax_rate: float = 0.0
     seed: int = 42
+    bootstrap_iterations: int = 10_000
+    bootstrap_block_sizes: str = "1,2,3,5,8,13,21"
+    sensitivity_grid: str = "train=24,36,48|val=5,10,20|embargo=1,2|topk=1,2,3,4"
+
+    def __post_init__(self) -> None:
+        parse_sensitivity_grid(self.sensitivity_grid)
+        parse_block_sizes(self.bootstrap_block_sizes)
+        if self.bootstrap_iterations < 1_000:
+            raise ValueError("bootstrap_iterations must be at least one thousand")
 
     @classmethod
     def synthetic_smoke(cls) -> AcceptedBenchmarkConfig:
@@ -71,6 +134,9 @@ class AcceptedBenchmarkConfig:
         return cls(
             experiment_scope="synthetic_methodology_smoke",
             top_k=2,
+            bootstrap_iterations=2_000,
+            bootstrap_block_sizes="1,5",
+            sensitivity_grid="train=24,36|val=10|embargo=1|topk=1,2",
         )
 
     def to_dict(self) -> dict[str, object]:
@@ -671,7 +737,7 @@ def run_accepted_benchmark(
     )
     session_dates = [snapshot.date for snapshot in portfolio.daily_snapshots]
     equal_weight_returns = _equal_weight_returns(panel, session_dates)
-    sensitivity: dict[str, object] = {}
+    cost_sensitivity: dict[str, object] = {}
     selection_costs = _cost_model(config)
     for multiplier in (0.0, 1.0, 2.0):
         result = PortfolioBacktester(
@@ -686,10 +752,56 @@ def run_accepted_benchmark(
             corporate_actions=action_records,
             calendar=calendar,
         )
-        sensitivity[f"{multiplier:.1f}x"] = {
+        cost_sensitivity[f"{multiplier:.1f}x"] = {
             "cost_multiplier": multiplier,
             "metrics": compute_portfolio_metrics(result, benchmark_returns=equal_weight_returns),
         }
+
+    grid_axes = parse_sensitivity_grid(config.sensitivity_grid)
+    sensitivity_trials = run_configuration_sensitivity(
+        configuration_grid(
+            min_train_dates=grid_axes["min_train_dates"],
+            validation_dates=grid_axes["validation_dates"],
+            embargo_dates=grid_axes["embargo_dates"],
+            top_k=grid_axes["top_k"],
+        ),
+        panel=panel,
+        manifest=STATIONARY_FEATURE_MANIFEST,
+        bars=bars,
+        calendar=calendar,
+        corporate_actions=action_records,
+        strategy=_strategy(config),
+        costs=_cost_model(config),
+        portfolio_model=config.portfolio_model,
+        starting_equity=config.starting_equity,
+    )
+    reported_trial_id = (
+        f"train{config.min_train_dates}"
+        f"_val{config.validation_dates}"
+        f"_step{config.step_dates}"
+        f"_emb{config.embargo_dates}"
+        f"_k{config.top_k}"
+    )
+    reported_trial = next(
+        (trial for trial in sensitivity_trials if trial.trial_id == reported_trial_id), None
+    )
+    if reported_trial is None:
+        raise ValueError(
+            "the accepted configuration must appear in its own sensitivity grid: "
+            f"{reported_trial_id}"
+        )
+    sensitivity = summarise_sensitivity(sensitivity_trials, reported=reported_trial)
+    inference = build_inference_report(
+        benchmark.predictions,
+        net_returns=[snapshot.net_return for snapshot in portfolio.daily_snapshots],
+        benchmark_model="zero_return",
+        portfolio_model=config.portfolio_model,
+        periods_per_year=TRADING_SESSIONS_PER_YEAR,
+        trial_count=int(cast(int, sensitivity["trial_count"])),
+        trial_sharpe_variance=float(cast(float, sensitivity["trial_sharpe_variance"])),
+        seed=config.seed,
+        replications=config.bootstrap_iterations,
+    )
 
     tickers = sorted({bar.ticker for bar in bars})
     data_manifest = {
@@ -778,6 +890,9 @@ def run_accepted_benchmark(
             "corporate_action_coverage": action_coverage_frame,
             "corporate_actions": action_frame,
             "input_prices": price_frame,
+            "configuration_sensitivity": pd.DataFrame.from_records(
+                [trial.to_dict() for trial in sensitivity_trials]
+            ),
             "official_calendar": calendar_frame,
             "feature_lineage": feature_lineage,
             "missingness": missingness,
@@ -787,6 +902,8 @@ def run_accepted_benchmark(
         feature_artifacts=feature_artifacts,
         sample_metadata=metadata,
         benchmark_returns=equal_weight_returns,
+        bootstrap_iterations=config.bootstrap_iterations,
+        bootstrap_block_sizes=parse_block_sizes(config.bootstrap_block_sizes),
         additional_metrics={
             "benchmarks": {
                 "cash": {"total_return": 0.0},
@@ -795,8 +912,10 @@ def run_accepted_benchmark(
                 },
                 "relevant_bist_index": {"status": "not_available_in_input_dataset"},
             },
-            "cost_sensitivity": sensitivity,
+            "cost_sensitivity": cost_sensitivity,
             "portfolio_grouped": portfolio_grouped,
+            "configuration_sensitivity": sensitivity,
+            "inference": inference,
         },
     )
 

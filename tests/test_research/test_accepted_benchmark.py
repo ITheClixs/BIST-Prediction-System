@@ -13,9 +13,12 @@ from bist_predict.research import run_artifacts
 from bist_predict.research.accepted_benchmark import (
     AcceptedBenchmarkConfig,
     generate_synthetic_prices,
+    parse_block_sizes,
+    parse_sensitivity_grid,
     reproduce_run,
     run_accepted_benchmark,
 )
+from bist_predict.research.sensitivity import configuration_grid
 from bist_predict.research.prediction_tracking import (
     ImmutablePredictionStore,
     persist_run_signal_predictions,
@@ -209,3 +212,68 @@ def test_market_benchmark_requires_corporate_action_snapshot(tmp_path) -> None:
             git_sha="abcdef123456",
             dirty_working_tree=False,
         )
+
+
+def test_accepted_configuration_appears_in_its_own_sensitivity_grid() -> None:
+    """The reported configuration must be one of the trials it is compared against.
+
+    Without this the grid would report a dispersion and a search threshold for
+    a family that never contained the number in the abstract.
+    """
+    config = AcceptedBenchmarkConfig()
+    axes = parse_sensitivity_grid(config.sensitivity_grid)
+    assert config.min_train_dates in axes["min_train_dates"]
+    assert config.validation_dates in axes["validation_dates"]
+    assert config.embargo_dates in axes["embargo_dates"]
+    assert config.top_k in axes["top_k"]
+    assert config.step_dates == config.validation_dates
+    grid = configuration_grid(
+        min_train_dates=axes["min_train_dates"],
+        validation_dates=axes["validation_dates"],
+        embargo_dates=axes["embargo_dates"],
+        top_k=axes["top_k"],
+    )
+    reported = {
+        "min_train_dates": config.min_train_dates,
+        "validation_dates": config.validation_dates,
+        "step_dates": config.step_dates,
+        "embargo_dates": config.embargo_dates,
+        "top_k": config.top_k,
+    }
+    assert reported in grid
+
+
+def test_smoke_configuration_also_contains_its_reported_point() -> None:
+    config = AcceptedBenchmarkConfig.synthetic_smoke()
+    axes = parse_sensitivity_grid(config.sensitivity_grid)
+    assert config.min_train_dates in axes["min_train_dates"]
+    assert config.top_k in axes["top_k"]
+
+
+@pytest.mark.parametrize(
+    "spec",
+    [
+        "train=24|val=10|embargo=1",
+        "train=24|val=10|embargo=1|topk=",
+        "train=24|val=10|embargo=1|topk=0",
+        "train=24|val=10|embargo=1|topk=two",
+        "train=24|val=10|embargo=1|topk=3|unknown=2",
+        "train=24|train=36|val=10|embargo=1|topk=3",
+        "train24,val10",
+    ],
+)
+def test_malformed_sensitivity_grids_are_rejected(spec: str) -> None:
+    with pytest.raises(ValueError):
+        parse_sensitivity_grid(spec)
+
+
+@pytest.mark.parametrize("spec", ["", "0", "-1", "3,abc"])
+def test_malformed_block_size_specs_are_rejected(spec: str) -> None:
+    with pytest.raises(ValueError):
+        parse_block_sizes(spec)
+
+
+def test_an_underpowered_bootstrap_is_rejected_at_configuration_time() -> None:
+    """Two hundred replications leave five draws in each tail of a 95% interval."""
+    with pytest.raises(ValueError, match="at least one thousand"):
+        AcceptedBenchmarkConfig(bootstrap_iterations=200)
