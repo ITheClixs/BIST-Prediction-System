@@ -49,6 +49,14 @@ rust-test:
 rust-equivalence:
 	$(UV_RUN) pytest tests/test_features/test_rust_equivalence.py -q
 
+figures:
+	@test -n "$(RUN_ID)" || (echo "RUN_ID is required" && exit 2)
+	$(UV_RUN) python tools/build_figures.py --run $(RUNS_ROOT)/$(RUN_ID)
+
+verify-claims:
+	@test -n "$(RUN_ID)" || (echo "RUN_ID is required" && exit 2)
+	$(UV_RUN) python tools/verify_claims.py --run $(RUNS_ROOT)/$(RUN_ID)
+
 mutation-check:
 	$(UV_RUN) python tools/mutation_check.py
 

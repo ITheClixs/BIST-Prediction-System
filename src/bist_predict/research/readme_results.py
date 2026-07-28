@@ -11,11 +11,17 @@ from typing import Any
 import pandas as pd
 
 from bist_predict.research.prediction_metrics import recompute_prediction_metrics
+from bist_predict.research.readme_inference import (
+    inference_headlines,
+    render_inference_block,
+    render_sensitivity_block,
+)
 from bist_predict.research.run_artifacts import verify_artifact_hashes
 
 
 START_MARKER = "<!-- ACCEPTED_RESULTS:START -->"
 END_MARKER = "<!-- ACCEPTED_RESULTS:END -->"
+GENERATED_BLOCKS = ("ACCEPTED_RESULTS", "INFERENCE", "SENSITIVITY")
 REQUIRED_ARTIFACTS = (
     "artifact_hashes.json",
     "metrics.json",
@@ -358,27 +364,67 @@ def render_accepted_results(run_path: Path | str) -> str:
         "### Negative results and evidence limits",
         "",
         *_negative_results(metrics, r_squared, cost_net_returns),
+        *inference_headlines(metrics),
     ]
     return "\n".join(lines)
 
 
+def render_inference_results(run_path: Path | str) -> str:
+    """Render the inferential block from one immutable accepted run directory."""
+    return render_inference_block(_verified_metrics(run_path))
+
+
+def render_sensitivity_results(run_path: Path | str) -> str:
+    """Render the configuration and block-length sweeps from one accepted run."""
+    return render_sensitivity_block(_verified_metrics(run_path))
+
+
+def _verified_metrics(run_path: Path | str) -> dict[str, Any]:
+    run_directory = Path(run_path)
+    integrity_failures = verify_artifact_hashes(run_directory)
+    if integrity_failures:
+        detail = ", ".join(
+            f"{name}={reason}" for name, reason in sorted(integrity_failures.items())
+        )
+        raise ReadmeResultsError(f"run artifact integrity check failed: {detail}")
+    return _load_mapping(run_directory / "metrics.json")
+
+
+BLOCK_RENDERERS = {
+    "ACCEPTED_RESULTS": render_accepted_results,
+    "INFERENCE": render_inference_results,
+    "SENSITIVITY": render_sensitivity_results,
+}
+
+
+def replace_block(document: str, block: str, generated: str) -> str:
+    """Replace only the content inside one named marker pair."""
+    start_marker = f"<!-- {block}:START -->"
+    end_marker = f"<!-- {block}:END -->"
+    if document.count(start_marker) != 1 or document.count(end_marker) != 1:
+        raise ReadmeResultsError(f"document must contain exactly one {block} marker pair")
+    content_start = document.index(start_marker) + len(start_marker)
+    content_end = document.index(end_marker)
+    if content_end < content_start:
+        raise ReadmeResultsError(f"document must contain exactly one {block} marker pair")
+    return f"{document[:content_start]}\n{generated}\n{document[content_end:]}"
+
+
 def update_readme_results(readme_path: Path | str, run_path: Path | str) -> None:
-    """Replace only the content inside the accepted-results marker pair."""
+    """Regenerate every marker-delimited block the document declares."""
     path = Path(readme_path)
     try:
         current = path.read_text(encoding="utf-8")
     except OSError as error:
         raise ReadmeResultsError(f"could not read README: {error}") from error
-    if current.count(START_MARKER) != 1 or current.count(END_MARKER) != 1:
-        raise ReadmeResultsError("README must contain exactly one accepted-results marker pair")
-    content_start = current.index(START_MARKER) + len(START_MARKER)
-    content_end = current.index(END_MARKER)
-    if content_end < content_start:
-        raise ReadmeResultsError("README must contain exactly one accepted-results marker pair")
-    generated = render_accepted_results(run_path)
-    updated = f"{current[:content_start]}\n{generated}\n{current[content_end:]}"
+    for block in GENERATED_BLOCKS:
+        if f"<!-- {block}:START -->" not in current:
+            if block == "ACCEPTED_RESULTS":
+                raise ReadmeResultsError("README must contain the accepted-results marker pair")
+            continue
+        current = replace_block(current, block, BLOCK_RENDERERS[block](run_path))
     try:
-        path.write_text(updated, encoding="utf-8")
+        path.write_text(current, encoding="utf-8")
     except OSError as error:
         raise ReadmeResultsError(f"could not update README: {error}") from error
 

@@ -75,6 +75,8 @@ fail_under = 75
 [dependency-groups]
 dev = [
     "coverage>=7.9",
+    "matplotlib>=3.9",
+    "pymupdf>=1.24",
     "maturin>=1.9",
     "mypy>=1.16",
     "pre-commit>=4.2",

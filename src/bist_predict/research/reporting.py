@@ -160,7 +160,11 @@ def compute_portfolio_metrics(
         else 0.0
     )
     net_total = result.portfolio.ending_equity / result.portfolio.starting_equity - 1.0
+    invested_sessions = int(sum(1 for item in snapshots if abs(item.gross_exposure) > 1e-12))
     return {
+        "invested_sessions": invested_sessions,
+        "session_count": len(snapshots),
+        "share_of_sessions_invested": (invested_sessions / len(snapshots) if snapshots else 0.0),
         "gross_return": float(np.prod(1.0 + gross_returns) - 1.0),
         "net_return": net_total,
         "annualized_return": annualized,
