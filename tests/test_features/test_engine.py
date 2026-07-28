@@ -57,6 +57,14 @@ class TestFeatureEngine:
         assert isinstance(features, dict)
         assert len(features) > 0
 
+    @pytest.mark.skipif(
+        not engine_module.HAS_RUST,
+        reason=(
+            "the Rust indicator extension is optional and the engine reports "
+            "rust_disabled without it; build it with 'cd rust/bist_features && "
+            "uv run --project ../.. maturin develop --release'"
+        ),
+    )
     def test_includes_technical_indicators(self, db: Database) -> None:
         engine = FeatureEngine(db)
         features = engine.compute_for_ticker("THYAO", "2026-04-01")
@@ -78,6 +86,10 @@ class TestFeatureEngine:
         with pytest.raises(ValueError, match="Invalid isoformat string"):
             engine.compute_for_ticker("THYAO", "not-a-date")
 
+    @pytest.mark.skipif(
+        not engine_module.HAS_RUST,
+        reason="the stored feature set includes the optional Rust indicators",
+    )
     def test_compute_and_store(self, db: Database) -> None:
         engine = FeatureEngine(db)
         store = FeatureStore(db)

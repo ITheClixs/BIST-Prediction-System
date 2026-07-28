@@ -20,6 +20,7 @@ import matplotlib
 matplotlib.use("Agg")
 
 import matplotlib.pyplot as plt  # noqa: E402
+from matplotlib.layout_engine import ConstrainedLayoutEngine  # noqa: E402
 
 __all__ = [
     "COLOURS",
@@ -50,7 +51,7 @@ COLOURS = {
 
 FIGURE_DPI = 200
 
-_RC = {
+_RC: dict[str, object] = {
     "figure.facecolor": COLOURS["surface"],
     "axes.facecolor": COLOURS["surface"],
     "savefig.facecolor": COLOURS["surface"],
@@ -89,7 +90,7 @@ _RC = {
 @contextmanager
 def figure(width: float, height: float) -> Iterator[plt.Figure]:
     """Yield a figure under the shared style, closed on exit."""
-    with plt.rc_context(_RC):
+    with plt.rc_context(_RC):  # type: ignore[arg-type]
         created = plt.figure(figsize=(width, height), dpi=FIGURE_DPI)
         try:
             yield created
@@ -109,7 +110,7 @@ def caption(fig: plt.Figure, text: str) -> None:
     height_inches = len(lines) * _CAPTION_FONT_SIZE * 1.45 / 72.0
     reserved = min(0.42, (height_inches + 0.10) / fig.get_figheight())
     engine = fig.get_layout_engine()
-    if engine is not None:
+    if isinstance(engine, ConstrainedLayoutEngine):
         engine.set(rect=(0.0, reserved, 1.0, 1.0 - reserved))
     fig.text(
         0.012,

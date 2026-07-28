@@ -420,7 +420,9 @@ def update_readme_results(readme_path: Path | str, run_path: Path | str) -> None
     for block in GENERATED_BLOCKS:
         if f"<!-- {block}:START -->" not in current:
             if block == "ACCEPTED_RESULTS":
-                raise ReadmeResultsError("README must contain the accepted-results marker pair")
+                raise ReadmeResultsError(
+                    "README must contain exactly one ACCEPTED_RESULTS marker pair"
+                )
             continue
         current = replace_block(current, block, BLOCK_RENDERERS[block](run_path))
     try:

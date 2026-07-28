@@ -113,6 +113,42 @@ def _run_directory(tmp_path: Path) -> Path:
                     "confidence_level": 0.95,
                 }
             },
+            "configuration_sensitivity": {
+                "trial_count": 4,
+                "net_return": {"share_positive": 0.25},
+                "trials": [
+                    {"best_model": "zero_return"},
+                    {"best_model": "zero_return"},
+                    {"best_model": "zero_return"},
+                    {"best_model": "ridge"},
+                ],
+            },
+            "inference": {
+                "cross_sectional_dependence": {
+                    "row_count": 40,
+                    "effective_row_count": 18.0,
+                    "mean_pairwise_correlation": 0.5,
+                },
+                "equal_predictive_accuracy": {
+                    "session_aggregated": {
+                        "ridge": {"verdict": "benchmark_better", "p_value": 0.001},
+                        "logistic": {"verdict": "indistinguishable", "p_value": 0.4},
+                    },
+                    "family_wise_correction": {
+                        "family_size": 2,
+                        "rejected": ["ridge"],
+                        "adjusted_p_values": {"ridge": 0.002, "logistic": 0.4},
+                    },
+                },
+                "data_snooping": {
+                    "superior_predictive_ability": {"p_value_consistent": 0.7},
+                },
+                "portfolio_sharpe": {
+                    "deflated_sharpe_ratio": 0.05,
+                    "deflated_sharpe_threshold": 0.12,
+                    "trial_count": 4,
+                },
+            },
         },
     )
     _write_json(
@@ -200,7 +236,7 @@ def test_update_rejects_missing_or_duplicate_markers(tmp_path: Path, content: st
     readme_path = tmp_path / "README.md"
     readme_path.write_text(content, encoding="utf-8")
 
-    with pytest.raises(ReadmeResultsError, match="exactly one accepted-results marker pair"):
+    with pytest.raises(ReadmeResultsError, match="exactly one ACCEPTED_RESULTS marker pair"):
         update_readme_results(readme_path, run_path)
 
 
@@ -241,10 +277,10 @@ def test_render_rejects_metrics_that_do_not_recompute_from_predictions(tmp_path:
 def test_cli_updates_the_requested_readme(tmp_path: Path) -> None:
     run_path = _run_directory(tmp_path)
     readme_path = tmp_path / "README.md"
-    readme_path.write_text(f"{START_MARKER}\nold\n{END_MARKER}\n", encoding="utf-8")
+    readme_path.write_text(f"{START_MARKER}\nPLACEHOLDER_CONTENT\n{END_MARKER}\n", encoding="utf-8")
 
     exit_code = main(["--readme", str(readme_path), "--run", str(run_path)])
 
     assert exit_code == 0
-    assert "old" not in readme_path.read_text(encoding="utf-8")
+    assert "PLACEHOLDER_CONTENT" not in readme_path.read_text(encoding="utf-8")
     assert run_path.name in readme_path.read_text(encoding="utf-8")

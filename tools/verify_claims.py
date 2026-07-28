@@ -63,6 +63,23 @@ def _field(path: str) -> Callable[[Mapping[str, Any]], float]:
     return lambda metrics: float(_dig(metrics, path))
 
 
+def _cost_breakeven(metrics: Mapping[str, Any]) -> float:
+    """Return the cost multiple at which net return crosses zero.
+
+    Linear interpolation between the bracketing cases, computed from the
+    artifact rather than copied out of a figure.
+    """
+    cases = _dig(metrics, "cost_sensitivity")
+    points = sorted(
+        (float(case["cost_multiplier"]), float(case["metrics"]["net_return"]))
+        for case in cases.values()
+    )
+    for (low_x, low_y), (high_x, high_y) in zip(points, points[1:], strict=False):
+        if low_y >= 0.0 >= high_y and low_y != high_y:
+            return low_x + (high_x - low_x) * low_y / (low_y - high_y)
+    raise ValueError("net return never crosses zero across the cost cases")
+
+
 def _null_wins(metrics: Mapping[str, Any]) -> float:
     trials = _dig(metrics, "configuration_sensitivity.trials")
     return float(sum(1 for trial in trials if trial["best_model"] == "zero_return"))
@@ -95,7 +112,7 @@ def _better_than_null(metrics: Mapping[str, Any]) -> float:
 CLAIMS: tuple[Claim, ...] = (
     Claim(
         "out-of-sample rows",
-        r"(?P<value>[\d,]+) out-of-sample (?:panel )?rows",
+        r"(?P<value>\d[\d,]*) out-of-sample (?:panel )?rows",
         _field("inference.cross_sectional_dependence.row_count"),
         tolerance=0.5,
     ),
@@ -107,7 +124,7 @@ CLAIMS: tuple[Claim, ...] = (
     ),
     Claim(
         "within-session correlation",
-        r"correlate at (?P<value>[\d.]+)",
+        r"correlate at (?P<value>\d+(?:\.\d+)?)",
         _field("inference.cross_sectional_dependence.mean_pairwise_correlation"),
         tolerance=5e-4,
     ),
@@ -131,19 +148,19 @@ CLAIMS: tuple[Claim, ...] = (
     ),
     Claim(
         "SPA consistent p-value",
-        r"SPA[^.]*?p = (?P<value>[\d.]+)",
+        r"SPA[^.]*?p = (?P<value>\d+(?:\.\d+)?)",
         _field("inference.data_snooping.superior_predictive_ability.p_value_consistent"),
         tolerance=5e-5,
     ),
     Claim(
         "deflated Sharpe ratio",
-        r"deflated Sharpe ratio of (?P<value>[\d.]+)",
+        r"deflated Sharpe ratio of (?P<value>\d+(?:\.\d+)?)",
         _field("inference.portfolio_sharpe.deflated_sharpe_ratio"),
         tolerance=5e-5,
     ),
     Claim(
         "search threshold",
-        r"search threshold of (?P<value>[\d.]+)",
+        r"search threshold of (?P<value>\d+(?:\.\d+)?)",
         _field("inference.portfolio_sharpe.deflated_sharpe_threshold"),
         tolerance=5e-5,
     ),
@@ -155,7 +172,7 @@ CLAIMS: tuple[Claim, ...] = (
     ),
     Claim(
         "configurations with positive net return",
-        r"(?P<value>[\d.]+)% of (?:those )?configurations produced a positive net return",
+        r"(?P<value>\d+(?:\.\d+)?)% of (?:those )?configurations produced a positive net return",
         _field("configuration_sensitivity.net_return.share_positive"),
         scale=100.0,
         tolerance=5e-3,
@@ -168,58 +185,76 @@ CLAIMS: tuple[Claim, ...] = (
     ),
     Claim(
         "reported net return",
-        r"loses (?P<value>[\d.]+)% of its capital after costs",
+        r"loses (?P<value>\d+(?:\.\d+)?)% of its capital after costs",
         lambda metrics: -float(_dig(metrics, "portfolio.net_return")),
         scale=100.0,
         tolerance=5e-3,
     ),
     Claim(
         "reported gross return",
-        r"gross return of (?P<value>[\d.]+)%",
+        r"gross return of (?P<value>\d+(?:\.\d+)?)%",
         _field("portfolio.gross_return"),
         scale=100.0,
         tolerance=5e-3,
     ),
     Claim(
         "annualised Sharpe",
-        r"annualised Sharpe ratio of (?P<value>-?[\d.]+)",
+        r"annualised Sharpe ratio of (?P<value>-?\d+(?:\.\d+)?)",
         _field("portfolio.sharpe"),
         tolerance=5e-5,
     ),
     Claim(
         "provider rows",
-        r"(?P<value>[\d,]+) provider rows",
+        r"(?P<value>\d[\d,]*) provider rows",
         _field("data_manifest.row_count"),
         tolerance=0.5,
     ),
     Claim(
-        "universe size",
-        r"(?P<value>\d+)-stock",
-        lambda artifacts: float(len(_dig(artifacts, "universe_manifest.tickers"))),
-        tolerance=0.5,
-    ),
-    Claim(
         "kurtosis of session returns",
-        r"kurtosis of (?P<value>[\d.]+)",
+        r"kurtosis of (?P<value>\d+(?:\.\d+)?)",
         _field("inference.portfolio_sharpe.kurtosis"),
         tolerance=5e-5,
     ),
     Claim(
         "probabilistic Sharpe ratio",
-        r"probabilistic Sharpe ratio of (?P<value>[\d.]+)",
+        r"Sharpe ratio exceeds zero is (?P<value>\d+(?:\.\d+)?)",
         _field("inference.portfolio_sharpe.probabilistic_sharpe_ratio"),
         tolerance=5e-5,
     ),
     Claim(
+        "Reality Check p-value",
+        r"Reality Check gives .{0,3}p = (?P<value>\d+(?:\.\d+)?)",
+        _field("inference.data_snooping.reality_check.p_value"),
+        tolerance=5e-5,
+    ),
+    Claim(
+        "autocorrelation-adjusted Sharpe",
+        r"annualisation gives (?P<value>-?\d+(?:\.\d+)?)",
+        _field("inference.portfolio_sharpe.autocorrelation_adjusted_annualised_sharpe"),
+        tolerance=5e-5,
+    ),
+    Claim(
+        "sessions holding risk",
+        r"carries risk on only (?P<value>\d+) of",
+        _field("portfolio.invested_sessions"),
+        tolerance=0.5,
+    ),
+    Claim(
+        "cost breakeven multiplier",
+        r"Breakeven sits at (?P<value>\d+(?:\.\d+)?)x",
+        _cost_breakeven,
+        tolerance=5e-3,
+    ),
+    Claim(
         "best grid net return",
-        r"best configuration in the grid returns (?P<value>[\d.]+)%",
+        r"best configuration in the grid returns (?P<value>\d+(?:\.\d+)?)%",
         _field("configuration_sensitivity.best_trial.net_return"),
         scale=100.0,
         tolerance=5e-3,
     ),
     Claim(
         "best grid per-session Sharpe",
-        r"per-session Sharpe ratio of (?P<value>[\d.]+)",
+        r"per-session Sharpe ratio of (?P<value>\d+(?:\.\d+)?)",
         _field("configuration_sensitivity.best_trial.per_period_sharpe"),
         tolerance=5e-5,
     ),

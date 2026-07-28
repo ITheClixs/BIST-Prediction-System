@@ -257,7 +257,7 @@ def inference_headlines(metrics: Mapping[str, Any]) -> list[str]:
         f"of {_number(sharpe, 'deflated_sharpe_threshold', 'sharpe'):.4f} per session across "
         f"{int(_number(sharpe, 'trial_count', 'sharpe'))} configurations.",
         f"- Across the {int(_number(sensitivity, 'trial_count', 'grid'))}-configuration grid, "
-        f"{_number(returns, 'share_positive', 'returns') * 100:.2f}% of settings produced a "
+        f"{_number(returns, 'share_positive', 'returns') * 100:.2f}% of configurations produced a "
         f"positive net return, and the zero-return null had the best out-of-sample R-squared "
         f"in {null_wins} of {len(trials)}.",
     ]

@@ -5,8 +5,14 @@ from __future__ import annotations
 import numpy as np
 import pytest
 
-import bist_features
-from bist_predict.features.indicator_reference import (
+bist_features = pytest.importorskip(
+    "bist_features",
+    reason=(
+        "the Rust indicator extension is optional; build it with "
+        "'cd rust/bist_features && uv run --project ../.. maturin develop --release'"
+    ),
+)
+from bist_predict.features.indicator_reference import (  # noqa: E402
     atr_reference,
     ema_reference,
     obv_reference,

@@ -40,14 +40,10 @@ jobs:
         with:
           enable-cache: true
       - run: uv sync --locked --all-groups
-      - name: Test without extension-specific cases
-        run: >-
-          uv run coverage run -m pytest -q
-          --ignore=tests/test_features/test_rust_correlations.py
-          --ignore=tests/test_features/test_rust_equivalence.py
-          --ignore=tests/test_features/test_rust_indicators.py
-          --ignore=tests/test_features/test_rust_patterns.py
-          --ignore=tests/test_research/test_rust_benchmark.py
+      - name: Unit tests
+        # Cases needing the optional Rust extension skip themselves here and
+        # run in the dedicated rust job below.
+        run: uv run coverage run -m pytest -q
       - run: uv run coverage report
 
   research-invariants:
@@ -61,6 +57,10 @@ jobs:
       - uses: astral-sh/setup-uv@08807647e7069bb48b6ef5acd8ec9567f424441b # v8.1.0
       - run: uv sync --locked --all-groups
       - run: make research-invariants
+      - name: Document claims match the committed artifacts
+        run: make doc-checks RUN_ID=20260728T223101Z-8b27df3-2a71b8
+      - name: Guarded defects are actually detected
+        run: make mutation-check
       - name: Create and replay bounded benchmark
         shell: bash
         run: |
@@ -80,7 +80,8 @@ jobs:
           python-version: "3.12"
       - uses: astral-sh/setup-uv@08807647e7069bb48b6ef5acd8ec9567f424441b # v8.1.0
       - run: uv sync --locked --all-groups
-      - run: uv run maturin develop --release --manifest-path rust/bist_features/Cargo.toml
+      - name: Build the extension from its own crate directory
+        run: cd rust/bist_features && uv run --project ../.. maturin develop --release
       - run: cargo test --workspace
       - run: >-
           uv run pytest -q

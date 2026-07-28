@@ -54,7 +54,8 @@ def plot_out_of_sample_r_squared(artifacts: RunArtifacts, directory: Path) -> di
         caption(
             fig,
             f"{above} of {len(values)} models sit to the right of the null. "
-            f"The worst, `{ordered[0]}`, is {abs(values[0]):.3f} below it.",
+            f"The worst, {ordered[0]}, is {abs(values[0]):.3f} below it. The null is exactly zero "
+            "by construction, so it has no bar.",
         )
         png, pdf = save_figure(fig, directory, "fig03_out_of_sample_r_squared")
     return {
@@ -141,7 +142,7 @@ def plot_equal_accuracy_tests(artifacts: RunArtifacts, directory: Path) -> dict[
         right.set_xscale("log")
         right.set_xlim(floor * 0.5, 1.0)
         right.axvline(0.05, color=COLOURS["ink"], linewidth=1.0, linestyle=(0, (4, 3)), zorder=2)
-        right.text(0.055, -0.75, "p = 0.05", fontsize=7.5, color=COLOURS["muted"])
+        right.text(0.062, len(models) - 0.62, "p = 0.05", fontsize=7.5, color=COLOURS["muted"])
         right.set_xlabel("p-value (log scale)")
         right.grid(axis="y", visible=False)
         right.set_yticks(indices, models)
@@ -156,7 +157,8 @@ def plot_equal_accuracy_tests(artifacts: RunArtifacts, directory: Path) -> dict[
             "Left: bars in red are rejected by Holm at the 5% family-wise level. A positive "
             "statistic means the model loses to the null, and every rejection here is of that "
             f"sign. Right: treating panel rows as independent shrinks {shrunk} of {len(models)} "
-            f"p-values, by a median factor of {ratio:.0f}.",
+            f"p-values, by a median factor of {ratio:.0f}. Values below 1e-7 are clamped to the "
+            "axis floor.",
         )
         png, pdf = save_figure(fig, directory, "fig04_equal_accuracy_tests")
     return {

@@ -1,309 +1,269 @@
-# BIST-Predict: A Leakage-Controlled BIST Equity Forecasting Benchmark
+# Nothing Beats Zero: A Leakage-Controlled, Search-Corrected Benchmark for Short-Horizon Borsa Istanbul Equity Forecasting
 
-**Abstract.** BIST-Predict is a point-in-time equity-research benchmark for a fixed four-stock Borsa Istanbul prototype universe. The accepted path builds one canonical date-ticker panel, validates an immutable feature schema, creates an executable next-open-to-close target, evaluates seven baselines with date-grouped purged walk-forward folds, saves every out-of-sample prediction, and runs a transaction-cost-aware long-only portfolio simulation through explicit orders, fills, positions, cash, and cost ledgers. A committed provider-backed run is exactly reproducible from bundled inputs. Its results are negative: none of the fitted models beats the zero-return baseline on zero-mean out-of-sample $R^2$, and the selected ridge strategy loses money after costs. Those results are retained because methodological validity is the acceptance criterion; model novelty is not.
+**Abstract.** Short-horizon equity forecasting papers usually report a model that beats a benchmark. This one reports the apparatus that would have detected such a model, and the finding that none exists in the data examined. On a fixed four-stock Borsa Istanbul prototype universe over 251 sessions, seven forecasters are fitted under a date-grouped purged walk-forward protocol with an executable next-open-to-close target, and every out-of-sample prediction is persisted. Three things then happen that a point-estimate table cannot do. First, the 480 out-of-sample rows are shown to carry roughly 177 independent observations, because same-session returns correlate at 0.570; loss differentials are therefore aggregated to one value per session before testing, which multiplies the p-values by a median factor of 52. Second, Diebold-Mariano tests with the Harvey-Leybourne-Newbold correction and Holm family-wise control find that 4 of the six fitted models are significantly worse than a zero-return null and 0 are significantly better, and Hansen's test of superior predictive ability over the whole family does not reject (p = 0.6891). Third, the entire evaluation is re-run across a 72-configuration grid of the fold geometry and portfolio breadth: the best configuration in the grid returns 4.6259% net with a per-session Sharpe ratio of 0.0356, against a False-Strategy threshold of 0.1267 that skill-free search alone would be expected to produce, and the zero-return null has the highest out-of-sample R-squared in all 72. The reported strategy loses 4.77% of its capital after costs. The committed run replays byte-for-byte from bundled inputs.
 
-**Keywords:** Borsa Istanbul, point-in-time research, executable return targets, feature manifests, walk-forward validation, out-of-sample predictions, transaction costs, reproducibility.
+**Keywords:** point-in-time evaluation, purged walk-forward validation, data snooping, superior predictive ability, deflated Sharpe ratio, effective sample size, transaction costs, reproducible research.
 
-> **Scope boundary.** This is not a historical BIST-100 study. The accepted experiment is named `fixed_bist_large_cap_prototype` and contains GARAN, ISCTR, KCHOL, and THYAO. See [`docs/component_status.yaml`](docs/component_status.yaml) for the machine-readable implementation and evidence boundary.
-
----
-
-## Table of Contents
-
-- [1. Research Problem](#1-research-problem)
-- [2. System Architecture](#2-system-architecture)
-- [3. Data and Storage Model](#3-data-and-storage-model)
-- [4. Feature Construction](#4-feature-construction)
-- [5. Experimental Quantitative Modules](#5-experimental-quantitative-modules)
-- [6. Learning Algorithms](#6-learning-algorithms)
-- [7. Calibration, Stacking, and Decision Rule](#7-calibration-stacking-and-decision-rule)
-- [8. Evaluation Protocol](#8-evaluation-protocol)
-- [9. Installation](#9-installation)
-- [10. Quick Start](#10-quick-start)
-- [11. CLI Commands](#11-cli-commands)
-- [12. Configuration](#12-configuration)
-- [13. Project Structure](#13-project-structure)
-- [14. Testing](#14-testing)
-- [15. Tech Stack and Data Sources](#15-tech-stack-and-data-sources)
-- [16. Research Status and Limitations](#16-research-status-and-limitations)
-- [17. License](#17-license)
-- [18. Disclaimer](#18-disclaimer)
+> **Scope.** This is not a historical BIST-100 study. The accepted experiment is named `fixed_bist_large_cap_prototype` and contains GARAN, ISCTR, KCHOL and THYAO. [`docs/component_status.yaml`](docs/component_status.yaml) is the machine-readable boundary between what is implemented, what is integrated, and what has empirical evidence behind it.
 
 ---
 
-## 1. Research Problem
+## Contents
 
-For ticker $i$ and feature date $t$, the accepted study uses only information available after the official close of session $t$. The signal is generated after that close, execution occurs at the observed open of the next session $t+1$, and the position is marked or exited at that session's official close:
-
-$$
-r_{i,t+1}^{\mathrm{exec}}
-=
-\frac{C_{i,t+1}^{\mathrm{raw}}}{O_{i,t+1}^{\mathrm{raw}}}-1,
-\qquad
-y_{i,t+1}=\mathbb{1}\!\left\{r_{i,t+1}^{\mathrm{exec}}>0\right\}.
-$$
-
-Every panel row stores `feature_available_at`, `signal_generated_at`, `execution_timestamp`, `target_start`, and `target_end`, and enforces
-
-$$
-\texttt{feature\_available\_at}
-<
-\texttt{execution\_timestamp}
-\leq
-\texttt{target\_start}
-<
-\texttt{target\_end}.
-$$
-
-This target is deliberately narrower than a generic next-day forecast: it is the return the backtest can actually earn under its stated timing. Internally, returns are decimal fractions; multiplication by 100 occurs only in reports.
-
-The current research question is therefore:
-
-> Do scale-normalized price and volume features provide out-of-sample information for next-session open-to-close returns in this fixed prototype, after chronological validation and explicit transaction costs?
+[1. Introduction](#1-introduction) · [2. Related work](#2-related-work) · [3. Data](#3-data) · [4. Method](#4-method) · [5. Results](#5-results) · [6. Discussion](#6-discussion) · [7. Limitations](#7-limitations) · [8. Conclusion](#8-conclusion) · [Reproducing](#reproducing) · [Repository layout](#repository-layout) · [References](#references)
 
 ---
 
-## 2. System Architecture
+## 1. Introduction
 
-The accepted path is intentionally small and evidence-driven.
+A short-horizon equity forecasting result is easy to manufacture and hard to verify. The standard failure modes are well catalogued: a target the backtest could not actually have traded, a validation split that lets a model see its own future, a metric whose null is never stated, a p-value computed on rows that are not independent, and a headline drawn from whichever configuration happened to look best. Each of these inflates apparent performance without leaving an obvious trace in the code.
 
-```mermaid
-flowchart TD
-    A[Provider bars + provenance] --> B[Calendar and action validation]
-    B --> C[Canonical date-ticker panel]
-    C --> D[Immutable feature manifest]
-    D --> E[Date-grouped purged folds]
-    E --> F[Seven common-fold baselines]
-    F --> G[Immutable OOS predictions]
-    G --> H[Metrics recomputation]
-    G --> I[Long-only top-k decisions]
-    I --> J[Signals, orders, fills]
-    J --> K[Positions, cash, costs, equity]
-    K --> L[Run manifests and artifact hashes]
-```
+This repository is built the other way around. The question is not *can a model be found that beats the benchmark*, but *if such a model existed, would this apparatus detect it, and does it*. Four commitments follow.
 
-### 2.1 Evidence Boundary
+**The target is executable.** The label is the return the simulated portfolio can actually earn under its own stated timing: signal after the close of session $t$, execution at the observed open of session $t+1$, exit at that session's official close. Nothing is predicted that could not have been traded.
 
-| Status | Components |
-|---|---|
-| Accepted and evaluated | Canonical panel, immutable feature manifest, stationary pooled features, official-calendar validation, executable target, date-grouped purged folds, seven baselines, saved OOS predictions, event-ledger backtest, immutable run replay. |
-| Implemented but outside the accepted experiment | Bounded XGBoost/LightGBM search, strict chronological stacking and calibration, Rust indicators and benchmark, provider reconciliation. |
-| Experimental legacy surface | Macro features, sentiment collection, Kalman/OU/GARCH/HMM/wavelet/cointegration features, LSTM, Transformer, model registry, legacy `train`, `signals`, `pipeline`, and `backtest` commands. |
-| Not implemented | Point-in-time historical BIST-100 membership and sentiment scoring. |
+**The evaluation respects the panel's structure.** Folds are expanding windows over unique trading dates, never row offsets, with purge and embargo. All tickers on one date stay in the same partition. Preprocessing is fitted on training rows only.
 
-Components outside the accepted path are never silently converted to zero-valued input columns. They remain available for research, but their existence is not presented as evidence of predictive value.
+**The sample size is measured rather than assumed.** Four tickers observed on the same session are not four independent observations. Section 5.1 quantifies this and Section 4.4 states what is done about it.
+
+**The search is counted.** Every arbitrary choice in the design — how many training dates, how wide a validation window, how large an embargo, how many names to hold — is swept, and the reported configuration is placed inside the resulting distribution rather than presented as *the* result.
+
+The outcome is negative and is retained because methodological validity, not model novelty, is the acceptance criterion. A negative result delivered with the machinery that would have found a positive one is a stronger statement than a positive result delivered without it.
 
 ---
 
-## 3. Data and Storage Model
+## 2. Related work
 
-### 3.1 Accepted Input Contract
+**Forecast comparison.** Diebold and Mariano [1] give the standard test of equal predictive accuracy between two forecasts; Harvey, Leybourne and Newbold [2] show that the statistic is oversized in small samples and supply the correction used here. Diebold [3] later cautioned that the test compares *forecasts*, not the models that produced them, which is the interpretation adopted below.
 
-The committed provider-backed run contains 1,004 rows for four tickers from 2025-04-07 through 2026-04-03. Every execution open and volume observation is marked `observed`; proxy opens are rejected.
+**Data snooping.** White [4] shows that selecting the best of $m$ models and testing that model alone is invalid, and gives a bootstrap Reality Check for the joint null. Hansen [5] studentizes the statistic and recentres the bootstrap, gaining power and robustness to irrelevant alternatives. Sullivan, Timmermann and White [6] apply the Reality Check to a century of technical trading rules and find that the apparent performance of the best rule largely disappears once the size of the search is accounted for. That result is the direct template for Section 5.3.
 
-The canonical provider record distinguishes:
+**Dependent-data resampling.** Politis and Romano [7] introduce the stationary bootstrap, whose geometric block lengths preserve stationarity in the resampled series. Politis and White [8], corrected by Patton, Politis and White [9], give the automatic block-length rule used here, removing one arbitrary choice from the procedure.
+
+**Backtest overfitting.** Lo [10] derives the sampling distribution of the Sharpe ratio and shows that the square-root annualisation rule is wrong under autocorrelation. Bailey and López de Prado [11] convert the Sharpe ratio into a probability that accounts for skewness and kurtosis, and [12] deflate it by the number of configurations tried, via the False Strategy Theorem. Bailey, Borwein, López de Prado and Zhu [13] show how quickly an unrecorded search produces a spurious backtest. Harvey, Liu and Zhu [14] make the same argument for the cross-section of expected returns: with hundreds of published factors, the conventional $t > 2$ hurdle is far too low.
+
+**Costs.** Novy-Marx and Velikov [15] document that a large share of published anomalies do not survive realistic trading costs. Section 5.4 reproduces that pattern in miniature: the strategy's gross edge is real and its net edge is not.
+
+**Validation for financial panels.** López de Prado [16] sets out purged and embargoed cross-validation for overlapping financial labels, which is the protocol implemented in `research/splits.py`.
+
+**Borsa Istanbul.** Kara, Boyacıoğlu and Baykan [17] report high directional accuracy for neural networks and support vector machines on the Istanbul Stock Exchange index. That study, like most in the genre, reports directional accuracy on an index level without transaction costs, without a stated null, and without a correction for the number of specifications examined. The present work does not contradict it; it measures a different, harder quantity on a different universe, and reports what survives when those three things are supplied.
+
+---
+
+## 3. Data
+
+### 3.1 Provenance
+
+The committed run contains 1,004 provider rows for four tickers from 2025-04-07 to 2026-04-03. Every execution open and every volume observation is flagged `observed`; proxy opens are rejected outright, because a proxy open cannot be traded at.
+
+Each record carries provider name, provider symbol, source record identifier, retrieval timestamp, and separate `open_quality` and `volume_quality` flags. The canonical record keeps four distinct price representations, which are not interchangeable:
 
 | Representation | Research use |
 |---|---|
-| Raw tradable OHLCV | Orders, fills, and portfolio marking. |
-| Split-adjusted OHLCV | Stationary technical features where continuity is required. |
-| Total-return prices | Economic labels where distributions must be recognized. |
-| Corporate-action events | Splits, bonus issues, rights issues, cash dividends, ticker changes, and delistings where sourced. |
+| Raw tradable OHLCV | Orders, fills, and portfolio marking |
+| Split-adjusted OHLCV | Stationary technical features where continuity is required |
+| Total-return prices | Economic labels where distributions must be recognised |
+| Corporate-action events | Splits, bonus issues, rights issues, cash dividends, ticker changes, delistings |
 
-The accepted label is the tradable same-session raw open-to-close return. It begins after effective-open actions and ends before the next session, so it carries no overnight distribution entitlement; total-return fields remain explicit for any future target interval that does.
+The İş Yatırım weighted-average price is represented as a proxy and is barred from next-open execution research. The raw Yahoo collector does not construct every required representation, so the committed run enters through a separately validated, provenance-bearing snapshot rather than pretending that collector output is directly accepted.
 
-Each row retains provider name, provider symbol, source record identifier, retrieval time, `open_quality`, and `volume_quality`. The Is Yatirim weighted-average price is represented as a proxy and cannot enter next-open execution research. Partial provider gaps can be repaired by the reconciliation layer. The raw Yahoo client does not construct all accepted price representations; the committed run therefore enters through a separately validated, provenance-bearing snapshot rather than pretending that collector output is directly accepted or that a multi-provider merge was empirically validated.
+### 3.2 Calendar and corporate actions
 
-### 3.2 Calendar and Corporate Actions
+The runner validates expected sessions, duplicates, weekend rows, holidays, timezone, and full-day and half-day open/close timestamps against the committed Borsa Istanbul schedule. The input bundle carries five sourced cash-dividend events and a per-ticker corporate-action query-coverage artifact, so "no action" is an assertion with a source rather than an absence of data.
 
-The accepted runner validates expected sessions, duplicates, weekend rows, holidays, timezone, and full-day or half-day open/close timestamps against the committed Borsa Istanbul schedule. Its input bundle includes five sourced cash-dividend events and a per-ticker corporate-action query-coverage artifact.
+The execution ledger credits dividends to entitled shares, adjusts quantity and basis for splits and bonus issues, remaps ticker changes, and cash-settles delistings only when a sourced settlement price exists. Rights issues fail closed without an explicit exercise policy. Because the accepted strategy holds for one session and carries no overnight entitlement, its five dividend events are persisted as `no_entitlement` rather than invented income. A synthetic two-for-one split verifies that a nominal price move from 100 to 50 does not become a false 50% economic loss.
 
-The execution ledger credits cash dividends to entitled shares, adjusts quantities and basis for splits and bonus issues, remaps ticker changes, and cash-settles delistings only when a sourced settlement price exists. Rights issues fail closed without an explicit exercise policy. The one-session accepted strategy carries no overnight entitlement, so its five dividend events are persisted as `no_entitlement`, not as invented income. A synthetic two-for-one split verifies that a nominal price change from 100 to 50 does not become a false $-50\%$ economic return.
+### 3.3 Caveats
 
-### 3.3 Immutable Run Bundle
-
-Every accepted run is written under `runs/<run_id>/` and includes:
-
-```text
-config.yaml                 run_manifest.json
-data_manifest.json          universe_manifest.json
-feature_manifest.json       folds.json
-feature_lineage.parquet     missingness.parquet
-feature_artifacts/          model_artifact.json
-trials.jsonl                predictions.parquet
-metrics.json                environment.json
-artifact_hashes.json        input_prices.parquet
-official_calendar.parquet   corporate_actions.parquet
-corporate_action_coverage.parquet
-panel.parquet               sample_metadata.parquet
-signals.parquet             orders.parquet
-fills.parquet               positions.parquet
-cash_ledger.parquet         costs.parquet
-daily_equity.parquet        corporate_action_ledger.parquet
-```
-
-Run identifiers combine a UTC timestamp, short Git SHA, and configuration hash. Recursive hashes freeze every original artifact, including environment provenance. Replay rebuilds from bundled inputs and requires byte-identical scientific artifacts; the replay machine's environment record is allowed to differ from the immutable original provenance.
+Free public sources change availability and schema without notice. Committed inputs and recursive artifact hashes isolate reproducibility from that. The universe is fixed by construction and is therefore free of survivorship bias within its own definition, but it is *not* a point-in-time index membership and no claim about BIST-100 is made anywhere in this document.
 
 ---
 
-## 4. Feature Construction
+## 4. Method
 
-The accepted pooled model uses a typed `FeatureManifest` with schema version, ordered names, formulas and formula versions, lookbacks, availability rules, missing-value policies, normalization policies, and a content hash. Training and inference reject missing features, unknown features, changed order, and hash mismatches. Equal column count is not schema compatibility.
+### 4.1 Executable target
 
-### 4.1 Accepted Feature Families
+For ticker $i$ and feature date $t$, only information available after the official close of session $t$ is used. Write $O$ and $C$ for the raw tradable open and close:
 
-| Family | Accepted features |
+$$r_{i,t+1}^{\mathrm{exec}} = \frac{C_{i,t+1}}{O_{i,t+1}} - 1, \qquad y_{i,t+1} = \mathbb{1} \lbrace r_{i,t+1}^{\mathrm{exec}} > 0 \rbrace .$$
+
+Every panel row stores `feature_available_at`, `signal_generated_at`, `execution_timestamp`, `target_start` and `target_end`, and the chronology below is enforced as an invariant rather than assumed:
+
+$$t_{\mathrm{feature}} < t_{\mathrm{execution}} \leq t_{\mathrm{target start}} < t_{\mathrm{target end}} .$$
+
+This target is deliberately narrower than a generic next-day forecast. It is the return the backtest can earn under its own timing, which makes the forecasting problem harder and the backtest honest.
+
+### 4.2 Features
+
+The pooled model uses a typed feature manifest with a schema version, ordered names, formulas and formula versions, lookbacks, availability rules, missing-value policies, normalisation policies, and a content hash. Training and inference reject missing features, unknown features, changed ordering, and hash mismatches. Equal column count is not schema compatibility.
+
+| Family | Features |
 |---|---|
 | Returns | `log_return_1d`, `log_return_5d`, `log_return_20d` |
 | Trend and volatility | `close_over_sma20_minus_1`, `sma20_over_sma100_minus_1`, `atr14_over_close`, `realized_volatility_20`, `drawdown_20` |
 | Intraday and volume | `vwap20_over_close_minus_1`, `log_volume`, `volume_zscore_20`, `intraday_range_over_close`, `overnight_gap` |
 | Cross-sectional context | `cross_sectional_return_rank`, `market_relative_return_20d` |
-| Calendar encoding | `day_of_week_sin/cos`, `month_sin/cos` |
+| Calendar | `day_of_week_sin/cos`, `month_sin/cos` |
 
-Raw close, moving-average levels, absolute ATR, raw VWAP, raw volume, and OBV are excluded from the pooled accepted feature set because nominal scale can act as accidental ticker identification.
+Raw close, moving-average levels, absolute ATR, raw VWAP, raw volume and OBV are excluded from the pooled feature set: in a pooled model, nominal price scale acts as accidental ticker identification. Missing values retain an explicit reason (`missing observation`, `insufficient lookback`, `calculation failure`, `not applicable`, `stale source`); economic zeros stay zeros.
 
-### 4.2 Availability and Missingness
+### 4.3 Validation protocol
 
-Feature generation retrieves the maximum configured lookback plus the target horizon and fails when there is insufficient history. Every enabled feature must become observable on at least one eligible sample.
+Folds are expanding windows over unique trading dates. A training date group is purged when any of its samples has a feature timestamp or a target end that reaches the first validation feature timestamp, so for every fold $k$:
 
-Missing values retain an explicit reason:
+$$\max_{j \in \mathrm{train}(k)} t^{\mathrm{target end}}_{j} < \min_{j \in \mathrm{val}(k)} t^{\mathrm{feature}}_{j} .$$
 
-```text
-missing observation | insufficient lookback | calculation failure
-not applicable | stale source
-```
+The committed run uses 24 minimum training dates, 10 validation dates, a 10-date step, a one-date embargo, and produces 12 folds. Figure 1 draws the partition that was actually executed, read from `folds.json`.
 
-Economic zeros remain zeros. Tree estimators may retain native missing values; logistic and ridge models fit imputation and scaling on the training partition only. Missingness reports are grouped by feature, ticker, date, source, and fold. Future-perturbation and preprocessor-isolation tests guard the point-in-time boundary.
+![Walk-forward partition](docs/figures/fig01_fold_geometry.png)
 
-### 4.3 Feature Lineage
+**Figure 1.** The executed date-grouped expanding-window partition. Nothing here is illustrative: each bar spans the dates the fold really used.
 
-Generated feature artifacts record the feature-manifest hash, Git commit, input-data-manifest hash, calculation timestamp, code version, ticker, and date range. Existing versions are content-addressed rather than overwritten in place.
+### 4.4 Effective sample size and the unit of inference
 
----
+Four tickers observed on the same session share market-wide shocks. For $k$ units with average pairwise correlation $\bar\rho$, the variance of a cross-sectional mean is inflated by
 
-## 5. Experimental Quantitative Modules
+$$\mathrm{VIF} = 1 + (k-1) \bar\rho, \qquad n_{\mathrm{eff}} = \frac{n}{\mathrm{VIF}} .$$
 
-The repository contains implementations of Kalman trend filters, Ornstein-Uhlenbeck mean reversion, GARCH volatility, HMM regimes, momentum and factor features, wavelets, cointegration, Kelly sizing, and other risk utilities. These modules are not part of the accepted benchmark because no common-fold experiment has established incremental value.
+Rather than apply a correction factor after the fact, the evaluation changes the unit of inference: every loss differential is averaged across the tickers present on a date, and all tests are run on the resulting one-value-per-session series. The row-level statistics are computed anyway and reported alongside, so the size of the inflation is visible rather than argued about.
 
-| Family | Implemented | Accepted feature input | Empirically accepted |
-|---|---:|---:|---:|
-| Kalman, OU, GARCH, HMM | Partial/yes | No | No |
-| Wavelets and cointegration | Yes | No | No |
-| Macro features | Partial | No | No |
-| Sentiment collection | Partial | No | No |
-| Sentiment scoring | No | No | No |
-| Kelly sizing | Yes | No | No |
+### 4.5 Estimators
 
-This boundary is intentional: a formula or passing construction test does not establish a research result.
+Seven forecasters share the same panel, target, folds, feature manifest, evaluation dates and train-only preprocessing.
 
----
-
-## 6. Learning Algorithms
-
-### 6.1 Accepted Baselines
-
-All accepted models use the same panel, target, folds, feature manifest, evaluation dates, and train-only preprocessing.
-
-| Baseline | Role |
+| Model | Role |
 |---|---|
-| Zero return | Regression null and zero-mean $R^2$ reference. |
-| Majority direction | Training-fold class-frequency null. |
-| Previous return | One-session persistence heuristic. |
-| Market direction | Same-date cross-sectional context baseline. |
-| Rolling mean | Training-history return estimate. |
-| Logistic regression | Regularized linear direction model. |
-| Ridge regression | Regularized linear return model and accepted portfolio ranking model. |
+| `zero_return` | Regression null and the reference for zero-mean out-of-sample $R^2$ |
+| `majority_direction` | Training-fold class-frequency null |
+| `previous_return` | One-session persistence heuristic |
+| `market_direction` | Same-date cross-sectional context baseline |
+| `rolling_mean` | Training-history mean return |
+| `logistic` | Regularised linear direction model |
+| `ridge` | Regularised linear return model; also the portfolio ranking model |
 
-Every OOS row records date, ticker, fold ID, model name/version, training end, feature-manifest hash, target, prediction, predicted probability, and predicted return. Metrics are recomputed from this file rather than copied from training logs. The model artifact also stores each fold's ordered features, train-only imputation and scaling state, fitted logistic/ridge parameters, deterministic baseline rule state, training boundary, and version.
+The primary accuracy metric is the zero-mean out-of-sample $R^2$, which compares squared error against a zero forecast rather than against the realised sample mean:
 
-### 6.2 Nonlinear and Neural Models
+$$R^2_{0} = 1 - \frac{\sum_{i,t} (r_{i,t} - \hat r_{i,t})^2}{\sum_{i,t} r_{i,t}^2} .$$
 
-XGBoost and LightGBM have bounded search utilities with validation-based early stopping, best-iteration recording, declared trials, multiple seeds, and immutable trial manifests. They are not included in the accepted provider-backed result.
+The sample-mean version is the wrong choice here. Its benchmark uses the mean of the evaluation window, which is not available at prediction time, so it flatters any model that merely learns the window's drift.
 
-The LSTM and Transformer implementations remain experimental. They are disabled in the accepted pipeline until sequence alignment, training-only scaling, checkpoint restoration, deterministic validation, and common-fold incremental value are all demonstrated. Their presence does not make the benchmark more credible than the baselines.
+### 4.6 Tests
+
+**Equal predictive accuracy.** With squared-error loss and session-aggregated differentials $d_t = L_t(\mathrm{model}) - L_t(\mathrm{null})$, the statistic is the Diebold-Mariano ratio rescaled by Harvey, Leybourne and Newbold and referred to a Student $t$ distribution on $n-1$ degrees of freedom:
+
+$$DM = \frac{\bar d}{\sqrt{\hat\Omega / n}}, \qquad DM^{\ast} = DM \sqrt{\frac{n + 1 - 2h + h(h-1)/n}{n}} .$$
+
+Here $\hat\Omega$ is the Bartlett long-run variance and $h = 1$ is the forecast horizon. **The sign convention matters and is reported with every test:** $d_t$ is the model's loss minus the null's loss, so a *positive* statistic means the model is worse. A table of small p-values here is a table of defeats, not of discoveries.
+
+**Family-wise control.** Six models are tested against the same null on the same data, so the probability that at least one clears $p < 0.05$ by chance is $1 - 0.95^6 \approx 0.265$. Holm's step-down procedure [18] controls the family-wise error rate without assuming independence between the tests.
+
+**Data snooping.** Testing the best of six models is not the same as testing six models. With relative performance $Z_{k,t} = L_t(\mathrm{null}) - L_t(\mathrm{model}\ k)$, White's Reality Check statistic and Hansen's studentized version are
+
+$$V_n = \max_k \sqrt{n} \cdot \bar Z_k, \qquad T_n = \max \left[ 0, \max_k \frac{\sqrt{n} \cdot \bar Z_k}{\hat\omega_k} \right] .$$
+
+Their null distributions are obtained from a stationary bootstrap that resamples every model on the same index draw, preserving cross-model dependence, with the block length chosen automatically. Hansen's three recentrings are all reported, since they bracket the p-value.
+
+**Sharpe ratio under search.** For per-period Sharpe $\hat{SR}$ with skewness $\hat\gamma_3$ and kurtosis $\hat\gamma_4$, the probabilistic Sharpe ratio is
+
+$$\widehat{PSR}(SR^{\ast}) = \Phi \left[ \frac{(\hat{SR} - SR^{\ast}) \sqrt{n-1}}{\sqrt{1 - \hat\gamma_3 \hat{SR} + \frac{\hat\gamma_4 - 1}{4} \hat{SR}^2}} \right] ,$$
+
+and the deflated Sharpe ratio evaluates it at the threshold the best of $N$ skill-free trials would be expected to reach:
+
+$$SR^{\ast}_0 = \sqrt{V[\hat{SR}]} \left[ (1 - \gamma) \Phi^{-1} \left( 1 - \tfrac{1}{N} \right) + \gamma \cdot \Phi^{-1} \left( 1 - \tfrac{1}{N e} \right) \right] ,$$
+
+with $\gamma$ the Euler-Mascheroni constant. Both $\hat{SR}$ and $SR^{\ast}$ are per period; substituting an annualised value inflates the result silently. Lo's autocorrelation-aware annualisation factor is reported next to the square-root rule:
+
+$$\hat\eta(q) = \frac{q}{\sqrt{q + 2 \sum_{k=1}^{m} (q-k) \hat\rho_k}} .$$
+
+The sum runs to $q-1$ in the population, but 120 sessions cannot estimate 251 autocorrelations; lags are truncated at the Newey-West bandwidth [19, 20] and higher lags treated as zero.
+
+### 4.7 Portfolio simulation
+
+Long-only, top-$k$ by predicted return, equal weights, next-open execution at observed prices, one-session holding. A name is bought only when its predicted return net of the declared decision-cost assumption is positive:
+
+$$\hat r^{\mathrm{net}}_{i,t+1} = \hat r_{i,t+1} - \widehat{\mathrm{cost}}_{i,t+1} .$$
+
+Participation caps and market impact use a 20-session trailing volume reference whose last observation is no later than the signal date; execution-session volume is never available at the open. The ledger runs signals, orders, fills, positions, cash and costs as separate artifacts, and enforces
+
+$$E_T = E_0 + \mathrm{PnL}_{\mathrm{gross}} + \mathrm{distributions} - \mathrm{costs} .$$
+
+Cost sensitivity reuses the *same* trading decisions across multipliers, so only the bill moves; increasing costs cannot improve net performance, and that is asserted as an invariant.
 
 ---
 
-## 7. Calibration, Stacking, and Decision Rule
+## 5. Results
 
-Strict chronological stacking and calibration are implemented and invariant-tested, but they are outside the accepted provider-backed run.
+### 5.1 The panel carries fewer observations than it has rows
 
-For a stacker row, the repository persists row ID, base model, base-model training end, OOF fold ID, and prediction timestamp. A base model cannot generate a meta-feature for a row it trained on. Calibration uses a later, separate interval and reports Brier score, log loss, expected calibration error, slope, intercept, and reliability buckets on a final test block.
+![Effective sample size](docs/figures/fig02_effective_sample_size.png)
 
-Raw model scores are not called confidence. The accepted portfolio decision is based on predicted net return after the declared decision-cost assumption:
+**Figure 2.** Realised correlation of the executable target across the four tickers, and the sample size it implies.
 
-$$
-\hat r^{\mathrm{net}}_{i,t+1}
-=
-\hat r_{i,t+1}
--
-\widehat{\mathrm{cost}}_{i,t+1}.
-$$
+The four tickers correlate at 0.570 on average within a session, ranging from 0.46 (GARAN-THYAO) to 0.83 (GARAN-ISCTR) — two large banks moving together, as expected. The 480 out-of-sample rows spread over 120 evaluation sessions therefore carry about 177 independent observations. Standard errors computed as though the rows were independent are too small by a factor of 1.65, and p-values are correspondingly too small. Section 5.2 shows what that does in practice.
 
-On each signal date, eligible stocks with positive expected net return are ranked; at most the top $k=3$ receive equal long-only weights. The legacy `BUY`/`SELL` probability tiers and their arbitrary thresholds are not accepted research decisions.
+### 5.2 No fitted model reaches the null, and four are significantly worse
 
----
+![Out-of-sample R-squared](docs/figures/fig03_out_of_sample_r_squared.png)
 
-## 8. Evaluation Protocol
+**Figure 3.** Zero-mean out-of-sample $R^2$ by model. The null is exactly zero by construction.
 
-### 8.1 Date-Grouped Walk-Forward Validation
+![Equal predictive accuracy](docs/figures/fig04_equal_accuracy_tests.png)
 
-Folds are expanding windows over unique trading dates, never row offsets. All tickers on one date remain in the same partition. The committed run uses 24 minimum training dates, 10 validation dates, a 10-date step, one embargo date, and 12 folds.
+**Figure 4.** Diebold-Mariano statistics against the zero-return null, and the same tests under two sample-size assumptions.
 
-For every fold $k$:
+Every fitted model has negative out-of-sample $R^2$. Under Holm correction, 4 of the six fitted models are significantly worse than the null and 0 are significantly better; `logistic` and `rolling_mean` are indistinguishable from it. This is a stronger negative statement than "no model beat the benchmark": several models are reliably *worse* than predicting zero, which is what fitting a linear model to a signal-free panel produces.
 
-$$
-\max(\text{train target end})
-<
-\min(\text{validation feature time}).
-$$
+The right panel of Figure 4 is the effective-sample-size problem made concrete. The same six tests on the same data give p-values a median factor of 52 smaller when the 480 panel rows are treated as independent draws. At row level, `logistic` reaches $p = 0.0015$; at session level it is 0.0541 and does not survive correction. Nothing about the data changed — only the claim about how much of it is independent.
 
-Invariant tests additionally prove that ticker ordering and row ordering cannot change fold membership, dates cannot appear in both partitions, all tickers share date boundaries, future raw-data changes cannot alter past features, and validation extremes cannot change training preprocessors.
+### 5.3 Nothing survives the search correction
 
-### 8.2 Portfolio Simulation
+![Reality Check](docs/figures/fig05_reality_check.png)
 
-The initial strategy is intentionally simple: long-only, top-$k$ predicted returns, equal weighting, next-open observed-price execution, and a one-session holding period. Participation caps and market impact use a 20-session trailing volume reference whose final observation is no later than the signal date; full execution-session volume is never used at the open. Its event sequence is:
+**Figure 5.** The best of six models placed inside its own bootstrap null distribution.
 
-1. Persist after-close predictions.
-2. Apply universe and eligibility rules.
-3. Convert positive expected net returns to target weights.
-4. Submit next-open orders.
-5. Reject unavailable or proxy opens.
-6. Apply participation and liquidity limits.
-7. Calculate fills.
-8. Apply commission, spread, slippage, impact, and configured taxes.
-9. Update positions and cash without allowing negative cash.
-10. Mark the portfolio at the official close.
-11. Process corporate actions under the declared entitlement policy.
-12. Persist the complete ledger.
+Figure 5 is the argument of Section 4.6 in one picture. The null distribution is centred *above* zero, because it is the distribution of a maximum over six candidates: that offset is the data-snooping correction made visible. The observed maximum is negative, so the best candidate loses to the null before any correction is applied. White's Reality Check gives p = 0.9970; Hansen's SPA gives $p = 0.6891$ under the consistent recentring, 0.6891 under the lower bound and 1.0000 under the upper bound. The joint null that no candidate beats the zero-return benchmark is nowhere near rejection.
 
-Accounting enforces
+![Configuration search](docs/figures/fig08_configuration_search.png)
 
-$$
-E_T
-=
-E_0 + \mathrm{gross\ PnL} + \mathrm{distributions} - \mathrm{transaction\ costs}.
-$$
+**Figure 6.** Every configuration in the 72-configuration grid, against the Sharpe ratio that skill-free search alone would be expected to produce.
 
-The same signal decisions are reused across cost sensitivity cases. Increasing costs cannot improve net performance, and a no-position strategy has zero gross return, turnover, cost, and net return.
+The grid varies the minimum training window (24, 36, 48 dates), the validation width and step (5, 10, 20), the embargo (1, 2) and the portfolio breadth (1 to 4 names). Each point is a complete re-run of the evaluation. Only 5.56% of those configurations produced a positive net return. The reported configuration ranks 16th of 72 by Sharpe ratio, so it is neither cherry-picked nor unusually unlucky. The grid maximum reaches a per-session Sharpe ratio of 0.0356, against a threshold of 0.1267 that the best of 72 skill-free configurations would be expected to reach — the grid maximum does not even reach the bar that pure luck sets.
 
-### 8.3 Metrics
+The single most compact statement of the result is this: across all 72 configurations, the zero-return null had the best out-of-sample R-squared in 72 of 72.
 
-Prediction reports include MAE, RMSE, zero-mean $R^2$, Pearson and Spearman IC, directional and balanced accuracy, log loss, Brier score, PR-AUC, and MCC. Portfolio reports include gross/net/annualized return, volatility, Sharpe, Sortino, maximum drawdown, Calmar, turnover, trade count, hit rate, holding period, exposures, concentration, cost decomposition, benchmark-relative return, information ratio, and seeded block-bootstrap intervals.
+### 5.4 Costs, not signal, decide the outcome
 
-Prediction results are grouped by fold, year, ticker, liquidity bucket, and market regime. Ledger-derived portfolio PnL, cost components, turnover, trades, and exposure reconcile across the same available dimensions. Sector slices remain explicitly unavailable because the accepted input contains no sourced sector taxonomy.
+![Equity curve](docs/figures/fig06_equity_curve.png)
 
-### 8.4 Committed Experiment
+**Figure 7.** Gross and net equity against the equal-weight eligible universe.
 
-The following block is generated from the immutable run artifacts by `bist_predict.research.readme_results`.
+![Cost sensitivity](docs/figures/fig07_cost_sensitivity.png)
+
+**Figure 8.** Fixed trading decisions under three cost multipliers.
+
+The strategy earns a gross return of 7.77% and loses 4.77% of its capital after costs, on 123.7x turnover and TRY 12,404 of modelled cost, giving an annualised Sharpe ratio of -0.4513. Breakeven sits at 0.62x the modelled cost schedule, comfortably below what an actual desk would pay. This reproduces Novy-Marx and Velikov's finding [15] at small scale: the gross edge is real and the net edge is not.
+
+Figure 7 also shows something the return statistics hide. The flat stretches are sessions in which no eligible name had a positive expected net return, so the strategy held nothing. It carries risk on only 62 of 120 sessions. Any figure annualised as though the capital were continuously deployed — including the annualised return and Sharpe ratio quoted below — therefore overstates the deployment, and is reported here only because it is the convention.
+
+### 5.5 The conclusion does not depend on the arbitrary choices
+
+![Block length sensitivity](docs/figures/fig09_block_length_sensitivity.png)
+
+**Figure 9.** The 95% bootstrap interval for annualised return, repeated across seven block lengths.
+
+A bootstrap block length is an arbitrary choice, so all seven are reported. Every interval contains zero and their widths vary by about ten percentage points out of ninety. The interval is a statement about the data, not about the block length.
+
+### 5.6 Committed run
+
+The block below is generated from the immutable run artifacts by `bist_predict.research.readme_results`; `make verify-claims` regenerates it and fails if the document has drifted.
 
 <!-- ACCEPTED_RESULTS:START -->
 ### Accepted run provenance
 
 | Field | Value |
 |---|---|
-| Run | `20260714T151522Z-a877480-ff7b60` |
-| Git commit | `a87748044b1c` (clean working tree recorded) |
+| Run | `20260728T223101Z-8b27df3-2a71b8` |
+| Git commit | `8b27df39d1d0` (clean working tree recorded) |
 | Dataset | `fixed_bist_large_cap_prototype-150d24cf4251` |
 | Scope | `fixed_bist_large_cap_prototype` |
 | Tickers | GARAN, ISCTR, KCHOL, THYAO |
@@ -349,269 +309,263 @@ The following block is generated from the immutable run artifacts by `bist_predi
 ### Negative results and evidence limits
 
 - No evaluated model achieved positive zero-mean R-squared; the best observed value was 0.0000 for `zero_return`.
-- The 95% block-bootstrap interval for annualized return spans zero (-41.19% to 37.06%).
+- The 95% block-bootstrap interval for annualized return spans zero (-45.55% to 50.44%).
 - No relevant BIST index benchmark was available in the accepted input dataset; the report therefore does not claim index-relative performance.
 - Net return did not improve as modeled transaction costs increased (7.7671% to -15.8890%).
+- Same-session rows correlate at 0.570, so the 480 out-of-sample rows carry about 177 independent observations, not 480.
+- No model beats the zero-return null on squared error after Holm correction (0 of 6 favour the model); 4 models are significantly worse than it: `majority_direction`, `market_direction`, `previous_return`, `ridge`.
+- Hansen's test of superior predictive ability does not reject the null that no candidate beats the zero-return benchmark (p = 0.6891, consistent recentring).
+- The strategy's deflated Sharpe ratio is 0.0452 against a search threshold of 0.1267 per session across 72 configurations.
+- Across the 72-configuration grid, 5.56% of configurations produced a positive net return, and the zero-return null had the best out-of-sample R-squared in 72 of 72.
 <!-- ACCEPTED_RESULTS:END -->
 
-### 8.5 Methods-to-Code Traceability
+### 5.7 Inference
 
-| Method | Implementation | Invariant test | Artifact |
-|---|---|---|---|
-| Fixed experiment scope | `research/accepted_benchmark.py` | accepted benchmark E2E | `universe_manifest.json` |
-| Official sessions | `ingest/calendar.py` | calendar validity | `official_calendar.parquet` |
-| Corporate actions | `research/portfolio_backtest.py` | entitlement and transition tests | `corporate_action_ledger.parquet` |
-| Canonical panel and target | `research/panel.py` | chronology and alignment | `panel.parquet` |
-| Immutable feature identity and lineage | `features/manifest.py`, `features/lineage.py` | schema identity and content addressing | `feature_manifest.json`, `feature_lineage.parquet` |
-| Fold-aware missingness | `research/missingness.py` | reason and partition validation | `missingness.parquet` |
-| Date-grouped purged CV | `research/splits.py` | ordering invariance and purge | `folds.json` |
-| Common-fold baselines | `research/baselines.py` | preprocessing isolation and state reconstruction | `predictions.parquet`, `model_artifact.json` |
-| Event-ledger backtest | `research/portfolio_backtest.py` | accounting and cost monotonicity | `fills.parquet`, `cash_ledger.parquet` |
-| Grouped portfolio attribution | `research/reporting.py` | ledger reconciliation | `metrics.json` |
-| Portable scientific replay | `research/run_artifacts.py` | artifact round trip and environment-drift replay | `artifact_hashes.json`, `environment.json` |
-| Prediction maturation | `research/prediction_tracking.py` | create-only lifecycle | frozen outcome store |
+<!-- INFERENCE:START -->
+### Effective sample size
+
+| Quantity | Value |
+|---|---:|
+| Panel units | 4 |
+| Evaluated sessions | 120 |
+| Out-of-sample rows | 480 |
+| Mean within-session correlation | 0.5697 |
+| Variance inflation factor | 2.7090 |
+| Effective independent rows | 177.2 |
+
+### Equal predictive accuracy against the zero-return null
+
+Squared-error loss, Diebold-Mariano with the Harvey-Leybourne-Newbold
+correction. The differential is `loss(model) - loss(null)`, so a positive
+statistic means the model loses to the null.
+
+| Model | DM statistic | p | Holm-adjusted p | Verdict | Row-level p |
+|---|---:|---:|---:|---|---:|
+| logistic | +1.945 | 0.0541 | 0.1081 | indistinguishable | 0.0015 |
+| majority_direction | +5.334 | 0.0000 | 0.0000 | loses to the null | 0.0000 |
+| market_direction | +3.824 | 0.0002 | 0.0008 | loses to the null | 0.0000 |
+| previous_return | +4.707 | 0.0000 | 0.0000 | loses to the null | 0.0000 |
+| ridge | +3.334 | 0.0011 | 0.0034 | loses to the null | 0.0000 |
+| rolling_mean | +1.642 | 0.1031 | 0.1081 | indistinguishable | 0.0103 |
+
+Holm rejects the null of equal accuracy for 4 of 6 models; 0 of those rejections favour the model.
+
+### Data snooping across the model family
+
+| Test | Statistic | p |
+|---|---:|---:|
+| White Reality Check | -0.000268 | 0.9970 |
+| Hansen SPA (lower) | 0.0000 | 0.6891 |
+| Hansen SPA (consistent) | 0.0000 | 0.6891 |
+| Hansen SPA (upper) | 0.0000 | 1.0000 |
+
+Best candidate by mean outperformance: `rolling_mean` at -2.450e-05 squared-error units, over 10,000 stationary-bootstrap replications with mean block length 12.26.
+
+### Portfolio Sharpe ratio under search
+
+| Quantity | Value |
+|---|---:|
+| Sessions | 120 |
+| Per-session Sharpe | -0.0284 |
+| Annualised Sharpe (square-root rule) | -0.4513 |
+| Annualised Sharpe (Lo autocorrelation-adjusted) | -0.4973 |
+| Skewness | -0.0722 |
+| Kurtosis | 7.2290 |
+| Probabilistic Sharpe ratio, threshold 0 | 0.3782 |
+| Configurations examined | 72 |
+| Search threshold (expected maximum under no skill) | 0.1267 |
+| Deflated Sharpe ratio | 0.0452 |
+<!-- INFERENCE:END -->
+
+### 5.8 Sensitivity
+
+<!-- SENSITIVITY:START -->
+### Configuration grid
+
+| Configuration | Net return | Per-session Sharpe | Sessions | Trades |
+|---|---:|---:|---:|---:|
+| Best: `train24_val5_step5_emb2_k3` | 4.6259% | 0.0356 | 125 | 155 |
+| Reported: `train24_val10_step10_emb1_k3` | -4.7687% | -0.0284 | 120 | 143 |
+| Worst: `train48_val10_step10_emb1_k4` | -20.9773% | -0.1852 | 100 | 202 |
+
+| Grid summary | Value |
+|---|---:|
+| Configurations evaluated | 72 |
+| Reported rank by Sharpe | 16 |
+| Median per-session Sharpe | -0.0682 |
+| Per-session Sharpe range | -0.1852 to 0.0356 |
+| Configurations with positive net return | 5.56% |
+| Configurations where the zero-return null had the best out-of-sample R-squared | 72 of 72 |
+| Expected maximum Sharpe under no skill | 0.1267 |
+
+### Bootstrap block-length sensitivity
+
+| Mean block length | Annualised return 95% interval |
+|---:|---|
+| 1 | -47.01% to +53.29% |
+| 2 | -46.03% to +50.55% |
+| 3 | -45.41% to +48.56% |
+| 5 | -45.60% to +48.28% |
+| 8 | -47.09% to +46.13% |
+| 13 | -49.26% to +48.93% |
+| 21 | -47.01% to +43.24% |
+<!-- SENSITIVITY:END -->
 
 ---
 
-## 9. Installation
+## 6. Discussion
 
-### Prerequisites
+**What the result means.** On this universe, over this window, at this horizon, scale-normalised price and volume features carry no out-of-sample information about next-session open-to-close returns that survives an honest accounting of sample size and search. The apparatus is not merely failing to reject; several models are measurably worse than the null, and the whole family is far from rejection jointly.
 
-- Python 3.12+
-- [uv](https://docs.astral.sh/uv/)
-- Rust toolchain only for the optional Rust indicator library
-- Homebrew `libomp` on macOS when running XGBoost
+**What it does not mean.** It does not mean Borsa Istanbul is efficient, that no short-horizon signal exists, or that machine learning cannot forecast equity returns. Four stocks over one year is a small sample, and a negative result on a small sample is weak evidence about the population. What is strong here is the *conditional* statement: an effect large enough to be usable at this horizon, on this universe, would have shown up, and it did not.
 
-### Install
+**Why several models are worse than the null.** A model with no signal does not merely fail to help; it adds estimation variance to the forecast. In a mean-squared-error comparison against a zero forecast, that variance is a pure cost, so a fitted model on signal-free data should land below zero. Observing exactly that is a consistency check on the pipeline rather than a surprise.
+
+**Why the trivial baselines look competitive on direction.** 53.12% of realised targets are non-positive, so a constant "down" predictor achieves 53.12% directional accuracy while carrying no information at all. Directional accuracy without its base rate is not interpretable, which is why it is reported next to balanced accuracy and never used as a headline.
+
+**The Sharpe ratio, read properly.** Session returns have a kurtosis of 7.2290, so the normal-theory
+Sharpe interval understates tail risk. Accounting for the higher moments, the probability that the
+true per-session Sharpe ratio exceeds zero is 0.3782 — already below even odds before any search
+correction. Deflating by the 72 configurations examined leaves a deflated Sharpe ratio of 0.0452.
+Lo's autocorrelation-aware annualisation gives -0.4973 against the square-root rule's -0.4513, so the
+conventional rule is, if anything, flattering here.
+
+**On the finding becoming more complicated under scrutiny.** The False Strategy threshold in Section 4.6 is an *expectation*, not a critical value: a genuinely skill-free grid exceeds it about half the time, which `test_the_threshold_is_an_expectation_and_not_a_critical_value` verifies by simulation. The threshold is therefore reported as a diagnostic and the deflated Sharpe ratio, which converts it into a probability, is the actual test. Both are shown.
+
+---
+
+## 7. Limitations
+
+Stated plainly, including the ones that weaken the headline.
+
+- **Sample.** Four stocks, 251 sessions, 120 evaluated. Too small for a strong economic conclusion, and the confidence intervals say so: the 95% interval for annualised return spans roughly −45% to +50%.
+- **Universe.** A fixed prototype, not point-in-time BIST-100 membership. Free of survivorship bias within its own definition, but not representative of the index.
+- **No index benchmark.** The committed input contains no BIST index series, so only cash and an equal-weight eligible-universe benchmark are reported. No index-relative claim is made.
+- **No sector metadata.** Sector-relative features and sector attribution are unavailable and are reported as unavailable rather than filled with a placeholder.
+- **Deployment.** The strategy holds risk on 62 of 120 sessions. Annualised figures assume continuous deployment and therefore overstate it.
+- **One asset class, one horizon.** Nothing here transfers to other horizons or instruments without re-running the apparatus.
+- **The search grid is itself a choice.** 72 configurations were swept; a different grid would give a different deflation threshold. The grid is declared in the run configuration so the choice is auditable, but it is a choice.
+- **Corporate actions.** Transition and fail-closed policies are tested, but the committed empirical snapshot contains cash dividends only. Splits, rights issues and delistings are exercised by synthetic tests, not by this data.
+- **Not evidence about the excluded components.** Kalman filters, Ornstein-Uhlenbeck mean reversion, GARCH, HMM regimes, wavelets, cointegration, Kelly sizing, gradient boosting, stacking, calibration, LSTM and Transformer models are all implemented and none is part of the accepted experiment. A passing construction test is not a research result, and their presence should not be read as evidence of predictive value.
+
+---
+
+## 8. Conclusion
+
+Seven forecasters were evaluated on a leakage-controlled Borsa Istanbul panel with an executable target, under tests that account for cross-sectional dependence, the number of models compared, and the number of configurations examined. No model beats the zero-return null; four are significantly worse; the joint data-snooping null is not rejected at any conventional level; and the best of 72 configurations does not reach the Sharpe ratio that skill-free search alone would produce. The reported strategy loses money after costs, and would lose money at 0.62x the modelled cost schedule.
+
+The useful output is not the sign of the result but the apparatus: a target the backtest can trade, an evaluation whose unit of inference matches the data's dependence structure, a search that is counted rather than hidden, and a run that replays byte-for-byte. The next legitimate step is better point-in-time data over a longer dated universe, not another model family.
+
+---
+
+## Reproducing
+
+Prerequisites: Python 3.12+, [uv](https://docs.astral.sh/uv/), and a Rust toolchain only if the optional indicator library is wanted.
 
 ```bash
-git clone <repo-url>
-cd BIST-Predictorcl
+git clone https://github.com/ITheClixs/BIST-Predictor-advanced.git
+cd BIST-Predictor-advanced
 uv sync
 ```
 
-Optional Rust build:
+Replay the committed run and verify every scientific artifact hash. No network access is needed:
 
 ```bash
-uv run maturin develop --release --manifest-path rust/bist_features/Cargo.toml
+make reproduce-committed
 ```
 
-There is no Python numerical fallback for the Rust indicator family. If the extension is unavailable, those indicators are explicitly disabled. The accepted benchmark does not depend on them.
-
----
-
-## 10. Quick Start
-
-Run the deterministic synthetic methodology check:
+Regenerate the figures, the generated document blocks, and the claim check:
 
 ```bash
-make reproduce-smoke
+make figures        RUN_ID=20260728T223101Z-8b27df3-2a71b8
+make readme-results RUN_ID=20260728T223101Z-8b27df3-2a71b8
+make verify-claims  RUN_ID=20260728T223101Z-8b27df3-2a71b8
 ```
 
-Replay the committed provider-backed scientific artifacts:
-
-```bash
-make reproduce RUN_ID=20260714T151522Z-a877480-ff7b60
-```
-
-Run a new accepted benchmark from explicit, provenance-bearing inputs:
+Build a new run from explicit, provenance-bearing inputs:
 
 ```bash
 make benchmark \
-  INPUT=runs/20260714T151522Z-a877480-ff7b60/input_prices.parquet \
-  ACTIONS=runs/20260714T151522Z-a877480-ff7b60/corporate_actions.parquet \
-  ACTION_COVERAGE=runs/20260714T151522Z-a877480-ff7b60/corporate_action_coverage.parquet
+  INPUT=runs/20260728T223101Z-8b27df3-2a71b8/input_prices.parquet \
+  ACTIONS=runs/20260728T223101Z-8b27df3-2a71b8/corporate_actions.parquet \
+  ACTION_COVERAGE=runs/20260728T223101Z-8b27df3-2a71b8/corporate_action_coverage.parquet
 ```
 
-No network access is required to replay the committed run.
-
----
-
-## 11. CLI Commands
-
-### 11.1 Accepted Commands
-
-| Command | Purpose |
-|---|---|
-| `bist-predict benchmark` | Build a new accepted run from explicit price, action, and action-coverage inputs. |
-| `bist-predict reproduce-smoke` | Run the bounded synthetic end-to-end methodology check. |
-| `bist-predict reproduce <run-id>` | Rebuild a committed run and verify exact scientific hashes while preserving original environment provenance. |
-| `bist-predict mature-predictions` | Freeze realized outcomes after the exact target interval completes. |
-| `bist-predict accuracy` | Report accuracy only from immutable signal-time records and frozen outcomes. |
-
-Prediction lifecycle example:
+The optional Rust indicator library builds from inside its own crate directory, because `maturin` resolves the Python project from the working directory rather than from the manifest path:
 
 ```bash
-uv run bist-predict mature-predictions \
-  --store prediction_tracking \
-  --prices runs/20260714T151522Z-a877480-ff7b60/input_prices.parquet \
-  --as-of 2026-04-03T18:10:00+03:00
-
-uv run bist-predict accuracy --store prediction_tracking
+cd rust/bist_features && uv run --project ../.. maturin develop --release
 ```
 
-Historical predictions are never reevaluated with a newly retrained model.
+The accepted benchmark does not depend on it, and the tests that need it skip when it is absent.
 
-### 11.2 Experimental Legacy Commands
+### Verification
 
-`fetch`, `features`, `train`, `signals`, `pipeline`, and `backtest` operate the earlier SQLite/model-registry prototype. Their help text marks model-training, signal, pipeline, and backtest commands as experimental. They are retained for development and are not evidence for the accepted benchmark.
+| Command | What it checks |
+|---|---|
+| `make test` | Full suite |
+| `make research-invariants` | Leakage, chronology, schema identity, accounting |
+| `make mutation-check` | Reintroduces 16 real defects and asserts the guarding test fails for each |
+| `make verify-claims RUN_ID=...` | Every number in this document against the artifact that produced it |
+| `make reproduce-committed` | Byte-identical replay of the committed run |
+| `make lint format-check typecheck` | Ruff and mypy |
+| `make coverage` | Coverage floor |
 
-No illustrative `BUY`, `SELL`, or confidence output is shown here because no such output belongs to the committed accepted run.
+`make mutation-check` is the one worth running first. A test that passes on already-correct input proves nothing, so each guarded defect is reintroduced into the source and the guarding test is required to fail.
 
 ---
 
-## 12. Configuration
-
-The accepted run stores its exact configuration in `runs/<run_id>/config.yaml`. The committed experiment uses:
-
-```yaml
-experiment_scope: fixed_bist_large_cap_prototype
-methodology_version: accepted-baseline-v2
-min_train_dates: 24
-validation_dates: 10
-step_dates: 10
-embargo_dates: 1
-portfolio_model: ridge
-top_k: 3
-starting_equity: 100000.0
-decision_cost_rate: 0.0001
-commission_rate: 0.0002
-bid_ask_spread_rate: 0.001
-slippage_rate: 0.0003
-market_impact_coefficient: 0.0001
-max_participation: 0.01
-liquidity_lookback_sessions: 20
-min_trade_value: 100.0
-tax_rate: 0.0
-seed: 42
-```
-
-The configuration hash is part of the run ID and manifest. Legacy `config.toml` options do not alter replayed run artifacts.
-
----
-
-## 13. Project Structure
+## Repository layout
 
 ```text
-BIST-Predictorcl/
-+-- README.md
-+-- Makefile
-+-- pyproject.toml
-+-- config.example.toml
-+-- docs/component_status.yaml
-+-- runs/                           # immutable accepted run bundles
-+-- benchmarks/results/             # Rust benchmark evidence
-+-- .github/workflows/              # PR and scheduled research checks
-+-- src/bist_predict/
-|   +-- cli.py
-|   +-- ingest/                     # providers, reconciliation, calendar, actions
-|   +-- features/                   # manifests, lineage, preprocessing, legacy engine
-|   +-- research/                   # accepted panel, folds, baselines, artifacts, backtest
-|   +-- models/                     # experimental boosting/neural/ensemble models
-|   +-- quant/                      # experimental quantitative modules
-|   +-- evaluation/                 # legacy evaluation compatibility
-|   +-- storage/                    # legacy SQLite surface
-+-- rust/bist_features/             # optional PyO3 indicator library
-+-- tests/
-    +-- test_research/              # methodology and E2E invariants
-    +-- test_ingest/                # provider, calendar, action invariants
-    +-- test_features/              # schema, lineage, Rust equivalence
-    +-- test_models/                # experimental model behavior
-    +-- test_evaluation/
-    +-- test_storage/
+src/bist_predict/
+  research/            accepted panel, folds, baselines, backtest, run artifacts
+    inference/         HAC variance, Diebold-Mariano, Holm, Reality Check, SPA, Sharpe
+    sensitivity.py     the configuration grid
+    markdown_math.py   GitHub math-rendering rules
+  figures/             every report figure, drawn from a run bundle
+  ingest/              providers, reconciliation, calendar, corporate actions
+  features/            manifests, lineage, preprocessing
+  models/              experimental boosting and neural models
+  quant/               experimental quantitative modules
+tools/
+  build_figures.py     figure builder
+  verify_claims.py     document-to-artifact claim checker
+  mutation_check.py    deliberate-defect harness
+runs/                  immutable run bundles
+docs/figures/          generated figures, PNG and PDF
+tests/                 methodology invariants and unit tests
 ```
 
 ---
 
-## 14. Testing
+## References
 
-The repository does not use raw test count as research evidence. The important distinction is between ordinary construction tests and methodology invariants.
-
-```bash
-make lint
-make format-check
-make typecheck
-make test
-make coverage
-make research-invariants
-make rust-test
-make rust-equivalence
-make reproduce-smoke
-make reproduce RUN_ID=20260714T151522Z-a877480-ff7b60
-```
-
-The invariant suite covers:
-
-| Boundary | Evidence |
-|---|---|
-| Schema identity | Equal-width but differently named/ordered matrices are rejected. |
-| Global chronology | Date grouping, target purge, embargo, and ordering invariance. |
-| Point-in-time features | Future perturbation and train-only preprocessor isolation. |
-| Executable target | Availability, signal, open execution, and close target timestamps. |
-| Market data | Calendar, provider reconciliation, quality flags, provenance, and action policies. |
-| OOF learning | Base-model training rows cannot become their own stacker inputs. |
-| Calibration | Fit and final-test intervals are chronologically separate. |
-| Portfolio | Accounting identity, nonnegative cash, no-position neutrality, fixed-decision cost monotonicity. |
-| Governance | Parquet/JSON round trips, metric recomputation, immutable tracking, recursive hashes, and portable scientific replay. |
-
-Pull-request CI runs lint, formatting, type checking, coverage, research invariants, a deterministic synthetic pipeline, Rust tests, and Python-Rust equivalence. Scheduled CI adds live provider-schema and fresh-data smoke checks; those checks monitor interfaces and are not benchmark results.
+1. Diebold, F. X., and Mariano, R. S. (1995). Comparing predictive accuracy. *Journal of Business & Economic Statistics*, 13(3), 253–263. [doi:10.1080/07350015.1995.10524599](https://doi.org/10.1080/07350015.1995.10524599)
+2. Harvey, D., Leybourne, S., and Newbold, P. (1997). Testing the equality of prediction mean squared errors. *International Journal of Forecasting*, 13(2), 281–291. [doi:10.1016/S0169-2070(96)00719-4](https://doi.org/10.1016/S0169-2070(96)00719-4)
+3. Diebold, F. X. (2015). Comparing predictive accuracy, twenty years later. *Journal of Business & Economic Statistics*, 33(1), 1. [doi:10.1080/07350015.2014.983236](https://doi.org/10.1080/07350015.2014.983236)
+4. White, H. (2000). A reality check for data snooping. *Econometrica*, 68(5), 1097–1126. [doi:10.1111/1468-0262.00152](https://doi.org/10.1111/1468-0262.00152)
+5. Hansen, P. R. (2005). A test for superior predictive ability. *Journal of Business & Economic Statistics*, 23(4), 365–380. [doi:10.1198/073500105000000063](https://doi.org/10.1198/073500105000000063)
+6. Sullivan, R., Timmermann, A., and White, H. (1999). Data-snooping, technical trading rule performance, and the bootstrap. *The Journal of Finance*, 54(5), 1647–1691. [doi:10.1111/0022-1082.00163](https://doi.org/10.1111/0022-1082.00163)
+7. Politis, D. N., and Romano, J. P. (1994). The stationary bootstrap. *Journal of the American Statistical Association*, 89(428), 1303–1313. [doi:10.1080/01621459.1994.10476870](https://doi.org/10.1080/01621459.1994.10476870)
+8. Politis, D. N., and White, H. (2004). Automatic block-length selection for the dependent bootstrap. *Econometric Reviews*, 23(1), 53–70. [doi:10.1081/ETC-120028836](https://doi.org/10.1081/ETC-120028836)
+9. Patton, A., Politis, D. N., and White, H. (2009). Correction to "Automatic block-length selection for the dependent bootstrap". *Econometric Reviews*, 28(4), 372–375. [doi:10.1080/07474930802459016](https://doi.org/10.1080/07474930802459016)
+10. Lo, A. W. (2002). The statistics of Sharpe ratios. *Financial Analysts Journal*, 58(4), 36–52. [doi:10.2469/faj.v58.n4.2453](https://doi.org/10.2469/faj.v58.n4.2453)
+11. Bailey, D. H., and López de Prado, M. (2012). The Sharpe ratio efficient frontier. *Journal of Risk*, 15(2), 3–44. [doi:10.21314/JOR.2012.255](https://doi.org/10.21314/JOR.2012.255)
+12. Bailey, D. H., and López de Prado, M. (2014). The deflated Sharpe ratio: correcting for selection bias, backtest overfitting, and non-normality. *Journal of Portfolio Management*, 40(5), 94–107. [doi:10.3905/jpm.2014.40.5.094](https://doi.org/10.3905/jpm.2014.40.5.094)
+13. Bailey, D. H., Borwein, J. M., López de Prado, M., and Zhu, Q. J. (2014). Pseudo-mathematics and financial charlatanism: the effects of backtest overfitting on out-of-sample performance. *Notices of the American Mathematical Society*, 61(5), 458–471. [doi:10.1090/noti1105](https://doi.org/10.1090/noti1105)
+14. Harvey, C. R., Liu, Y., and Zhu, H. (2016). … and the cross-section of expected returns. *Review of Financial Studies*, 29(1), 5–68. [doi:10.1093/rfs/hhv059](https://doi.org/10.1093/rfs/hhv059)
+15. Novy-Marx, R., and Velikov, M. (2016). A taxonomy of anomalies and their trading costs. *Review of Financial Studies*, 29(1), 104–147. [doi:10.1093/rfs/hhv063](https://doi.org/10.1093/rfs/hhv063)
+16. López de Prado, M. (2018). *Advances in Financial Machine Learning*. Wiley. ISBN 978-1-119-48208-6.
+17. Kara, Y., Boyacıoğlu, M. A., and Baykan, Ö. K. (2011). Predicting direction of stock price index movement using artificial neural networks and support vector machines: the sample of the Istanbul Stock Exchange. *Expert Systems with Applications*, 38(5), 5311–5319. [doi:10.1016/j.eswa.2010.10.027](https://doi.org/10.1016/j.eswa.2010.10.027)
+18. Holm, S. (1979). A simple sequentially rejective multiple test procedure. *Scandinavian Journal of Statistics*, 6(2), 65–70.
+19. Newey, W. K., and West, K. D. (1987). A simple, positive semi-definite, heteroskedasticity and autocorrelation consistent covariance matrix. *Econometrica*, 55(3), 703–708. [doi:10.2307/1913610](https://doi.org/10.2307/1913610)
+20. Newey, W. K., and West, K. D. (1994). Automatic lag selection in covariance matrix estimation. *Review of Economic Studies*, 61(4), 631–653. [doi:10.2307/2297912](https://doi.org/10.2307/2297912)
 
 ---
 
-## 15. Tech Stack and Data Sources
+## License and disclaimer
 
-### 15.1 Tech Stack
+GNU General Public License v3.0.
 
-| Function | Technology |
-|---|---|
-| Core research | Python 3.12+, pandas, NumPy, PyArrow, scikit-learn |
-| CLI and environment | Click, uv |
-| Optional nonlinear models | XGBoost, LightGBM |
-| Experimental neural models | PyTorch |
-| Experimental quantitative modules | SciPy, statsmodels, `arch`, hmmlearn, PyWavelets |
-| Optional indicators | Rust, PyO3, maturin |
-| Validation | pytest, coverage, ruff, mypy, pre-commit, Cargo |
-
-### 15.2 Data Sources
-
-| Source | Accepted use |
-|---|---|
-| Prepared Yahoo-sourced snapshot | Committed four-ticker price representations and corporate-action inputs with record-level provenance. |
-| Raw Yahoo collector | Observed OHLCV ingestion only; not a direct accepted input because it does not construct every required price representation. |
-| Borsa Istanbul official holidays | Expected sessions and full-day/half-day timestamps. |
-| Is Yatirim | Legacy collection and tested proxy-quality handling; not accepted for next-open execution. |
-| TCMB EVDS | Experimental macro collection; excluded without release-availability timestamps. |
-| News/RSS feeds | Experimental headline collection; excluded because scoring and cutoff validation are incomplete. |
-
-Free public sources can change availability or schema. Committed inputs and hashes isolate reproducibility from those future changes.
-
----
-
-## 16. Research Status and Limitations
-
-The accepted provider-backed experiment proves that the methodology executes and reproduces; it does not prove that the strategy has alpha.
-
-- The universe is a fixed four-stock prototype, not historical BIST-100 membership.
-- The sample is approximately one year and is too small for a strong economic conclusion.
-- The relevant BIST index is unavailable in the committed input, so only cash and equal-weight eligible-universe benchmarks are reported.
-- Sector metadata is unavailable; sector-relative features and sector reporting are excluded.
-- The chosen ridge strategy is net negative, and its bootstrap interval includes both losses and gains.
-- No accepted model achieves positive zero-mean OOS $R^2$.
-- Advanced models, stacking, calibration, macro, sentiment, regimes, wavelets, cointegration, Kelly sizing, and neural networks remain outside the accepted experiment.
-- Corporate-action tests cover declared transitions and fail-closed policies, while the committed empirical snapshot contains cash dividends only.
-- Provider reconciliation is implemented and tested, but the accepted artifact is not evidence of a live multi-provider study.
-- Live prediction persistence and maturation are executable, but no unattended production inference service is claimed.
-
-The next legitimate research step is better point-in-time data and a longer dated universe—not another model family.
-
----
-
-## 17. License
-
-GNU General Public License v3.0
-
----
-
-## 18. Disclaimer
-
-This software is for educational and research purposes only. It is not financial advice. Past performance does not guarantee future results. The authors assume no liability for losses incurred from using this system.
+For research and education. Not financial advice. Past performance does not guarantee future results. The authors accept no liability for losses incurred from using this software.

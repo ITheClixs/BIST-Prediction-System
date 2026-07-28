@@ -1,4 +1,4 @@
-.PHONY: reproduce-smoke reproduce reproduce-committed benchmark readme-results test research-invariants lint format-check typecheck coverage rust-test rust-equivalence provider-smoke mutation-check verify-claims figures
+.PHONY: doc-checks reproduce-smoke reproduce reproduce-committed benchmark readme-results test research-invariants lint format-check typecheck coverage rust-test rust-equivalence provider-smoke mutation-check verify-claims figures
 
 UV_RUN = UV_CACHE_DIR=/tmp/bist-uv-cache PYTHONPATH=src uv run
 RUNS_ROOT ?= runs
@@ -55,6 +55,11 @@ figures:
 
 verify-claims:
 	@test -n "$(RUN_ID)" || (echo "RUN_ID is required" && exit 2)
+	$(UV_RUN) python tools/verify_claims.py --run $(RUNS_ROOT)/$(RUN_ID)
+
+doc-checks:
+	@test -n "$(RUN_ID)" || (echo "RUN_ID is required" && exit 2)
+	$(UV_RUN) pytest tests/test_docs -q
 	$(UV_RUN) python tools/verify_claims.py --run $(RUNS_ROOT)/$(RUN_ID)
 
 mutation-check:

@@ -4,7 +4,15 @@ from __future__ import annotations
 
 import numpy as np
 
-import bist_features
+import pytest
+
+bist_features = pytest.importorskip(
+    "bist_features",
+    reason=(
+        "the Rust indicator extension is optional; build it with "
+        "'cd rust/bist_features && uv run --project ../.. maturin develop --release'"
+    ),
+)
 
 
 class TestCorrelationMatrix:

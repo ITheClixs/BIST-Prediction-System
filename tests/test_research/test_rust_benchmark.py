@@ -2,7 +2,17 @@
 
 from __future__ import annotations
 
-from bist_predict.research.rust_benchmark import run_benchmark
+import pytest
+
+pytest.importorskip(
+    "bist_features",
+    reason=(
+        "the Rust indicator extension is optional; build it with "
+        "'cd rust/bist_features && uv run --project ../.. maturin develop --release'"
+    ),
+)
+
+from bist_predict.research.rust_benchmark import run_benchmark  # noqa: E402
 
 
 def test_benchmark_reports_timing_memory_accuracy_and_boundary_cost() -> None:
