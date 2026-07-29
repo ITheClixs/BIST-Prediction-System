@@ -548,8 +548,8 @@ The useful output is therefore the apparatus and its self-assessment: a target t
 Prerequisites: Python 3.12+, [uv](https://docs.astral.sh/uv/), and a Rust toolchain only if the optional indicator library is wanted.
 
 ```bash
-git clone https://github.com/ITheClixs/BIST-Predictor-advanced.git
-cd BIST-Predictor-advanced
+git clone https://github.com/ITheClixs/Prediction-System-for-Istanbul-Stock-Exchange.git
+cd Prediction-System-for-Istanbul-Stock-Exchange
 uv sync
 ```
 
