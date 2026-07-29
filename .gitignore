@@ -10,21 +10,26 @@ build/
 # Rust
 target/
 
-# Data
+# Tooling caches
+.mypy_cache/
+.ruff_cache/
+.pytest_cache/
+.coverage
+htmlcov/
+
+# Local data and local run output. The accepted benchmark bundle under runs/ is
+# committed deliberately, with `git add -f`, because the published results are
+# read back out of it.
 data/
 *.db
 runs/
 prediction_tracking/
-.coverage
-htmlcov/
 
-# IDE
+# Editors and OS
 .idea/
 .vscode/
 *.swp
-
-# OS
 .DS_Store
 
-# Project
+# Local configuration; config.example.toml is the committed template.
 config.toml
