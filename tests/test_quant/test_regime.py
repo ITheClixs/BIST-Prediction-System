@@ -1,4 +1,4 @@
-"""Tests for regime-aware routing — adjusts ensemble weights based on HMM regime."""
+"""Regime-aware routing of ensemble weights."""
 
 from __future__ import annotations
 

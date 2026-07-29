@@ -1,4 +1,4 @@
-"""Statistical methods — Kalman filter, GARCH, HMM, cointegration."""
+"""Kalman filtering, GARCH, HMM inference, and cointegration tests."""
 
 from __future__ import annotations
 

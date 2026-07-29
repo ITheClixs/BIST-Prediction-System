@@ -1,4 +1,4 @@
-"""Tests for signal quality measurement — IC, Hurst exponent, wavelet decomposition."""
+"""Information coefficient, Hurst exponent, and wavelet decomposition."""
 
 from __future__ import annotations
 

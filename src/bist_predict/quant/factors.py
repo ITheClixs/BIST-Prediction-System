@@ -1,4 +1,4 @@
-"""Factor models — Fama-French, cross-sectional/time-series momentum, mean reversion."""
+"""Fama-French exposures, momentum rankings, and mean reversion."""
 
 from __future__ import annotations
 

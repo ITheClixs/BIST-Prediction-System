@@ -1,4 +1,4 @@
-"""Risk and position sizing — Kelly criterion, Ledoit-Wolf covariance, PCA."""
+"""Position sizing under Kelly, Ledoit-Wolf shrinkage, and a PCA decomposition."""
 
 from __future__ import annotations
 

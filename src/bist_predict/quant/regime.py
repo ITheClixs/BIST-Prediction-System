@@ -1,4 +1,4 @@
-"""Regime-aware routing — adjusts model ensemble weights based on HMM regime detection."""
+"""Blend ensemble weights according to the detected HMM regime."""
 
 from __future__ import annotations
 

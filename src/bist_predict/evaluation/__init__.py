@@ -1,1 +1,1 @@
-"""Evaluation layer — backtesting, metrics, and live accuracy tracking."""
+"""Backtesting, prediction metrics, and live accuracy tracking."""

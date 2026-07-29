@@ -1,1 +1,1 @@
-"""Quantitative alpha layer — factor models, statistical methods, risk, and regime detection."""
+"""Quantitative alpha layer: factors, statistics, risk, and regimes."""

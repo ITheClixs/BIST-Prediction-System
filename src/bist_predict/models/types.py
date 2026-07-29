@@ -1,4 +1,4 @@
-"""Model types — Prediction dataclass, PredictionModel protocol, dataset builders."""
+"""The Prediction record, the PredictionModel protocol, and dataset builders."""
 
 from __future__ import annotations
 

@@ -1,4 +1,4 @@
-"""Feature store — persist computed features in SQLite."""
+"""Persist computed features in SQLite."""
 
 from __future__ import annotations
 

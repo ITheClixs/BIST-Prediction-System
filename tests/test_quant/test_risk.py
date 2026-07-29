@@ -1,4 +1,4 @@
-"""Tests for risk and position sizing — Kelly, Ledoit-Wolf covariance, PCA."""
+"""Kelly sizing, Ledoit-Wolf covariance, and the PCA decomposition."""
 
 from __future__ import annotations
 

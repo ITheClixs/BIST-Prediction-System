@@ -1,4 +1,4 @@
-"""Feature computation engine — orchestrates Rust and Python feature computation."""
+"""Orchestrate the Rust indicator kernels and the Python quant features."""
 
 from __future__ import annotations
 

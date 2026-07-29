@@ -1,4 +1,4 @@
-"""Ingestion scheduler — orchestrates data collection from all sources."""
+"""Drive collection from every configured source, falling back in order."""
 
 from __future__ import annotations
 

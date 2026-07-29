@@ -1,4 +1,4 @@
-"""Configuration management — loads and validates config.toml."""
+"""Load config.toml and reject anything the pipeline cannot act on."""
 
 from __future__ import annotations
 

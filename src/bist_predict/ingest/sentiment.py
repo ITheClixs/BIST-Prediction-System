@@ -1,4 +1,4 @@
-"""Sentiment data collectors — Google News RSS, Turkish finance RSS, etc."""
+"""Sentiment collectors for Google News RSS and Turkish finance feeds."""
 
 from __future__ import annotations
 

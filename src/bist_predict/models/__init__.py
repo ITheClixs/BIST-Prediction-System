@@ -1,1 +1,1 @@
-"""ML model layer — individual models, ensemble, calibration, and registry."""
+"""Individual models, the ensemble combiner, calibration, and the registry."""

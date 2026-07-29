@@ -1,4 +1,4 @@
-"""Signal quality measurement — Information Coefficient, Hurst exponent, wavelet decomposition."""
+"""Information coefficient, Hurst exponent, and wavelet decomposition."""
 
 from __future__ import annotations
 

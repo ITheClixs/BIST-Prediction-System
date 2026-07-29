@@ -1,4 +1,4 @@
-"""Tests for factor models — momentum rankings and mean reversion."""
+"""Momentum rankings and mean reversion."""
 
 from __future__ import annotations
 

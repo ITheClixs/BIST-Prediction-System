@@ -1,4 +1,4 @@
-"""Live accuracy tracking -- logs predictions and measures rolling accuracy."""
+"""Log live predictions and measure their rolling accuracy."""
 
 from __future__ import annotations
 

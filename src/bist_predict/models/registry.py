@@ -1,4 +1,4 @@
-"""Model version registry -- tracks trained models in SQLite."""
+"""Track trained model versions in SQLite."""
 
 from __future__ import annotations
 

@@ -1,10 +1,6 @@
 use numpy::{PyArray1, PyReadonlyArray1};
 use pyo3::prelude::*;
 
-// ---------------------------------------------------------------------------
-// Helpers
-// ---------------------------------------------------------------------------
-
 fn nan_vec(n: usize) -> Vec<f64> {
     vec![f64::NAN; n]
 }
@@ -18,17 +14,14 @@ fn sma_slice(data: &[f64], period: usize) -> f64 {
 fn sma_series(data: &[f64], period: usize) -> Vec<f64> {
     let n = data.len();
     let mut out = nan_vec(n);
-    // Find first non-NaN index
     let first_valid = data.iter().position(|v| !v.is_nan());
     if first_valid.is_none() {
         return out;
     }
     let first_valid = first_valid.unwrap();
-    // Need `period` valid values starting from first_valid
     if first_valid + period > n {
         return out;
     }
-    // rolling sum
     let mut sum = 0.0;
     let mut count = 0usize;
     for i in first_valid..n {
@@ -64,10 +57,7 @@ fn ema_series(data: &[f64], period: usize) -> Vec<f64> {
     out
 }
 
-// ---------------------------------------------------------------------------
-// 1. RSI  (Wilder's smoothing)
-// ---------------------------------------------------------------------------
-
+/// Relative strength index under Wilder smoothing.
 #[pyfunction]
 #[pyo3(signature = (close, period=14))]
 pub fn compute_rsi(py: Python<'_>, close: PyReadonlyArray1<f64>, period: usize) -> Py<PyArray1<f64>> {
@@ -115,10 +105,7 @@ pub fn compute_rsi(py: Python<'_>, close: PyReadonlyArray1<f64>, period: usize) 
     PyArray1::from_vec_bound(py, out).into()
 }
 
-// ---------------------------------------------------------------------------
-// 2. SMA
-// ---------------------------------------------------------------------------
-
+/// Simple moving average.
 #[pyfunction]
 pub fn compute_sma(py: Python<'_>, close: PyReadonlyArray1<f64>, period: usize) -> Py<PyArray1<f64>> {
     let c = close.as_array();
@@ -136,10 +123,7 @@ pub fn compute_sma(py: Python<'_>, close: PyReadonlyArray1<f64>, period: usize) 
     PyArray1::from_vec_bound(py, out).into()
 }
 
-// ---------------------------------------------------------------------------
-// 3. EMA
-// ---------------------------------------------------------------------------
-
+/// Exponential moving average, seeded from the first full window.
 #[pyfunction]
 pub fn compute_ema(py: Python<'_>, close: PyReadonlyArray1<f64>, period: usize) -> Py<PyArray1<f64>> {
     let c = close.as_array();
@@ -148,10 +132,7 @@ pub fn compute_ema(py: Python<'_>, close: PyReadonlyArray1<f64>, period: usize) 
     PyArray1::from_vec_bound(py, out).into()
 }
 
-// ---------------------------------------------------------------------------
-// 4. MACD
-// ---------------------------------------------------------------------------
-
+/// MACD line, its signal line, and the histogram between them.
 #[pyfunction]
 #[pyo3(signature = (close, fast=12, slow=26, signal=9))]
 pub fn compute_macd(
@@ -194,10 +175,7 @@ pub fn compute_macd(
     )
 }
 
-// ---------------------------------------------------------------------------
-// 5. Bollinger Bands
-// ---------------------------------------------------------------------------
-
+/// Bollinger bands around a simple moving average.
 #[pyfunction]
 #[pyo3(signature = (close, period=20, num_std=2.0))]
 pub fn compute_bollinger_bands(
@@ -231,10 +209,7 @@ pub fn compute_bollinger_bands(
     )
 }
 
-// ---------------------------------------------------------------------------
-// 6. Stochastic Oscillator
-// ---------------------------------------------------------------------------
-
+/// Stochastic oscillator: %K and its %D average.
 #[pyfunction]
 #[pyo3(signature = (high, low, close, k_period=14, d_period=3))]
 pub fn compute_stochastic(
@@ -273,10 +248,7 @@ pub fn compute_stochastic(
     )
 }
 
-// ---------------------------------------------------------------------------
-// 7. ATR (Wilder's smoothing)
-// ---------------------------------------------------------------------------
-
+/// Average true range under Wilder smoothing.
 #[pyfunction]
 #[pyo3(signature = (high, low, close, period=14))]
 pub fn compute_atr(
@@ -317,10 +289,7 @@ pub fn compute_atr(
     PyArray1::from_vec_bound(py, out).into()
 }
 
-// ---------------------------------------------------------------------------
-// 8. OBV
-// ---------------------------------------------------------------------------
-
+/// On-balance volume.
 #[pyfunction]
 pub fn compute_obv(
     py: Python<'_>,
@@ -350,10 +319,7 @@ pub fn compute_obv(
     PyArray1::from_vec_bound(py, out).into()
 }
 
-// ---------------------------------------------------------------------------
-// 9. VWAP  (cumulative intraday)
-// ---------------------------------------------------------------------------
-
+/// Cumulative volume-weighted average price.
 #[pyfunction]
 pub fn compute_vwap(
     py: Python<'_>,
@@ -385,10 +351,7 @@ pub fn compute_vwap(
     PyArray1::from_vec_bound(py, out).into()
 }
 
-// ---------------------------------------------------------------------------
-// 10. ADX (Wilder's smoothing)
-// ---------------------------------------------------------------------------
-
+/// Average directional index under Wilder smoothing.
 #[pyfunction]
 #[pyo3(signature = (high, low, close, period=14))]
 pub fn compute_adx(
@@ -472,10 +435,7 @@ pub fn compute_adx(
     PyArray1::from_vec_bound(py, out).into()
 }
 
-// ---------------------------------------------------------------------------
-// 11. CCI
-// ---------------------------------------------------------------------------
-
+/// Commodity channel index against the mean absolute deviation.
 #[pyfunction]
 #[pyo3(signature = (high, low, close, period=20))]
 pub fn compute_cci(
@@ -512,10 +472,7 @@ pub fn compute_cci(
     PyArray1::from_vec_bound(py, out).into()
 }
 
-// ---------------------------------------------------------------------------
-// 12. MFI
-// ---------------------------------------------------------------------------
-
+/// Money flow index.
 #[pyfunction]
 #[pyo3(signature = (high, low, close, volume, period=14))]
 pub fn compute_mfi(
@@ -564,10 +521,7 @@ pub fn compute_mfi(
     PyArray1::from_vec_bound(py, out).into()
 }
 
-// ---------------------------------------------------------------------------
-// 13. Williams %R
-// ---------------------------------------------------------------------------
-
+/// Williams %R.
 #[pyfunction]
 #[pyo3(signature = (high, low, close, period=14))]
 pub fn compute_williams_r(

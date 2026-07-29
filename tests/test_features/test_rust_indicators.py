@@ -1,4 +1,4 @@
-"""Tests for Rust technical indicators — verified against known reference values."""
+"""Rust technical indicators, checked against known reference values."""
 
 from __future__ import annotations
 

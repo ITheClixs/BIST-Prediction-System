@@ -1,4 +1,4 @@
-"""Ensemble meta-learner -- combines predictions from multiple models."""
+"""Combine the predictions of several models into one."""
 
 from __future__ import annotations
 
