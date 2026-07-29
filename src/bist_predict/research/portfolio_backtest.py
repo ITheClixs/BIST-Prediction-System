@@ -45,6 +45,28 @@ class CostModel:
             raise ValueError("transaction cost rates must be non-negative")
 
 
+def round_trip_cost_rate(costs: CostModel, participation_rate: float) -> float:
+    """Return the cost of entering and exiting a position, as a rate on notional.
+
+    Only half the quoted spread is charged per side, since a marketable order
+    crosses from the mid to one side of the book rather than across it, and the
+    impact term follows the square-root law at the participation rate the
+    strategy is allowed to take.  The same rate serves two purposes: it is the
+    hurdle a predicted return has to clear before a name is tradeable, and it is
+    the cost floor the feasibility bound in the detectability module compares an
+    information coefficient against.
+    """
+    if not 0.0 < participation_rate <= 1.0:
+        raise ValueError("the participation rate must lie in (0, 1]")
+    one_way = (
+        costs.commission_rate
+        + costs.bid_ask_spread_rate / 2.0
+        + costs.slippage_rate
+        + costs.market_impact_coefficient * math.sqrt(participation_rate)
+    )
+    return 2.0 * one_way + costs.tax_rate
+
+
 @dataclass(frozen=True)
 class StrategyConfig:
     """Long-only top-k constraints and declared decision-time cost assumption."""
@@ -579,13 +601,7 @@ class PortfolioBacktester:
         )
 
     def _estimated_round_trip_cost_rate(self, participation_rate: float) -> float:
-        one_way = (
-            self._selection_costs.commission_rate
-            + self._selection_costs.bid_ask_spread_rate / 2.0
-            + self._selection_costs.slippage_rate
-            + self._selection_costs.market_impact_coefficient * math.sqrt(participation_rate)
-        )
-        return 2.0 * one_way + self._selection_costs.tax_rate
+        return round_trip_cost_rate(self._selection_costs, participation_rate)
 
     def _affordable_quantity(
         self,

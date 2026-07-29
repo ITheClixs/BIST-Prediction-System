@@ -13,6 +13,11 @@ from bist_predict.figures.accuracy import (
 )
 from bist_predict.figures.artifacts import RunArtifacts
 from bist_predict.figures.design import plot_effective_sample_size, plot_fold_geometry
+from bist_predict.figures.detectability import (
+    plot_breadth_cost_feasibility,
+    plot_detectable_effect,
+    plot_search_threshold,
+)
 from bist_predict.figures.portfolio import plot_cost_sensitivity, plot_equity_curve
 from bist_predict.figures.search import (
     plot_block_length_sensitivity,
@@ -32,6 +37,9 @@ FIGURE_BUILDERS: tuple[Callable[[RunArtifacts, Path], dict[str, Any]], ...] = (
     plot_cost_sensitivity,
     plot_configuration_search,
     plot_block_length_sensitivity,
+    plot_detectable_effect,
+    plot_breadth_cost_feasibility,
+    plot_search_threshold,
 )
 
 

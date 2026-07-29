@@ -8,11 +8,13 @@ the number of models and configurations that were examined.
 from __future__ import annotations
 
 from collections.abc import Sequence
+from typing import cast
 
 import numpy as np
 import pandas as pd
 
 from bist_predict.research.inference.dependence import cross_sectional_dependence
+from bist_predict.research.inference.detectability import detectability_report
 from bist_predict.research.inference.forecast_tests import (
     diebold_mariano,
     squared_error_differential,
@@ -89,6 +91,10 @@ def build_inference_report(
     periods_per_year: int,
     trial_count: int,
     trial_sharpe_variance: float,
+    grid_maximum_sharpe: float,
+    round_trip_cost_rate: float,
+    universe_size: int,
+    selected: int,
     seed: int,
     replications: int = 10_000,
     alpha: float = 0.05,
@@ -122,6 +128,29 @@ def build_inference_report(
         trial_count=trial_count,
         trial_sharpe_variance=trial_sharpe_variance,
     )
+    accuracy = _equal_predictive_accuracy(
+        predictions, benchmark=benchmark_model, candidates=candidates, alpha=alpha
+    )
+    session_aggregated = cast(dict[str, dict[str, float]], accuracy["session_aggregated"])
+    session_errors = {
+        name: float(test["standard_error"]) for name, test in session_aggregated.items()
+    }
+    portfolio_rows = predictions.loc[predictions["model_name"] == portfolio_model]
+    realised_ic = float(portfolio_rows["predicted_return"].corr(portfolio_rows["target"]))
+    detectability = detectability_report(
+        session_standard_errors=session_errors,
+        benchmark_mean_squared_error=float(loss_panel[benchmark_model].mean()),
+        session_count=int(loss_panel.shape[0]),
+        dependence=dependence.to_dict(),
+        sharpe=sharpe.to_dict(),
+        grid_maximum_sharpe=grid_maximum_sharpe,
+        periods_per_year=periods_per_year,
+        round_trip_cost_rate=round_trip_cost_rate,
+        target_volatility=float(target_frame["target"].std(ddof=1)),
+        realised_information_coefficient=realised_ic,
+        universe_size=universe_size,
+        selected=selected,
+    )
     return {
         "schema_version": 1,
         "alpha": alpha,
@@ -129,9 +158,8 @@ def build_inference_report(
         "benchmark_model": benchmark_model,
         "portfolio_model": portfolio_model,
         "cross_sectional_dependence": dependence.to_dict(),
-        "equal_predictive_accuracy": _equal_predictive_accuracy(
-            predictions, benchmark=benchmark_model, candidates=candidates, alpha=alpha
-        ),
+        "equal_predictive_accuracy": accuracy,
         "data_snooping": snooping.to_dict(),
         "portfolio_sharpe": sharpe.to_dict(),
+        "detectability": detectability.to_dict(),
     }

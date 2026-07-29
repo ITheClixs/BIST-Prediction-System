@@ -1,8 +1,8 @@
-# Nothing Beats Zero: A Leakage-Controlled, Search-Corrected Benchmark for Short-Horizon Borsa Istanbul Equity Forecasting
+# Nothing Beats Zero: Detectability Bounds for a Leakage-Controlled, Search-Corrected Borsa Istanbul Forecasting Benchmark
 
-**Abstract.** Short-horizon equity forecasting papers usually report a model that beats a benchmark. This one reports the apparatus that would have detected such a model, and the finding that none exists in the data examined. On a fixed four-stock Borsa Istanbul prototype universe over 251 sessions, seven forecasters are fitted under a date-grouped purged walk-forward protocol with an executable next-open-to-close target, and every out-of-sample prediction is persisted. Three things then happen that a point-estimate table cannot do. First, the 480 out-of-sample rows are shown to carry roughly 177 independent observations, because same-session returns correlate at 0.570; loss differentials are therefore aggregated to one value per session before testing, which multiplies the p-values by a median factor of 52. Second, Diebold-Mariano tests with the Harvey-Leybourne-Newbold correction and Holm family-wise control find that 4 of the six fitted models are significantly worse than a zero-return null and 0 are significantly better, and Hansen's test of superior predictive ability over the whole family does not reject (p = 0.6891). Third, the entire evaluation is re-run across a 72-configuration grid of the fold geometry and portfolio breadth: the best configuration in the grid returns 4.6259% net with a per-session Sharpe ratio of 0.0356, against a False-Strategy threshold of 0.1267 that skill-free search alone would be expected to produce, and the zero-return null has the highest out-of-sample R-squared in all 72. The reported strategy loses 4.77% of its capital after costs. The committed run replays byte-for-byte from bundled inputs.
+**Abstract.** Short-horizon equity forecasting papers usually report a model that beats a benchmark. This one reports the apparatus that would have detected such a model, and the finding that none exists in the data examined. On a fixed four-stock Borsa Istanbul prototype universe over 251 sessions, seven forecasters are fitted under a date-grouped purged walk-forward protocol with an executable next-open-to-close target, and every out-of-sample prediction is persisted. Three things then happen that a point-estimate table cannot do. First, the 480 out-of-sample rows are shown to carry roughly 177 independent observations, because same-session returns correlate at 0.570; loss differentials are therefore aggregated to one value per session before testing, which multiplies the p-values by a median factor of 52. Second, Diebold-Mariano tests with the Harvey-Leybourne-Newbold correction and Holm family-wise control find that 4 of the six fitted models are significantly worse than a zero-return null and 0 are significantly better, and Hansen's test of superior predictive ability over the whole family does not reject (p = 0.6891). Third, the entire evaluation is re-run across a 72-configuration grid of the fold geometry and portfolio breadth: the best configuration in the grid returns 4.6259% net with a per-session Sharpe ratio of 0.0356, against a False-Strategy threshold of 0.1267 that skill-free search alone would be expected to produce, and the zero-return null has the highest out-of-sample R-squared in all 72. The reported strategy loses 4.77% of its capital after costs. The apparatus is then inverted to ask what it could have found. The smallest out-of-sample R-squared this design could separate from zero at 5% size and 80% power is 0.1132, roughly eleven times the largest effect this literature credibly reports; reaching 0.01 would need 15,126 sessions. Widening the cross-section cannot substitute, because a session of names correlated at rho-bar carries at most 1.7554 independent rows here however many are added. And a closed-form feasibility bound shows the cost schedule requires a cross-sectional information coefficient of 0.3098 from any forecaster in this design, against the 0.0387 achieved by the portfolio model. The negative result is therefore a statement about the experiment rather than about the market. The committed run replays byte-for-byte from bundled inputs.
 
-**Keywords:** point-in-time evaluation, purged walk-forward validation, data snooping, superior predictive ability, deflated Sharpe ratio, effective sample size, transaction costs, reproducible research.
+**Keywords:** point-in-time evaluation, purged walk-forward validation, data snooping, superior predictive ability, deflated Sharpe ratio, effective sample size, statistical power, transaction costs, reproducible research.
 
 > **Scope.** This is not a historical BIST-100 study. The accepted experiment is named `fixed_bist_large_cap_prototype` and contains GARAN, ISCTR, KCHOL and THYAO. [`docs/component_status.yaml`](docs/component_status.yaml) is the machine-readable boundary between what is implemented, what is integrated, and what has empirical evidence behind it.
 
@@ -28,7 +28,9 @@ This repository is built the other way around. The question is not *can a model 
 
 **The search is counted.** Every arbitrary choice in the design — how many training dates, how wide a validation window, how large an embargo, how many names to hold — is swept, and the reported configuration is placed inside the resulting distribution rather than presented as *the* result.
 
-The outcome is negative and is retained because methodological validity, not model novelty, is the acceptance criterion. A negative result delivered with the machinery that would have found a positive one is a stronger statement than a positive result delivered without it.
+**The design is asked what it could have found.** A negative result carries information only in proportion to the power of the design that produced it. "We tested and found no effect" and "we ran a test that could not have found the effect even had it been there" are different claims, and this literature almost never distinguishes them. Section 4.8 derives three bounds — on detectable accuracy, on what breadth can buy, and on what the cost schedule demands — and Sections 5.6 to 5.8 evaluate them on the committed run.
+
+The outcome is negative and is retained because methodological validity, not model novelty, is the acceptance criterion. A negative result delivered with the machinery that would have found a positive one is a stronger statement than a positive result delivered without it — and a negative result that also reports what it could not have found is stronger still.
 
 ---
 
@@ -43,6 +45,12 @@ The outcome is negative and is retained because methodological validity, not mod
 **Backtest overfitting.** Lo [10] derives the sampling distribution of the Sharpe ratio and shows that the square-root annualisation rule is wrong under autocorrelation. Bailey and López de Prado [11] convert the Sharpe ratio into a probability that accounts for skewness and kurtosis, and [12] deflate it by the number of configurations tried, via the False Strategy Theorem. Bailey, Borwein, López de Prado and Zhu [13] show how quickly an unrecorded search produces a spurious backtest. Harvey, Liu and Zhu [14] make the same argument for the cross-section of expected returns: with hundreds of published factors, the conventional $t > 2$ hurdle is far too low.
 
 **Costs.** Novy-Marx and Velikov [15] document that a large share of published anomalies do not survive realistic trading costs. Section 5.4 reproduces that pattern in miniature: the strategy's gross edge is real and its net edge is not.
+
+**Effect sizes worth detecting.** Welch and Goyal [21] document that most equity-premium predictors fail out of sample; Campbell and Thompson [22] argue that an out-of-sample R-squared well under one percent is already economically meaningful, which is the scale Section 5.6 measures this design against. Gu, Kelly and Xiu [23] report values in the same range for machine-learning models on a monthly US cross-section far larger than this one. A short-horizon study claiming an R-squared an order of magnitude above that range is more likely reporting a leak than a discovery.
+
+**Design analysis.** Cohen [24] is the standard reference for inverting a test at a stated power. Gelman and Carlin [25] argue that it should be done with a plausible effect size supplied externally rather than with the observed estimate, which is the procedure used here; Button et al. [26] and Ioannidis [27] document what happens to a field that skips it. Applying this to forecast evaluation, rather than to a clinical or psychological design, is the main methodological import of Section 4.8.
+
+**Breadth and costs.** Grinold [28] relates the information ratio of an active strategy to skill times the square root of breadth. The feasibility bound in Section 4.8 is a cost-aware statement in the same spirit but used in the opposite direction: rather than predicting attainable performance from assumed skill, it converts an observed cost schedule into the skill a design requires, using the order-statistic machinery of David and Nagaraja [29].
 
 **Validation for financial panels.** López de Prado [16] sets out purged and embargoed cross-validation for overlapping financial labels, which is the protocol implemented in `research/splits.py`.
 
@@ -189,6 +197,36 @@ $$E_T = E_0 + \mathrm{PnL}_{\mathrm{gross}} + \mathrm{distributions} - \mathrm{c
 
 Cost sensitivity reuses the *same* trading decisions across multipliers, so only the bill moves; increasing costs cannot improve net performance, and that is asserted as an invariant.
 
+### 4.8 What the design could detect
+
+The tests above answer *is there evidence of skill*. They cannot answer *would they have said yes for an effect of the size anyone actually expects*. Three bounds settle that, each computed from the run's own artifacts.
+
+**Detectable accuracy.** The Diebold-Mariano statistic is a mean over its standard error, so inverting it at size $\alpha$ and power $1-\beta$ gives the smallest mean loss differential the design could separate from zero:
+
+$$\delta_{\min} = \left( t_{1-\alpha/2,\ n-1} + t_{1-\beta,\ n-1} \right) \cdot \mathrm{SE}(\bar d) .$$
+
+Dividing by the null's mean squared error puts it on the scale of $R^2_0$. The bound is evaluated for the candidate with the *smallest* standard error, the one the design had the best chance of separating; quoting any other would flatter the experiment. Following Gelman and Carlin [25] the reference effect is supplied externally rather than read off the data: $R^2_0 = 0.01$, the upper end of what [22] and [23] treat as economically meaningful.
+
+**Proposition 1 (panel information ceiling).** Let a session contain $k$ units whose targets are equicorrelated at $\bar\rho \in (0,1)$. Then it carries
+
+$$m(k) = \frac{k}{1 + (k-1)\bar\rho}$$
+
+independent observations, $m$ is strictly increasing in $k$, and $m(k) \uparrow 1/\bar\rho$. Widening the cross-section therefore has a hard ceiling: past a few dozen correlated names it buys essentially no precision, and only more sessions help.
+
+**Proposition 2 (breadth-cost feasibility).** Let the forecast $\hat r$ and the realised return $r \sim \mathcal{N}(0,\sigma^2)$ be jointly normal with correlation $\rho$. A long-only rule that ranks $N$ names by $\hat r$, holds the top $k$ in equal weight for one period, and pays a round-trip cost $c$ on notional has positive expected net return only if
+
+$$\rho > \frac{c}{\sigma \cdot \lambda(N,k)}, \qquad \lambda(N,k) = \frac{1}{k} \sum_{i=N-k+1}^{N} \mathbb{E}\left[ Z_{(i:N)} \right] .$$
+
+Here $\lambda$ is the mean of the top-$k$ standard normal order statistics: the strength with which the rule concentrates the forecast into its right tail. The bound is deliberately generous — it ignores estimation error in the ranking, charges the cost once per round trip, and assumes an unbiased forecast — and it is model-free, since $c$, $\sigma$ and $\lambda$ are properties of the experimental design. It can therefore be evaluated before a single model is fitted.
+
+**Proposition 3 (effective trial count).** The False Strategy Theorem assumes the $N$ trials are independent draws. A configuration grid is not: neighbouring configurations reuse most of the same sessions and disperse less. With $V_{\mathrm{ind}} = (1 + \hat{SR}^2/2)/n$ the sampling variance of one per-period Sharpe ratio and $V_{\mathrm{real}}$ the realised variance across trials, the equation
+
+$$\sqrt{V_{\mathrm{real}}} \cdot q(N) = \sqrt{V_{\mathrm{ind}}} \cdot q(N_{\mathrm{eff}})$$
+
+has a unique solution, because $q$ — the bracketed factor of the deflated-Sharpe threshold — is continuous and strictly increasing. $N_{\mathrm{eff}}$ is the number of genuinely independent searches the grid behaves like, and reporting the threshold under both readings brackets the correction.
+
+Proofs are in `src/bist_predict/research/inference/detectability.py` and in Appendix A of the manuscript; `tests/test_research/test_inference_detectability.py` pins each quantity to values computable by hand.
+
 ---
 
 ## 5. Results
@@ -253,7 +291,41 @@ Figure 7 also shows something the return statistics hide. The flat stretches are
 
 A bootstrap block length is an arbitrary choice, so all seven are reported. Every interval contains zero and their widths vary by about ten percentage points out of ninety. The interval is a statement about the data, not about the block length.
 
-### 5.6 Committed run
+### 5.6 The design was never powered for a plausible effect
+
+![Detectable effect](docs/figures/fig10_detectable_effect.png)
+
+**Figure 10.** Left: the smallest out-of-sample R-squared separable from zero at 5% size and 80% power, against the number of evaluation sessions. Right: independent rows per session against the number of names, with the ceiling of Proposition 1.
+
+At 120 sessions the best-powered candidate could have been separated from the null only by an out-of-sample R-squared above 0.1132. That is roughly eleven times the upper end of what [22] and [23] treat as economically meaningful, and about a hundred times the values those studies typically report. Detecting an out-of-sample R-squared of 0.01 at the same size and power would need 15,126 sessions of this panel: about sixty years of trading.
+
+The portfolio side is worse, because the search threshold does not shrink with the record length. Establishing skill at the conventional deflated-Sharpe bar of 0.95 would have required a Sharpe ratio of 0.2884 per session, an annualised 4.5785. No equity strategy operates there. The correct reading of the deflated Sharpe ratio of 0.0452 is therefore not "the strategy has no skill" but "a 120-session record searched over 72 configurations cannot demonstrate skill at any plausible level, and this one does not come close either".
+
+The right panel closes the obvious escape route. Proposition 1 caps the panel at 1.7554 independent rows per session; four names already reach 1.4765 of that. An unlimited universe at the same correlation would improve standard errors by about 9%, which moves the detectable R-squared from 0.113 to roughly 0.095, not to 0.01. Breadth is not the missing ingredient. Sessions are.
+
+### 5.7 The cost schedule rules the design out before any model is chosen
+
+![Breadth-cost feasibility](docs/figures/fig11_breadth_cost_feasibility.png)
+
+**Figure 11.** Proposition 2 evaluated across universe widths and holding fractions at this run's cost schedule, against the information coefficient the portfolio model achieved.
+
+This is the sharpest result in the repository. At a round-trip cost of 20.2 basis points against a target standard deviation of 1.90%, holding the top 3 of 4 names — a selection score of only 0.3431, since holding three quarters of the universe barely selects at all — requires a cross-sectional information coefficient of 0.3098. The portfolio model achieved 0.0387. The design demanded eight times the skill it got, and the level it demanded is roughly an order of magnitude above what cross-sectional equity forecasting attains anywhere.
+
+Widening the universe does not fix it. A wider ranking lowers the requirement, but $\lambda(N,k)$ converges to the mean of the corresponding tail of the normal, so past a few dozen names only a more selective rule helps: holding the top 2% of 500 names still requires about 0.043, above what this study achieved. Under this cost schedule, at this target volatility, no long-only top-$k$ rule fed by a forecast of this quality is profitable at any breadth.
+
+Worth separating from the statistical result, because the two are independent: the tests in Section 5.3 say the forecast is not distinguishable from zero, while Proposition 2 says that even a forecast that *was* distinguishable — at an information coefficient of 0.05, say, which would be a respectable result in this literature — would still have lost money in this design. A study reporting such a forecast as a success, without evaluating the bound, would be reporting a statistically real and economically worthless effect.
+
+### 5.8 Both readings of the search correction agree
+
+![Search threshold](docs/figures/fig12_search_threshold.png)
+
+**Figure 12.** The False Strategy threshold against the number of configurations searched, under independent trials and at the dispersion the grid actually showed.
+
+The 72 configurations disperse considerably less than 72 independent trials would: their realised Sharpe variance is 0.002757 against the 0.008337 a single 120-session estimate carries. Solving the equation in Proposition 3 shows the grid to behave like 7.01 independent searches. That is a useful diagnostic on its own — a search whose effective count is far below its nominal count is exploring one design repeatedly rather than exploring a design space.
+
+For the conclusion it matters less than one might expect, which is why both are reported. Treating the trials as independent puts the bar at 0.2203; their realised dispersion puts it at 0.1267. The grid maximum is 0.0356, below both by a wide margin. Whatever one believes about how to count a correlated search, nothing in this grid survives it.
+
+### 5.9 Committed run
 
 The block below is generated from the immutable run artifacts by `bist_predict.research.readme_results`; `make verify-claims` regenerates it and fails if the document has drifted.
 
@@ -319,7 +391,7 @@ The block below is generated from the immutable run artifacts by `bist_predict.r
 - Across the 72-configuration grid, 5.56% of configurations produced a positive net return, and the zero-return null had the best out-of-sample R-squared in 72 of 72.
 <!-- ACCEPTED_RESULTS:END -->
 
-### 5.7 Inference
+### 5.10 Inference
 
 <!-- INFERENCE:START -->
 ### Effective sample size
@@ -377,7 +449,7 @@ Best candidate by mean outperformance: `rolling_mean` at -2.450e-05 squared-erro
 | Deflated Sharpe ratio | 0.0452 |
 <!-- INFERENCE:END -->
 
-### 5.8 Sensitivity
+### 5.11 Sensitivity
 
 <!-- SENSITIVITY:START -->
 ### Configuration grid
@@ -415,13 +487,11 @@ Best candidate by mean outperformance: `rolling_mean` at -2.450e-05 squared-erro
 
 ## 6. Discussion
 
-**What the result means.** On this universe, over this window, at this horizon, scale-normalised price and volume features carry no out-of-sample information about next-session open-to-close returns that survives an honest accounting of sample size and search. The apparatus is not merely failing to reject; several models are measurably worse than the null, and the whole family is far from rejection jointly.
+On this universe, over this window, at this horizon, scale-normalised price and volume features carry no out-of-sample information about next-session open-to-close returns that survives an honest accounting of sample size and search. The apparatus is not merely failing to reject; several models are measurably worse than the null, and the whole family is far from rejection jointly.
 
-**What it does not mean.** It does not mean Borsa Istanbul is efficient, that no short-horizon signal exists, or that machine learning cannot forecast equity returns. Four stocks over one year is a small sample, and a negative result on a small sample is weak evidence about the population. What is strong here is the *conditional* statement: an effect large enough to be usable at this horizon, on this universe, would have shown up, and it did not.
+None of that means Borsa Istanbul is efficient, that no short-horizon signal exists, or that machine learning cannot forecast equity returns. It does not even mean this particular signal is absent. Sections 5.6 to 5.8 make the honest version of the claim available: an effect large enough to be *usable* at this horizon on this universe would have shown up and did not, while an effect of the size the literature actually reports would not have shown up either way, and the experiment is simply silent about it. That distinction is the difference between evidence and an uninformative experiment, and it is cheap to compute.
 
-**Why several models are worse than the null.** A model with no signal does not merely fail to help; it adds estimation variance to the forecast. In a mean-squared-error comparison against a zero forecast, that variance is a pure cost, so a fitted model on signal-free data should land below zero. Observing exactly that is a consistency check on the pipeline rather than a surprise.
-
-**Why the trivial baselines look competitive on direction.** 53.12% of realised targets are non-positive, so a constant "down" predictor achieves 53.12% directional accuracy while carrying no information at all. Directional accuracy without its base rate is not interpretable, which is why it is reported next to balanced accuracy and never used as a headline.
+Two mechanisms in the results deserve explanation rather than surprise. A model with no signal does not merely fail to help: it adds estimation variance to the forecast, and in a mean-squared-error comparison against a zero forecast that variance is a pure cost, so several fitted models landing below zero is a consistency check on the pipeline. And the trivial baselines look competitive on direction only because 53.12% of realised targets are non-positive, so a constant "down" predictor achieves 53.12% directional accuracy while carrying no information at all. Directional accuracy without its base rate is not interpretable, which is why it is reported next to balanced accuracy and never used as a headline.
 
 **The Sharpe ratio, read properly.** Session returns have a kurtosis of 7.2290, so the normal-theory
 Sharpe interval understates tail risk. Accounting for the higher moments, the probability that the
@@ -430,7 +500,17 @@ correction. Deflating by the 72 configurations examined leaves a deflated Sharpe
 Lo's autocorrelation-aware annualisation gives -0.4973 against the square-root rule's -0.4513, so the
 conventional rule is, if anything, flattering here.
 
-**On the finding becoming more complicated under scrutiny.** The False Strategy threshold in Section 4.6 is an *expectation*, not a critical value: a genuinely skill-free grid exceeds it about half the time, which `test_the_threshold_is_an_expectation_and_not_a_critical_value` verifies by simulation. The threshold is therefore reported as a diagnostic and the deflated Sharpe ratio, which converts it into a probability, is the actual test. Both are shown.
+The False Strategy threshold in Section 4.6 is an *expectation*, not a critical value: a genuinely skill-free grid exceeds it about half the time, which `test_the_threshold_is_an_expectation_and_not_a_critical_value` verifies by simulation. The threshold is therefore reported as a diagnostic and the deflated Sharpe ratio, which converts it into a probability, is the actual test. Both are shown.
+
+### What follows for the design of such studies
+
+The bounds in Section 4.8 are cheap to compute and belong in the design phase rather than the post-mortem. Three of them can be evaluated before any data is modelled. The detectable effect needs only the target's variance and the intended sample size, and a design whose detectable effect exceeds the plausible effect by an order of magnitude will produce an uninformative answer whichever way it comes out. The feasibility bound needs only the cost schedule, the target volatility and the intended breadth, and it is the difference between "our model was not good enough" and "no model would have been"; a study that clears the statistical bar but not the feasibility bound has found something true and useless, and should say so. The effective size of the search says whether a grid explored a design space or one design repeatedly — here 7.01 against a nominal 72.
+
+To that list belongs one more thing that is not a bound: state the unit of inference and defend it. The gap between the row-level and session-level p-values here is a median factor of 52, so a panel study that does not say which it used has not reported its result.
+
+### Verifying the evaluator, not only the model
+
+An evaluation apparatus is software, and software with no adversarial test is software of unknown quality. `make mutation-check` reintroduces sixteen real defects into the inference and reporting code one at a time — an autocovariance normalised by $n-k$ instead of $n$, a Holm correction without its running maximum, a Diebold-Mariano test aggregating rows instead of sessions, a deflated Sharpe ratio that ignores the trial count, and twelve others — and requires a named test to fail for each and to pass again once the edit is reverted. Three of the guarding tests turned out to be decorative and were repaired as a result. A negative result in particular has no external check, since nobody notices when a broken test fails to find an effect that is not there, so the apparatus has to be checked directly.
 
 ---
 
@@ -446,6 +526,7 @@ Stated plainly, including the ones that weaken the headline.
 - **One asset class, one horizon.** Nothing here transfers to other horizons or instruments without re-running the apparatus.
 - **The search grid is itself a choice.** 72 configurations were swept; a different grid would give a different deflation threshold. The grid is declared in the run configuration so the choice is auditable, but it is a choice.
 - **Corporate actions.** Transition and fail-closed policies are tested, but the committed empirical snapshot contains cash dividends only. Splits, rights issues and delistings are exercised by synthetic tests, not by this data.
+- **The detectability bounds carry their own assumptions.** Proposition 1 uses an equicorrelated approximation of a matrix whose realised pairwise values range from 0.46 to 0.83, so its ceiling is an average-case statement. Proposition 2 assumes joint normality and an unbiased forecast and ignores estimation error in the ranking, all of which make the bound optimistic — a design that fails it fails a fortiori. The power calculation treats the loss-differential standard error as fixed while the sample size varies, which is exact only if the higher moments of the differential are stable across window lengths.
 - **Not evidence about the excluded components.** Kalman filters, Ornstein-Uhlenbeck mean reversion, GARCH, HMM regimes, wavelets, cointegration, Kelly sizing, gradient boosting, stacking, calibration, LSTM and Transformer models are all implemented and none is part of the accepted experiment. A passing construction test is not a research result, and their presence should not be read as evidence of predictive value.
 
 ---
@@ -454,7 +535,9 @@ Stated plainly, including the ones that weaken the headline.
 
 Seven forecasters were evaluated on a leakage-controlled Borsa Istanbul panel with an executable target, under tests that account for cross-sectional dependence, the number of models compared, and the number of configurations examined. No model beats the zero-return null; four are significantly worse; the joint data-snooping null is not rejected at any conventional level; and the best of 72 configurations does not reach the Sharpe ratio that skill-free search alone would produce. The reported strategy loses money after costs, and would lose money at 0.62x the modelled cost schedule.
 
-The useful output is not the sign of the result but the apparatus: a target the backtest can trade, an evaluation whose unit of inference matches the data's dependence structure, a search that is counted rather than hidden, and a run that replays byte-for-byte. The next legitimate step is better point-in-time data over a longer dated universe, not another model family.
+Inverting the same apparatus turns that from a verdict about the market into a verdict about the experiment. The design could only have resolved an out-of-sample R-squared above 0.113, roughly eleven times the largest effect this literature credibly reports. Widening the cross-section cannot substitute, because a session of correlated names carries a bounded amount of independent information. And the cost schedule demanded an information coefficient of 0.3098 from a design that delivered 0.0387 — a bound no choice of model family could have met, and one that would have been known before the first model was fitted had it been computed.
+
+The useful output is therefore the apparatus and its self-assessment: a target the backtest can trade, an evaluation whose unit of inference matches the data's dependence structure, a search that is counted rather than hidden, an explicit statement of what the design could and could not have found, and a run that replays byte-for-byte. The next legitimate step is a longer point-in-time dated universe and a cheaper execution assumption, chosen so that the feasibility bound is cleared before the first model is fitted — not another model family.
 
 ---
 
@@ -520,18 +603,22 @@ The accepted benchmark does not depend on it, and the tests that need it skip wh
 ```text
 src/bist_predict/
   research/            accepted panel, folds, baselines, backtest, run artifacts
-    inference/         HAC variance, Diebold-Mariano, Holm, Reality Check, SPA, Sharpe
+    inference/         HAC variance, Diebold-Mariano, Holm, Reality Check, SPA, Sharpe,
+                       and the detectability, feasibility and effective-trial bounds
     sensitivity.py     the configuration grid
     markdown_math.py   GitHub math-rendering rules
   figures/             every report figure, drawn from a run bundle
+  paper/               manuscript tables and appendices, drawn from the same bundle
   ingest/              providers, reconciliation, calendar, corporate actions
   features/            manifests, lineage, preprocessing
   models/              experimental boosting and neural models
   quant/               experimental quantitative modules
 tools/
   build_figures.py     figure builder
+  build_paper.py       manuscript generator and typesetter
   verify_claims.py     document-to-artifact claim checker
   mutation_check.py    deliberate-defect harness
+paper/                 the manuscript source and its rendered PDF
 runs/                  immutable run bundles
 docs/figures/          generated figures, PNG and PDF
 tests/                 methodology invariants and unit tests
@@ -561,6 +648,15 @@ tests/                 methodology invariants and unit tests
 18. Holm, S. (1979). A simple sequentially rejective multiple test procedure. *Scandinavian Journal of Statistics*, 6(2), 65–70.
 19. Newey, W. K., and West, K. D. (1987). A simple, positive semi-definite, heteroskedasticity and autocorrelation consistent covariance matrix. *Econometrica*, 55(3), 703–708. [doi:10.2307/1913610](https://doi.org/10.2307/1913610)
 20. Newey, W. K., and West, K. D. (1994). Automatic lag selection in covariance matrix estimation. *Review of Economic Studies*, 61(4), 631–653. [doi:10.2307/2297912](https://doi.org/10.2307/2297912)
+21. Welch, I., and Goyal, A. (2008). A comprehensive look at the empirical performance of equity premium prediction. *Review of Financial Studies*, 21(4), 1455–1508. [doi:10.1093/rfs/hhm014](https://doi.org/10.1093/rfs/hhm014)
+22. Campbell, J. Y., and Thompson, S. B. (2008). Predicting excess stock returns out of sample: can anything beat the historical average? *Review of Financial Studies*, 21(4), 1509–1531. [doi:10.1093/rfs/hhm055](https://doi.org/10.1093/rfs/hhm055)
+23. Gu, S., Kelly, B., and Xiu, D. (2020). Empirical asset pricing via machine learning. *Review of Financial Studies*, 33(5), 2223–2273. [doi:10.1093/rfs/hhaa009](https://doi.org/10.1093/rfs/hhaa009)
+24. Cohen, J. (1988). *Statistical Power Analysis for the Behavioral Sciences*, 2nd ed. Lawrence Erlbaum Associates. ISBN 978-0-8058-0283-2.
+25. Gelman, A., and Carlin, J. (2014). Beyond power calculations: assessing type S (sign) and type M (magnitude) errors. *Perspectives on Psychological Science*, 9(6), 641–651. [doi:10.1177/1745691614551642](https://doi.org/10.1177/1745691614551642)
+26. Button, K. S., Ioannidis, J. P. A., Mokrysz, C., Nosek, B. A., Flint, J., Robinson, E. S. J., and Munafò, M. R. (2013). Power failure: why small sample size undermines the reliability of neuroscience. *Nature Reviews Neuroscience*, 14(5), 365–376. [doi:10.1038/nrn3475](https://doi.org/10.1038/nrn3475)
+27. Ioannidis, J. P. A. (2005). Why most published research findings are false. *PLoS Medicine*, 2(8), e124. [doi:10.1371/journal.pmed.0020124](https://doi.org/10.1371/journal.pmed.0020124)
+28. Grinold, R. C. (1989). The fundamental law of active management. *Journal of Portfolio Management*, 15(3), 30–37. [doi:10.3905/jpm.1989.409211](https://doi.org/10.3905/jpm.1989.409211)
+29. David, H. A., and Nagaraja, H. N. (2003). *Order Statistics*, 3rd ed. Wiley. ISBN 978-0-471-38926-2.
 
 ---
 

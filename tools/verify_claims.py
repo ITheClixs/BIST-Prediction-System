@@ -258,6 +258,54 @@ CLAIMS: tuple[Claim, ...] = (
         _field("configuration_sensitivity.best_trial.per_period_sharpe"),
         tolerance=5e-5,
     ),
+    Claim(
+        "smallest detectable out-of-sample R-squared",
+        r"design could separate from zero at 5% size and 80% power is (?P<value>\d+(?:\.\d+)?)",
+        _field("inference.detectability.minimum_detectable_r_squared"),
+        tolerance=5e-5,
+    ),
+    Claim(
+        "sessions required for a plausible effect",
+        r"would need (?P<value>\d[\d,]*) sessions",
+        _field("inference.detectability.sessions_required_for_reference_r_squared"),
+        tolerance=0.5,
+    ),
+    Claim(
+        "independent rows per session ceiling",
+        r"carries at most (?P<value>\d+(?:\.\d+)?) independent rows",
+        _field("inference.detectability.panel.independent_rows_per_session_ceiling"),
+        tolerance=5e-5,
+    ),
+    Claim(
+        "information coefficient the cost schedule requires",
+        r"cross-sectional information coefficient of (?P<value>\d+(?:\.\d+)?)",
+        _field("inference.detectability.feasibility.required_information_coefficient"),
+        tolerance=5e-5,
+    ),
+    Claim(
+        "information coefficient achieved",
+        r"portfolio model achieved (?P<value>\d+(?:\.\d+)?)",
+        _field("inference.detectability.realised_information_coefficient"),
+        tolerance=5e-5,
+    ),
+    Claim(
+        "Sharpe ratio that would have established skill",
+        r"required a Sharpe ratio of (?P<value>\d+(?:\.\d+)?) per session",
+        _field("inference.detectability.per_period_sharpe_required"),
+        tolerance=5e-5,
+    ),
+    Claim(
+        "effective independent trials",
+        r"behave like (?P<value>\d+(?:\.\d+)?) independent searches",
+        _field("inference.detectability.effective_trial_count"),
+        tolerance=5e-3,
+    ),
+    Claim(
+        "search threshold under independent trials",
+        r"independent puts the bar at (?P<value>\d+(?:\.\d+)?)",
+        _field("inference.detectability.independent_trial_threshold"),
+        tolerance=5e-5,
+    ),
 )
 
 

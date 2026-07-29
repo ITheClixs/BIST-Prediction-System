@@ -1,6 +1,6 @@
 {
   "dataset_id": "fixed_bist_large_cap_prototype-150d24cf4251",
-  "figure_count": 9,
+  "figure_count": 12,
   "figures": [
     {
       "figure": "fig01_fold_geometry",
@@ -93,7 +93,40 @@
       "pdf": "fig09_block_length_sensitivity.pdf",
       "png": "fig09_block_length_sensitivity.png",
       "selected_block_length": 2.1247865259634158
+    },
+    {
+      "figure": "fig10_detectable_effect",
+      "independent_rows_ceiling": 1.755385593210394,
+      "independent_rows_per_session": 1.4765453263909316,
+      "minimum_detectable_r_squared": 0.11319210647592144,
+      "pdf": "fig10_detectable_effect.pdf",
+      "png": "fig10_detectable_effect.png",
+      "reference_r_squared": 0.01,
+      "session_count": 120,
+      "sessions_required": 15126,
+      "standard_error_headroom": 1.0903423307854274
+    },
+    {
+      "figure": "fig11_breadth_cost_feasibility",
+      "pdf": "fig11_breadth_cost_feasibility.pdf",
+      "png": "fig11_breadth_cost_feasibility.png",
+      "realised_information_coefficient": 0.03871243681199547,
+      "required_information_coefficient": 0.3098444187805461,
+      "round_trip_cost_rate": 0.00202,
+      "shortfall_factor": 8.00374361049102,
+      "target_volatility": 0.01900006876105416
+    },
+    {
+      "effective_trial_count": 7.010726452101544,
+      "figure": "fig12_search_threshold",
+      "grid_maximum": 0.035570809845700116,
+      "grid_maximum_below_both": true,
+      "independent_threshold": 0.22030032065517674,
+      "pdf": "fig12_search_threshold.pdf",
+      "png": "fig12_search_threshold.png",
+      "realised_threshold": 0.12669711763142574,
+      "trial_count": 72
     }
   ],
-  "run_id": "20260728T223101Z-8b27df3-2a71b8"
+  "run_id": "20260729T154855Z-c75fb58-2a71b8"
 }

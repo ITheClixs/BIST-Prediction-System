@@ -31,6 +31,7 @@ from bist_predict.research.portfolio_backtest import (
     CostModel,
     PortfolioBacktester,
     StrategyConfig,
+    round_trip_cost_rate,
 )
 from bist_predict.research.inference_report import build_inference_report
 from bist_predict.research.reporting import (
@@ -791,6 +792,8 @@ def run_accepted_benchmark(
             f"{reported_trial_id}"
         )
     sensitivity = summarise_sensitivity(sensitivity_trials, reported=reported_trial)
+    tickers = sorted({bar.ticker for bar in bars})
+    sharpe_spread = cast(dict[str, float], sensitivity["per_period_sharpe"])
     inference = build_inference_report(
         benchmark.predictions,
         net_returns=[snapshot.net_return for snapshot in portfolio.daily_snapshots],
@@ -799,11 +802,14 @@ def run_accepted_benchmark(
         periods_per_year=TRADING_SESSIONS_PER_YEAR,
         trial_count=int(cast(int, sensitivity["trial_count"])),
         trial_sharpe_variance=float(cast(float, sensitivity["trial_sharpe_variance"])),
+        grid_maximum_sharpe=float(sharpe_spread["maximum"]),
+        round_trip_cost_rate=round_trip_cost_rate(_cost_model(config), config.max_participation),
+        universe_size=len(tickers),
+        selected=min(config.top_k, len(tickers)),
         seed=config.seed,
         replications=config.bootstrap_iterations,
     )
 
-    tickers = sorted({bar.ticker for bar in bars})
     data_manifest = {
         "dataset_id": f"{config.experiment_scope}-{_canonical_frame_hash(price_frame)[:12]}",
         "sources": sorted(
