@@ -127,7 +127,7 @@ def test_replay_allows_provenance_environment_drift_but_not_scientific_drift(
 ) -> None:
     original_environment = {
         "python_version": "3.13.0",
-        "python_executable": "/original/.venv/bin/python",
+        "python_implementation": "CPython",
         "platform": "macOS-original",
         "os": "posix",
         "machine": "arm64",
@@ -138,7 +138,7 @@ def test_replay_allows_provenance_environment_drift_but_not_scientific_drift(
     replay_environment = {
         **original_environment,
         "python_version": "3.12.0",
-        "python_executable": "/runner/.venv/bin/python",
+        "python_implementation": "PyPy",
         "platform": "Linux-runner",
         "machine": "x86_64",
         "processor": "x86_64",

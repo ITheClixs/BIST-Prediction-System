@@ -326,10 +326,17 @@ def benchmark(
         ),
         runs_root=runs_root,
         config=AcceptedBenchmarkConfig(),
+        # The inputs are re-persisted into the bundle byte-for-byte, so the
+        # recorded command points at the bundle's own copies rather than at
+        # wherever they happened to sit on the machine that ran it. A path under
+        # someone's home directory is not a reproduction instruction. Where the
+        # data came from is recorded separately, with per-source digests, in
+        # data_manifest.json.
         command=(
-            f"bist-predict benchmark --prices {prices} "
-            f"--corporate-actions {corporate_actions} "
-            f"--corporate-action-coverage {corporate_action_coverage}"
+            "bist-predict benchmark "
+            "--prices $RUN/input_prices.parquet "
+            "--corporate-actions $RUN/corporate_actions.parquet "
+            "--corporate-action-coverage $RUN/corporate_action_coverage.parquet"
         ),
     )
     tracked = persist_run_signal_predictions(

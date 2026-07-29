@@ -105,7 +105,10 @@ def _environment() -> dict[str, object]:
             packages[name] = "not-installed"
     return {
         "python_version": sys.version,
-        "python_executable": sys.executable,
+        # The interpreter's implementation and version identify what ran; its
+        # absolute path identifies whose machine it ran on, which is not
+        # provenance and does not belong in a published artifact.
+        "python_implementation": platform.python_implementation(),
         "platform": platform.platform(),
         "os": os.name,
         "machine": platform.machine(),
