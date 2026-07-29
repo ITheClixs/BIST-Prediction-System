@@ -16,6 +16,7 @@
 \usepackage{booktabs}
 \usepackage{amsfonts}
 \usepackage{amsmath}
+\usepackage{amsthm}
 \usepackage{nicefrac}
 \usepackage{microtype}
 \usepackage{graphicx}
@@ -24,9 +25,14 @@
 
 \hypersetup{colorlinks=true, linkcolor=black, citecolor=black, urlcolor=blue}
 
-% Nine figures and ten tables against a twelve-page body will strand floats
-% pages away from the text that references them unless the page is allowed to
-% carry more of them.
+\theoremstyle{plain}
+\newtheorem{proposition}{Proposition}
+\theoremstyle{remark}
+\newtheorem{remark}{Remark}
+
+% Twelve figures and thirteen tables against a twenty-page body will strand
+% floats pages away from the text that references them unless the page is
+% allowed to carry more of them.
 \renewcommand{\topfraction}{0.92}
 \renewcommand{\bottomfraction}{0.75}
 \renewcommand{\textfraction}{0.06}
@@ -35,8 +41,8 @@
 \setcounter{bottomnumber}{2}
 \setcounter{totalnumber}{5}
 
-\title{Nothing Beats Zero: A Leakage-Controlled, Search-Corrected Benchmark for
-Short-Horizon Borsa Istanbul Equity Forecasting}
+\title{Nothing Beats Zero: Detectability Bounds for a Leakage-Controlled,
+Search-Corrected Borsa Istanbul Forecasting Benchmark}
 
 \input{generated/authors}
 
@@ -47,26 +53,36 @@ Short-Horizon Borsa Istanbul Equity Forecasting}
 \begin{abstract}
 Short-horizon equity forecasting studies usually report a model that beats a
 benchmark. This one reports the apparatus that would have detected such a model,
-and the finding that none exists in the data examined. On a fixed four-stock
-Borsa Istanbul prototype universe over 251 sessions, seven forecasters are
-fitted under a date-grouped purged walk-forward protocol with an executable
-next-open-to-close target, and every out-of-sample prediction is persisted.
-Three things follow that a table of point estimates cannot deliver. First, the
-480 out-of-sample rows are shown to carry roughly 177 independent observations,
-because same-session returns correlate at 0.570; loss differentials are
-therefore aggregated to one value per session before testing, which multiplies
-the resulting p-values by a median factor of 52. Second, Diebold--Mariano tests
-with the Harvey--Leybourne--Newbold correction under Holm family-wise control
-find four of six fitted models significantly \emph{worse} than a zero-return
-null and none better, and Hansen's test of superior predictive ability over the
-whole family does not reject. Third, the entire evaluation is repeated across a
-72-configuration grid of the fold geometry and portfolio breadth: the grid
-maximum reaches a per-session Sharpe ratio of $0.0356$ against a False Strategy
-threshold of $0.1267$ that skill-free search alone would be expected to produce,
-and the zero-return null attains the highest out-of-sample $R^2$ in all 72. The
-reported strategy loses $4.77\%$ of its capital after costs and breaks even at
-$0.62\times$ the modelled cost schedule. The committed run replays byte-for-byte
-from bundled inputs.
+the finding that none exists in the data examined, and---the part that is
+usually missing---a quantitative account of what that finding is worth. On a
+fixed four-stock Borsa Istanbul prototype universe over 251 sessions, seven
+forecasters are fitted under a date-grouped purged walk-forward protocol with an
+executable next-open-to-close target, and every out-of-sample prediction is
+persisted. The 480 out-of-sample rows are shown to carry roughly 177 independent
+observations because same-session returns correlate at $0.570$; loss
+differentials are therefore aggregated to one value per session, which
+multiplies the resulting p-values by a median factor of 52.
+Diebold--Mariano tests with the Harvey--Leybourne--Newbold correction under Holm
+family-wise control find four of six fitted models significantly \emph{worse}
+than a zero-return null and none better, Hansen's test of superior predictive
+ability does not reject, and across a 72-configuration grid of the fold geometry
+and portfolio breadth the null attains the best out-of-sample $R^2$ in all 72.
+We then invert the same apparatus. Three results follow, each computed from the
+run's own artifacts. First, the design could only have separated an
+out-of-sample $R^2$ above $0.113$ from zero at conventional size and power,
+roughly eleven times the largest effect this literature credibly reports;
+reaching $0.01$ would take $15{,}126$ sessions. Second, widening the
+cross-section cannot fix this: at a mean pairwise correlation of $\bar\rho$ a
+session carries at most $1/\bar\rho$ independent observations however many names
+are added, worth a $9\%$ standard-error gain here for an unlimited universe.
+Third, a closed-form feasibility bound shows the cost schedule demands a
+cross-sectional information coefficient of $0.310$ from any forecaster in this
+design, against the $0.039$ achieved---and no universe width restores
+feasibility at that level of skill. The negative result is therefore a statement
+about the experiment, not about the market, and we give the sample sizes,
+breadths and cost levels at which the question becomes answerable. The committed
+run replays byte-for-byte from bundled inputs, and sixteen seeded defects in the
+inference code are each required to break a guarding test.
 \end{abstract}
 
 \section{Introduction}
@@ -79,26 +95,71 @@ independent, and a headline drawn from whichever configuration happened to look
 best. Each inflates apparent performance without leaving an obvious trace in the
 code.
 
-This work inverts the question. Rather than asking whether a model can be found
-that beats a benchmark, it asks whether an apparatus strict enough to detect one
-finds anything at all. Four commitments follow.
+There is a second failure mode, less discussed, that applies with equal force to
+the studies that report nothing. A negative result carries information only in
+proportion to the power of the design that produced it. ``We tested and found no
+effect'' and ``we ran a test that could not have found the effect even had it
+been there'' are different claims, and in this literature they are almost never
+distinguished, because the second requires computing something the first does
+not. \citet{gelman2014} make the general argument: a design should be
+characterised by what it can resolve before its output is interpreted.
+\citet{button2013} show what happens to a field that does not do this.
 
-\textbf{The target is executable.} The label is the return the simulated
-portfolio can actually earn under its stated timing: signal after the close of
-session $t$, execution at the observed open of session $t+1$, exit at that
-session's official close.
+This work does both halves. The first half is an evaluation apparatus strict
+enough that a real effect would survive it, applied to a Borsa Istanbul panel;
+its verdict is negative at every level tested. The second half turns that same
+apparatus around and asks what it was capable of detecting. The answer reframes
+the result entirely: the design is not evidence that short-horizon prediction on
+this market is impossible, it is evidence that the question cannot be settled at
+this sample size, this cross-sectional breadth, or this cost level---and we
+compute how far each would have to move.
 
-\textbf{The evaluation respects the panel's structure.} Folds are expanding
-windows over unique trading dates, never row offsets, with purge and embargo
-\citep{lopezdeprado2018}. All tickers on one date remain in the same partition,
-and preprocessing is fitted on training rows only.
+\subsection*{Contributions}
 
-\textbf{The sample size is measured, not assumed.} Four tickers observed on one
-session are not four independent observations. Section~\ref{sec:dependence}
-quantifies the inflation and changes the unit of inference accordingly.
+\textbf{C1. A dependence-aware evaluation protocol for panel forecast
+comparison.} Four tickers observed on one session are not four independent
+observations. Section~\ref{sec:dependence} measures the inflation and changes
+the unit of inference to the session rather than correcting after the fact; the
+row-level statistics are retained and reported alongside, so the size of the
+error the usual practice makes is visible rather than argued about. Here it is a
+median factor of 52 in the p-values.
 
-\textbf{The search is counted.} Every arbitrary choice in the design is swept,
-and the reported configuration is placed inside the resulting distribution.
+\textbf{C2. Detectability bounds for the design.} Inverting the accepted tests
+at conventional size and power yields the smallest out-of-sample $R^2$ and the
+smallest Sharpe ratio the experiment could have separated from its null
+(Section~\ref{sec:power}). Both exceed anything the literature credibly reports,
+by an order of magnitude.
+
+\textbf{C3. An information ceiling for correlated panels
+(Proposition~\ref{prop:ceiling}).} Under equicorrelation, one session of a
+$k$-name cross-section carries $k / (1 + (k-1)\bar\rho)$ independent
+observations, which is bounded above by $1/\bar\rho$. Breadth therefore cannot
+substitute for length: past a few dozen names, adding more buys essentially no
+statistical precision. On this panel an unlimited universe would improve
+standard errors by $9\%$.
+
+\textbf{C4. A breadth--cost feasibility bound
+(Proposition~\ref{prop:feasibility}).} For a long-only rule holding the top $k$
+of $N$ ranked names against a round-trip cost $c$ and a target of volatility
+$\sigma$, positive expected net return requires a cross-sectional information
+coefficient above $c / (\sigma\,\lambda(N,k))$, where $\lambda$ is the mean of
+the top-$k$ standard normal order statistics. The bound is a property of the
+experimental design, computable before any model is fitted, and it rules this
+design out by a factor of eight.
+
+\textbf{C5. An effective trial count for correlated searches
+(Proposition~\ref{prop:trials}).} The False Strategy Theorem assumes independent
+trials; a configuration grid reuses most of the same sessions and disperses
+less. Equating the two thresholds recovers the number of independent searches
+the grid behaves like---here $7.01$ of 72---and brackets the search correction
+between its two defensible readings. The grid maximum falls below both.
+
+\textbf{C6. A verified evaluator.} The inference code is itself subject to
+mutation testing: sixteen real defects are reintroduced one at a time and each
+is required to break a specific test (Appendix~\ref{app:mutations}). Three tests
+were found to be decorative this way and repaired. The committed run replays
+byte-for-byte from bundled inputs, and every table and figure in this manuscript
+is generated from that bundle by a tested module.
 
 The outcome is negative and is retained because methodological validity, not
 model novelty, is the acceptance criterion.
@@ -129,11 +190,37 @@ autocorrelation. \citet{bailey2012} convert the Sharpe ratio into a probability
 accounting for skewness and kurtosis, and \citet{bailey2014dsr} deflate it by
 the number of configurations tried. \citet{bailey2014pseudo} show how quickly an
 unrecorded search produces a spurious backtest, and \citet{harvey2016} make the
-same argument for the cross-section of expected returns.
+same argument for the cross-section of expected returns. What none of this
+literature supplies, and what Section~\ref{sec:trials} adds, is a way to say how
+many \emph{independent} searches a correlated grid amounts to.
 
-\textbf{Costs.} \citet{novymarx2016} document that many published anomalies do
-not survive realistic trading costs. Section~\ref{sec:costs} reproduces that
-pattern in miniature.
+\textbf{Effect sizes worth detecting.} \citet{welch2008} document that most
+equity-premium predictors fail out of sample; \citet{campbell2008} argue that an
+out-of-sample $R^2$ of well under one percent is already economically
+meaningful, which is the scale against which Section~\ref{sec:power} measures
+this design. \citet{gu2020} report out-of-sample $R^2$ in the same range for
+machine-learning models on a monthly US cross-section far larger than this one.
+Any short-horizon study claiming an $R^2$ an order of magnitude above that range
+is more likely reporting a leak than a discovery.
+
+\textbf{Design analysis.} \citet{cohen1988} is the standard reference for
+inverting a test at a stated power. \citet{gelman2014} argue that this should be
+done with a plausible effect size supplied externally rather than with the
+observed estimate, which is the procedure of Section~\ref{sec:power};
+\citet{button2013} and \citet{ioannidis2005} document the consequences of
+skipping it. To our knowledge this is not standard practice in the empirical
+finance forecasting literature, where negative results are reported without any
+accompanying statement of what the design could have resolved.
+
+\textbf{Breadth and costs.} \citet{grinold1989} relates the information ratio of
+an active strategy to the product of skill and the square root of breadth.
+Proposition~\ref{prop:feasibility} is a cost-aware statement in the same spirit
+but with the opposite use: rather than predicting attainable performance from
+assumed skill, it converts an observed cost schedule into the skill a design
+requires, using the order-statistic machinery of \citet{david2003}.
+\citet{novymarx2016} document that many published anomalies do not survive
+realistic trading costs; Section~\ref{sec:costs} reproduces that pattern in
+miniature, and Section~\ref{sec:feasible} explains why it was inevitable here.
 
 \textbf{Borsa Istanbul.} \citet{kara2011} report high directional accuracy for
 neural networks and support vector machines on the Istanbul Stock Exchange
@@ -160,6 +247,9 @@ and a per-ticker corporate-action query-coverage artifact, so ``no action'' is a
 assertion with a source rather than an absence of data. Because the accepted
 strategy holds for one session and carries no overnight entitlement, those five
 events are persisted as \texttt{no\_entitlement} rather than invented income.
+Split, bonus-issue, ticker-change, rights-issue and delisting handlers exist and
+are exercised by synthetic tests; the rights-issue and unsourced-delisting paths
+fail closed rather than guess a policy.
 
 The universe is fixed by construction and therefore free of survivorship bias
 within its own definition. It is \emph{not} point-in-time index membership, and
@@ -175,11 +265,28 @@ close,
 \begin{equation}
 r_{i,t+1}^{\mathrm{exec}} = \frac{C_{i,t+1}}{O_{i,t+1}} - 1,
 \qquad
-y_{i,t+1} = \mathbb{1}\!\left\{ r_{i,t+1}^{\mathrm{exec}} > 0 \right\}.
+y_{i,t+1} = \mathbf{1}\!\left\{ r_{i,t+1}^{\mathrm{exec}} > 0 \right\}.
 \end{equation}
 Every panel row stores the feature, execution and target timestamps, and the
 chronology $t_{\mathrm{feature}} < t_{\mathrm{exec}} \le t_{\mathrm{start}} <
 t_{\mathrm{end}}$ is enforced as an invariant rather than assumed.
+
+\subsection{Features}
+
+Nineteen features enter the pooled model, listed in full in
+Appendix~\ref{app:features}: returns over one, five and twenty sessions,
+moving-average and VWAP ratios, an ATR-to-close ratio, realised volatility, a
+volume z-score, a drawdown, two cross-sectional quantities, and four calendar
+encodings. Every one is a ratio, a log ratio, a rank or a bounded periodic
+function.
+
+Raw close, moving-average levels, absolute ATR, raw VWAP, raw volume and OBV are
+deliberately excluded. In a pooled model, nominal price scale acts as accidental
+ticker identification: a model that learns ``prices near 300'' has learned an
+identity, not a signal, and the leak is invisible in any per-ticker diagnostic.
+Missing values are preserved with a reason code and imputed by training-fold
+median with an accompanying indicator column, so absence is a feature rather
+than a silently filled zero.
 
 \subsection{Validation protocol}
 
@@ -191,9 +298,12 @@ first validation feature timestamp, so for every fold $k$,
 \;<\;
 \min_{j \in \mathrm{val}(k)} t^{\mathrm{feature}}_{j}.
 \end{equation}
-The committed run uses 24 minimum training dates, 10 validation dates, a 10-date
-step and a one-date embargo, producing 12 folds. Figure~\ref{fig:folds} draws the
-partition that was executed, read from the run's own fold artifact.
+Tickers on one date are never split across partitions, and preprocessing is
+fitted on training rows only. The committed run uses 24 minimum training dates,
+10 validation dates, a 10-date step and a one-date embargo, producing 12 folds
+over 120 disjoint evaluation sessions. Figure~\ref{fig:folds} draws the
+partition that was executed, read from the run's own fold artifact;
+Appendix~\ref{app:folds} tabulates its boundaries.
 
 \begin{figure}[!htbp]
   \centering
@@ -203,12 +313,13 @@ partition that was executed, read from the run's own fold artifact.
   \label{fig:folds}
 \end{figure}
 
-\subsection{Effective sample size}
+\subsection{Effective sample size and the unit of inference}
 \label{sec:dependence}
 
 For $k$ cross-sectional units with average pairwise correlation $\bar\rho$, the
 variance of a cross-sectional mean is inflated by
 \begin{equation}
+\label{eq:vif}
 \mathrm{VIF} = 1 + (k-1)\bar\rho,
 \qquad
 n_{\mathrm{eff}} = \frac{n}{\mathrm{VIF}}.
@@ -217,7 +328,12 @@ Rather than apply a correction after the fact, the evaluation changes the unit o
 inference: every loss differential is averaged across the tickers present on a
 date and all tests run on the resulting one-value-per-session series. Row-level
 statistics are computed anyway and reported alongside, so the size of the
-inflation is visible rather than argued about. Table~\ref{tab:dependence} and
+inflation is visible rather than argued about. The estimator averages pairwise
+Pearson correlations with equal weight over unit pairs, skipping pairs with fewer
+than three shared sessions rather than treating them as zero, and floors the
+inflation factor at one: a negative average correlation would imply the pooled
+sample carries \emph{more} information than independent rows, which is not a
+claim this evaluation is willing to make. Table~\ref{tab:dependence} and
 Figure~\ref{fig:ess} give the realised values.
 
 \input{generated/dependence}
@@ -236,10 +352,14 @@ Seven forecasters share the same panel, target, folds, feature manifest,
 evaluation dates and train-only preprocessing: a zero-return null, a
 training-fold majority-direction null, a one-session persistence rule, a
 same-date cross-sectional mean, a rolling training mean, a regularised logistic
-direction model, and a ridge return model that also ranks the portfolio.
+direction model, and a ridge return model that also ranks the portfolio. The
+three history heuristics see only targets that had already matured at the
+prediction timestamp, which is the leakage guard that makes them baselines rather
+than oracles.
 
 The primary accuracy metric is the zero-mean out-of-sample $R^2$,
 \begin{equation}
+\label{eq:r2}
 R^2_{0} = 1 - \frac{\sum_{i,t} (r_{i,t} - \hat r_{i,t})^2}{\sum_{i,t} r_{i,t}^2}.
 \end{equation}
 The sample-mean version is the wrong choice here: its benchmark uses the mean of
@@ -251,6 +371,7 @@ any model that merely learns the window's drift.
 \textbf{Equal predictive accuracy.} With session-aggregated squared-error
 differentials $d_t = L_t(\mathrm{model}) - L_t(\mathrm{null})$,
 \begin{equation}
+\label{eq:dm}
 DM = \frac{\bar d}{\sqrt{\hat\Omega / n}},
 \qquad
 DM^{\ast} = DM \sqrt{\frac{n + 1 - 2h + h(h-1)/n}{n}},
@@ -272,10 +393,17 @@ T_n = \max\!\left[ 0, \; \max_k \frac{\sqrt{n}\, \bar Z_k}{\hat\omega_k} \right]
 whose null distributions come from a stationary bootstrap that resamples every
 model on the same index draw, preserving cross-model dependence, with the block
 length chosen automatically \citep{white2000,hansen2005,politis1994,politis2004}.
+One deviation from \citet{hansen2005} is recorded here because it matters in
+exactly this regime: the p-values compare untruncated maxima rather than the
+floored statistic $T_n$. Applying the floor to both the observed value and every
+bootstrap draw collapses the comparison onto the atom at zero as soon as no
+candidate has a positive mean, and returns an arbitrary p-value precisely when
+the evidence is weakest.
 
 \textbf{Sharpe ratio under search.} For per-period Sharpe $\hat{SR}$ with
 skewness $\hat\gamma_3$ and kurtosis $\hat\gamma_4$,
 \begin{equation}
+\label{eq:psr}
 \widehat{PSR}(SR^{\ast}) = \Phi\!\left[
 \frac{(\hat{SR} - SR^{\ast})\sqrt{n-1}}
 {\sqrt{1 - \hat\gamma_3 \hat{SR} + \frac{\hat\gamma_4 - 1}{4}\hat{SR}^2}}
@@ -284,9 +412,11 @@ skewness $\hat\gamma_3$ and kurtosis $\hat\gamma_4$,
 and the deflated Sharpe ratio evaluates it at the threshold the best of $N$
 skill-free trials would be expected to reach,
 \begin{equation}
-SR^{\ast}_0 = \sqrt{V[\hat{SR}]}\left[
-(1-\gamma)\,\Phi^{-1}\!\left(1 - \tfrac{1}{N}\right)
-+ \gamma\,\Phi^{-1}\!\left(1 - \tfrac{1}{Ne}\right)\right],
+\label{eq:dsr}
+SR^{\ast}_0 = \sqrt{V[\hat{SR}]}\;q(N),
+\qquad
+q(N) = (1-\gamma)\,\Phi^{-1}\!\left(1 - \tfrac{1}{N}\right)
++ \gamma\,\Phi^{-1}\!\left(1 - \tfrac{1}{Ne}\right),
 \end{equation}
 with $\gamma$ the Euler--Mascheroni constant \citep{bailey2012,bailey2014dsr}.
 Both quantities are per period; substituting an annualised value inflates the
@@ -304,8 +434,152 @@ caps and market impact use a 20-session trailing volume reference whose last
 observation is no later than the signal date. The ledger records signals, orders,
 fills, positions, cash and costs as separate artifacts and enforces
 $E_T = E_0 + \mathrm{PnL}_{\mathrm{gross}} + \mathrm{distributions} -
-\mathrm{costs}$. Cost sensitivity reuses the same trading decisions across
-multipliers, so only the bill moves.
+\mathrm{costs}$ session by session. Cost sensitivity reuses the same trading
+decisions across multipliers, so only the bill moves. The complete parameter set
+is in Appendix~\ref{app:configuration}.
+
+\section{What the design could have detected}
+\label{sec:power}
+
+Everything above answers ``is there evidence of skill?''. This section answers
+the question those tests cannot: would they have said yes for an effect of the
+size anyone actually expects? Each quantity below is computed from the run's own
+artifacts, and each is reported in Table~\ref{tab:detectability},
+Table~\ref{tab:feasibility} or Table~\ref{tab:search}.
+
+\subsection{Minimum detectable accuracy}
+
+The statistic in Equation~\ref{eq:dm} is a mean divided by its standard error.
+Inverting it at size $\alpha$ and power $1-\beta$ gives the smallest mean loss
+differential the design could have separated from zero,
+\begin{equation}
+\label{eq:mde}
+\delta_{\min} = \left(t_{1-\alpha/2,\,n-1} + t_{1-\beta,\,n-1}\right)
+\cdot \mathrm{SE}(\bar d),
+\end{equation}
+and dividing by the null's mean squared error puts it on the scale of
+Equation~\ref{eq:r2}. We evaluate this for the candidate with the \emph{smallest}
+standard error, the one the design had the best chance of separating; quoting any
+other would flatter the experiment. Following \citet{gelman2014} the reference
+effect is supplied externally rather than taken from the data: we use
+$R^2_0 = 0.01$, at the upper end of what \citet{campbell2008} and
+\citet{gu2020} treat as economically meaningful out of sample.
+
+Since $\mathrm{SE} \propto n^{-1/2}$, the session count at which a given effect
+becomes detectable follows by solving Equation~\ref{eq:mde} for $n$. The
+critical values move with $n$ as well, so the solution is found by search rather
+than by the closed form $n_0(\delta_0/\delta)^2$, which understates the
+requirement at small $n$.
+
+The same inversion applies to the portfolio. Setting Equation~\ref{eq:psr} equal
+to $0.95$ at the search threshold of Equation~\ref{eq:dsr} and solving for
+$\hat{SR}$ gives the per-session Sharpe ratio that would have counted as
+evidence of skill after the search actually performed.
+
+\begin{remark}
+The threshold $SR^{\ast}_0$ does not shrink with the sample size. Lengthening the
+record shrinks the sampling noise around $\hat{SR}$ but leaves the bar the search
+sets exactly where it was, so a strategy whose true Sharpe ratio lies below
+$SR^{\ast}_0$ can never establish skill at any record length. The search
+correction is a floor on the effect size, not merely a penalty on the p-value.
+\end{remark}
+
+\subsection{The information ceiling of a correlated panel}
+\label{sec:ceiling}
+
+Widening the cross-section is the usual answer to a short sample. It does not
+work when the units share a market factor.
+
+\begin{proposition}[Panel information ceiling]
+\label{prop:ceiling}
+Let a session contain $k$ units whose targets are equicorrelated at
+$\bar\rho \in (0,1)$. Then the session carries
+\begin{equation}
+m(k) = \frac{k}{1 + (k-1)\bar\rho}
+\end{equation}
+independent observations, $m$ is strictly increasing in $k$, and
+$m(k) \uparrow 1/\bar\rho$ as $k \to \infty$.
+\end{proposition}
+
+The proof is immediate from Equation~\ref{eq:vif} and is given in
+Appendix~\ref{app:proofs}. The consequence is the part that matters: the gain
+available from breadth is bounded by $1/(\bar\rho\, m(k))$ in variance and by its
+square root in standard error, so a study whose cross-section is already
+moderately wide gains almost nothing from widening it further. Only more sessions
+help. Figure~\ref{fig:detect} draws the curve and marks where this panel sits on
+it.
+
+\subsection{The cost floor on breadth}
+\label{sec:feasible}
+
+Breadth does buy something else: selectivity. Ranking $N$ names and holding the
+best $k$ concentrates the forecast into its right tail, and the strength of that
+concentration is the mean of the top-$k$ standard normal order statistics
+\citep{david2003},
+\begin{equation}
+\label{eq:lambda}
+\lambda(N,k) = \frac{1}{k}\sum_{i=N-k+1}^{N} \mathbb{E}\!\left[Z_{(i:N)}\right]
+= \frac{N}{k}\int_0^1 \Phi^{-1}(u)\, I_u(N-k,\,k)\,\mathrm{d}u,
+\end{equation}
+with $I_u$ the regularised incomplete beta function. The second form follows from
+exchangeability---a draw is in the top $k$ exactly when at most $k-1$ of the
+other $N-1$ exceed it---and replaces $k$ quadratures by one.
+
+\begin{proposition}[Breadth--cost feasibility]
+\label{prop:feasibility}
+Let the forecast $\hat r$ and the realised return $r \sim \mathcal{N}(0,\sigma^2)$
+be jointly normal with correlation $\rho$. A long-only rule that ranks $N$ names
+by $\hat r$, holds the top $k$ in equal weight for one period, and pays a
+round-trip cost $c$ on notional, has positive expected net return only if
+\begin{equation}
+\label{eq:feasibility}
+\rho \;>\; \frac{c}{\sigma\,\lambda(N,k)}.
+\end{equation}
+\end{proposition}
+
+The proof is in Appendix~\ref{app:proofs}. Three features of the bound are worth
+stating plainly. It is \emph{generous}: it ignores estimation error in the
+ranking, charges the cost only once per round trip, and assumes an unbiased
+forecast. It is \emph{model-free}: $c$, $\sigma$ and $\lambda(N,k)$ are
+properties of the experimental design, not of the forecaster, so the requirement
+can be computed before a single model is fitted. And it is \emph{not} a
+statistical statement: a strategy can fail Equation~\ref{eq:feasibility} while
+producing a forecast that is significantly better than the null, which is exactly
+what happens when a real but small edge is smaller than the spread.
+
+Equation~\ref{eq:feasibility} is a cost-aware relative of the fundamental law of
+active management \citep{grinold1989}, used in the opposite direction: rather
+than predicting attainable performance from assumed skill, it converts an
+observed cost schedule into the skill a design demands.
+
+\subsection{How many searches was the grid?}
+\label{sec:trials}
+
+Equation~\ref{eq:dsr} assumes the $N$ trials are independent draws. A
+configuration grid is not: neighbouring configurations reuse most of the same
+sessions, so their Sharpe ratios move together and disperse less than independent
+trials would. Substituting the \emph{realised} dispersion $V_{\mathrm{real}}$
+absorbs the dependence but hides its strength.
+
+\begin{proposition}[Effective trial count]
+\label{prop:trials}
+Let $V_{\mathrm{ind}} = (1 + \hat{SR}^2/2)/n$ be the sampling variance of a
+single per-period Sharpe ratio \citep{lo2002}, and let $V_{\mathrm{real}}$ be the
+realised variance of the $N$ trial Sharpe ratios. Then $q$ in
+Equation~\ref{eq:dsr} is continuous and strictly increasing on $(1,\infty)$, so
+\begin{equation}
+\label{eq:neff}
+\sqrt{V_{\mathrm{real}}}\; q(N) = \sqrt{V_{\mathrm{ind}}}\; q(N_{\mathrm{eff}})
+\end{equation}
+has a unique solution $N_{\mathrm{eff}}$, the number of independent searches
+whose expected maximum equals the grid's.
+\end{proposition}
+
+When $V_{\mathrm{real}} < V_{\mathrm{ind}}$ the grid is behaving like fewer
+independent searches than it contains, and $N_{\mathrm{eff}} < N$. Reporting both
+thresholds brackets the correction: the independent-trial reading is the
+conservative one, the realised-dispersion reading is the permissive one, and a
+grid maximum below both is a conclusion that does not depend on the choice.
 
 \section{Results}
 
@@ -384,14 +658,14 @@ beside it and neither is used as a headline.
   \label{fig:grid}
 \end{figure}
 
-Figure~\ref{fig:rc} is the argument of Section~4.5 in one picture. The bootstrap
+Figure~\ref{fig:rc} is the data-snooping argument in one picture. The bootstrap
 null distribution is centred \emph{above} zero because it is the distribution of
-a maximum over six candidates; that offset is precisely the data-snooping
-correction, made visible. The observed maximum lies to the left of it and is
-itself negative, so the best candidate loses to the null before any correction is
-applied. Table~\ref{tab:snooping} gives the joint p-values: $0.9970$ for the
-Reality Check and $0.6891$ for Hansen's consistent recentring, bracketed by
-$0.6891$ and $1.0000$. The joint null is nowhere near rejection.
+a maximum over six candidates; that offset is precisely the correction, made
+visible. The observed maximum lies to the left of it and is itself negative, so
+the best candidate loses to the null before any correction is applied.
+Table~\ref{tab:snooping} gives the joint p-values: $0.9970$ for the Reality Check
+and $0.6891$ for Hansen's consistent recentring, bracketed by $0.6891$ and
+$1.0000$. The joint null is nowhere near rejection.
 
 Table~\ref{tab:sharpe} carries the same message for the portfolio. Session
 returns have a kurtosis of $7.2290$, so the normal-theory Sharpe interval
@@ -403,13 +677,14 @@ a deflated Sharpe ratio of $0.0452$.
 The grid itself varies the minimum training window, the validation width and
 step, the embargo and the portfolio breadth; each point is a complete re-run of
 the evaluation, not a re-weighting of a cached result
-(Table~\ref{tab:sensitivity}, Figure~\ref{fig:grid}). Only $5.56\%$ of those
-configurations produced a positive net return. The reported configuration ranks
-16th of 72 by Sharpe ratio, so it is neither cherry-picked nor unusually unlucky,
-and the grid maximum of $0.0356$ falls short of the $0.1267$ that the best of 72
-skill-free configurations would be expected to reach. The most compact statement
-of the result is that across all 72 configurations, the zero-return null attained
-the best out-of-sample $R^2$ in 72 of 72.
+(Table~\ref{tab:sensitivity}, Figure~\ref{fig:grid}, and the full listing in
+Appendix~\ref{app:grid}). Only $5.56\%$ of those configurations produced a
+positive net return. The reported configuration ranks 16th of 72 by Sharpe ratio,
+so it is neither cherry-picked nor unusually unlucky, and the grid maximum of
+$0.0356$ falls short of the $0.1267$ that the best of 72 skill-free
+configurations would be expected to reach. The most compact statement of the
+result is that across all 72 configurations, the zero-return null attained the
+best out-of-sample $R^2$ in 72 of 72.
 
 \subsection{Costs, not signal, decide the outcome}
 \label{sec:costs}
@@ -470,7 +745,118 @@ why the two bootstraps in this paper carry different block lengths.
   \label{fig:blocks}
 \end{figure}
 
+\subsection{The design was never powered for a plausible effect}
+\label{sec:results-power}
+
+\input{generated/detectability}
+
+\begin{figure}[!htbp]
+  \centering
+  \includegraphics[width=\textwidth]{../docs/figures/fig10_detectable_effect.pdf}
+  \caption{Left: the smallest out-of-sample $R^2$ separable from zero at $5\%$
+  size and $80\%$ power, as a function of the number of evaluation sessions, with
+  this study marked and the band of effects the literature reports shaded. Right:
+  independent rows per session against the number of names, with the
+  $1/\bar\rho$ ceiling of Proposition~\ref{prop:ceiling}.}
+  \label{fig:detect}
+\end{figure}
+
+Table~\ref{tab:detectability} inverts the tests that were actually run. At 120
+sessions, the best-powered candidate could have been separated from the null only
+by an out-of-sample $R^2_0$ above $0.1132$. That is roughly eleven times the
+upper end of what \citet{campbell2008} and \citet{gu2020} treat as economically
+meaningful, and about a hundred times the values those studies typically report.
+Detecting $R^2_0 = 0.01$ at the same size and power would need $15{,}126$
+sessions of this panel: about sixty years of trading.
+
+The portfolio side is worse. Because the search threshold does not shrink with
+the record length, establishing skill at the conventional deflated-Sharpe bar of
+$0.95$ would have required a per-session Sharpe ratio of $0.2884$, an annualised
+$4.5785$. No equity strategy operates there. The correct reading of the deflated
+Sharpe ratio of $0.0452$ is therefore not ``the strategy has no skill'' but ``a
+120-session record searched over 72 configurations cannot demonstrate skill at
+any plausible level, and this one does not come close either''.
+
+The right panel of Figure~\ref{fig:detect} closes the obvious escape route.
+Proposition~\ref{prop:ceiling} caps the independent rows a session can carry at
+$1/\bar\rho = 1.7554$; this four-name panel already reaches $1.4765$ of that. An
+unlimited universe at the same correlation would improve standard errors by
+$9\%$---which moves the detectable $R^2_0$ from $0.113$ to about $0.095$, not to
+$0.01$. Breadth is not the missing ingredient. Sessions are.
+
+\subsection{The cost schedule rules the design out before any model is chosen}
+
+\input{generated/feasibility}
+
+\begin{figure}[!htbp]
+  \centering
+  \includegraphics[width=\textwidth]{../docs/figures/fig11_breadth_cost_feasibility.pdf}
+  \caption{Proposition~\ref{prop:feasibility} evaluated across universe widths
+  and holding fractions at this run's cost schedule. The information coefficient
+  the design demands is compared against the one the portfolio model achieved.}
+  \label{fig:feasible}
+\end{figure}
+
+Evaluating Equation~\ref{eq:feasibility} on the accepted design gives the
+sharpest result in this paper (Table~\ref{tab:feasibility}). At a round-trip cost
+of $20.2$ basis points against a target standard deviation of $1.90\%$, holding
+the top 3 of 4 names---a selection score of only $\lambda(4,3) = 0.3431$, since
+holding three quarters of the universe barely selects at all---requires a
+cross-sectional information coefficient of $0.3098$. The ridge model achieved
+$0.0387$. The design demanded eight times the skill it got, and the level it
+demanded is roughly an order of magnitude above what cross-sectional equity
+forecasting attains anywhere.
+
+Figure~\ref{fig:feasible} shows that this cannot be fixed by widening the
+universe alone. A wider ranking does lower the requirement, but $\lambda(N,k)$
+converges to the mean of the corresponding tail of the normal, so past a few
+dozen names only a more selective rule helps: holding the top $2\%$ of 500 names
+still requires an information coefficient of about $0.043$, above what this study
+achieved. Under this cost schedule, at this target volatility, no long-only
+top-$k$ rule fed by a forecast of this quality is profitable at any breadth.
+
+This is worth separating from the statistical result, because the two are
+independent. The tests in Section~\ref{sec:snooping} say the forecast is not
+distinguishable from zero. Proposition~\ref{prop:feasibility} says that even a
+forecast that \emph{was} distinguishable from zero---at, say, an information
+coefficient of $0.05$, which would be a respectable result in this
+literature---would still have lost money in this design. A study that reported
+such a forecast as a success, without evaluating the bound, would be reporting a
+statistically real and economically worthless effect.
+
+\subsection{Both readings of the search correction agree}
+
+\input{generated/search}
+
+\begin{figure}[!htbp]
+  \centering
+  \includegraphics[width=\textwidth]{../docs/figures/fig12_search_threshold.pdf}
+  \caption{The False Strategy threshold as a function of the number of
+  configurations searched, under independent trials and at the dispersion the
+  grid actually showed. The vertical marker is $N_{\mathrm{eff}}$ from
+  Proposition~\ref{prop:trials}.}
+  \label{fig:search}
+\end{figure}
+
+The 72 configurations disperse considerably less than 72 independent trials
+would: their realised Sharpe variance is $0.002757$ against the $0.008337$ a
+single 120-session estimate carries. Solving Equation~\ref{eq:neff} puts
+$N_{\mathrm{eff}} = 7.01$ (Table~\ref{tab:search}). The grid, in other words,
+asked about seven genuinely different things while appearing to ask seventy-two.
+That is a useful diagnostic in its own right: a search whose effective count is
+far below its nominal count is exploring one design repeatedly rather than
+exploring a design space.
+
+For the conclusion it matters less than one might expect, which is the point of
+reporting both. Treating the trials as independent sets the bar at $0.2203$;
+using their realised dispersion sets it at $0.1267$. The grid maximum is
+$0.0356$, below both by a wide margin (Figure~\ref{fig:search}). Whatever one
+believes about how to count a correlated search, nothing in this grid survives
+it.
+
 \section{Discussion}
+
+\subsection{What this result is, and is not}
 
 On this universe, over this window, at this horizon, scale-normalised price and
 volume features carry no out-of-sample information about next-session
@@ -478,11 +864,13 @@ open-to-close returns that survives an honest accounting of sample size and
 search. The apparatus is not merely failing to reject: several models are
 measurably worse than the null, and the family is far from rejection jointly.
 
-This does not mean Borsa Istanbul is efficient, that no short-horizon signal
-exists, or that machine learning cannot forecast equity returns. Four stocks over
-one year is a small sample. What is strong here is the conditional statement: an
-effect large enough to be usable at this horizon on this universe would have
-shown up, and it did not.
+It does not follow that Borsa Istanbul is efficient, that no short-horizon signal
+exists, or that machine learning cannot forecast equity returns. It does not even
+follow that this particular signal is absent. Section~\ref{sec:results-power}
+makes the honest version of the claim available for the first time: an effect
+large enough to be \emph{usable} at this horizon on this universe would have
+shown up, and did not; an effect of the size the literature actually reports
+would not have shown up either way, and the experiment is silent about it.
 
 Two details deserve emphasis. First, a model with no signal does not merely fail
 to help; it adds estimation variance to the forecast, which is a pure cost in a
@@ -493,24 +881,86 @@ genuinely skill-free grid exceeds it about half the time, which the accompanying
 test suite verifies by simulation. It is reported as a diagnostic, and the
 deflated Sharpe ratio, which converts it into a probability, is the actual test.
 
+\subsection{What follows for the design of such studies}
+
+The bounds in Section~\ref{sec:power} are cheap to compute and, we would argue,
+belong in the design phase rather than the post-mortem. Four of them can be
+evaluated before any data is modelled.
+
+\textbf{Compute the detectable effect before running the experiment.}
+Equation~\ref{eq:mde} needs only the target's variance and the intended sample
+size. A design whose detectable effect exceeds the plausible effect by an order
+of magnitude will produce an uninformative answer whichever way it comes out, and
+should be lengthened or abandoned rather than run.
+
+\textbf{Compute the feasibility bound before choosing a model family.}
+Equation~\ref{eq:feasibility} needs only the cost schedule, the target volatility
+and the intended breadth. It is the difference between ``our model was not good
+enough'' and ``no model would have been'', and in this study it is decisive.
+Reporting it also disciplines the reader: a paper that clears the statistical bar
+but not the feasibility bound has found something true and useless, and should
+say so.
+
+\textbf{State the unit of inference and defend it.} The gap between the row-level
+and session-level p-values here is a median factor of 52. A panel study that does
+not say which it used has not reported its result.
+
+\textbf{Report the effective size of the search, not only its nominal size.}
+$N_{\mathrm{eff}} = 7.01$ against a nominal 72 says the grid was narrower than it
+looked. The opposite case---a search whose configurations are genuinely
+independent---deserves a correspondingly harsher correction, and neither is
+visible from the trial count alone.
+
+\subsection{Verifying the evaluator, not only the model}
+
+An evaluation apparatus is software, and software with no adversarial test is
+software of unknown quality. Sixteen real defects in the inference and reporting
+code---an autocovariance normalised by $n-k$ instead of $n$, a Holm correction
+without its running maximum, a Diebold--Mariano test aggregating rows instead of
+sessions, a deflated Sharpe ratio that ignores the trial count, and twelve
+others---are reintroduced one at a time by a harness that requires a named test
+to fail for each and to pass again once the edit is reverted
+(Appendix~\ref{app:mutations}). Three of the guarding tests turned out to be
+decorative and were repaired as a result.
+
+We think this is the right standard for statistical code that produces published
+numbers, and it is cheaper than it sounds: the catalogue is a list of edits and
+test identifiers, and the harness is under a hundred lines. A negative result in
+particular has no external check---nobody notices when a broken test fails to
+find an effect that is not there---so the apparatus has to be checked directly.
+
 \section{Limitations}
 
 Four stocks and 120 evaluated sessions are too few for a strong economic
-conclusion, and the confidence intervals say so. The universe is a fixed
-prototype rather than point-in-time index membership. The committed input
-contains no BIST index series, so only cash and an equal-weight
+conclusion, and Section~\ref{sec:results-power} quantifies exactly how few. The
+universe is a fixed prototype rather than point-in-time index membership. The
+committed input contains no BIST index series, so only cash and an equal-weight
 eligible-universe benchmark are reported and no index-relative claim is made.
 Sector metadata is unavailable and is reported as unavailable rather than filled
 with a placeholder. The strategy holds risk on 62 of 120 sessions, so annualised
 figures assume a deployment that did not occur. The search grid is itself a
 choice: a different grid would give a different deflation threshold, and the grid
-is declared in the run configuration so the choice is auditable. Corporate-action
-transition and fail-closed policies are exercised by synthetic tests; the
-empirical snapshot contains cash dividends only. Finally, the repository
-implements Kalman filters, Ornstein--Uhlenbeck mean reversion, GARCH, HMM
-regimes, wavelets, cointegration, Kelly sizing, gradient boosting, stacking,
-calibration and neural sequence models, none of which is part of the accepted
-experiment; their presence is not evidence of predictive value.
+is declared in the run configuration so the choice is auditable.
+Corporate-action transition and fail-closed policies are exercised by synthetic
+tests; the empirical snapshot contains cash dividends only.
+
+The detectability results carry their own assumptions.
+Proposition~\ref{prop:ceiling} uses an equicorrelated approximation, which is a
+simplification of a correlation matrix whose realised pairwise values here range
+from $0.46$ to $0.83$; the ceiling it gives is an average-case statement.
+Proposition~\ref{prop:feasibility} assumes joint normality and an unbiased
+forecast, and ignores estimation error in the ranking---all of which make the
+bound optimistic, so a design that fails it fails a fortiori. The power
+calculation of Equation~\ref{eq:mde} treats the loss-differential standard error
+as fixed while the sample size varies, which is exact only if the higher moments
+of the differential are stable across window lengths.
+
+Finally, the repository implements Kalman filters, Ornstein--Uhlenbeck mean
+reversion, GARCH, HMM regimes, wavelets, cointegration, Kelly sizing, gradient
+boosting, stacking, calibration and neural sequence models, none of which is part
+of the accepted experiment; their presence is not evidence of predictive value,
+and a machine-readable component status table records for each one whether it is
+integrated, evaluated, and backed by run evidence.
 
 \section{Conclusion}
 
@@ -523,28 +973,133 @@ of 72 configurations does not reach the Sharpe ratio that skill-free search alon
 would produce. The reported strategy loses money after costs and would lose money
 at $0.62\times$ the modelled cost schedule.
 
-The useful output is the apparatus rather than the sign of the result: a target
+Inverting the same apparatus turns that from a verdict about the market into a
+verdict about the experiment. The design could only have resolved an
+out-of-sample $R^2$ above $0.113$, roughly eleven times the largest effect this
+literature credibly reports; reaching $0.01$ would take $15{,}126$ sessions.
+Widening the cross-section cannot substitute, because a session of correlated
+names carries at most $1/\bar\rho$ independent observations. And the cost
+schedule demanded an information coefficient of $0.310$ from a design that
+delivered $0.039$---a bound that no choice of model family could have met, and
+that would have been known before any model was fitted had it been computed.
+
+The useful output is therefore the apparatus and its self-assessment: a target
 the backtest can trade, an evaluation whose unit of inference matches the data's
-dependence structure, a search that is counted rather than hidden, and a run that
-replays byte-for-byte. The next legitimate step is better point-in-time data over
-a longer dated universe, not another model family.
+dependence structure, a search that is counted rather than hidden, an explicit
+statement of what the design could and could not have found, and a run that
+replays byte-for-byte. The next legitimate step is a longer point-in-time dated
+universe and a cheaper execution assumption, chosen so that the feasibility bound
+is cleared before the first model is fitted---not another model family.
 
 \section*{Reproducibility}
 
-Every number in this manuscript is generated from one immutable run bundle by a
-tested module and regenerated by \texttt{make paper}. The run replays
-byte-for-byte from bundled inputs with \texttt{make reproduce-committed}, and
-\texttt{make mutation-check} reintroduces sixteen real defects into the source
-and requires the guarding test to fail for each. Code and artifacts:
-\url{https://github.com/ITheClixs/BIST-Predictor-advanced}.
+Every table and figure in this manuscript is generated from one immutable run
+bundle by a tested module and regenerated by \texttt{make paper}; the manuscript
+cannot state a table entry the pipeline does not produce. The run replays
+byte-for-byte from bundled inputs with \texttt{make reproduce-committed},
+\texttt{make verify-claims} checks the prose figures in the repository's README
+against the same artifacts, and \texttt{make mutation-check} reintroduces sixteen
+real defects into the source and requires the guarding test to fail for each.
+Code and artifacts: \url{https://github.com/ITheClixs/BIST-Predictor-advanced}.
 
 \bibliographystyle{unsrtnat}
 \bibliography{references}
 
 \appendix
 
+\section{Proofs}
+\label{app:proofs}
+
+\begin{proof}[Proof of Proposition~\ref{prop:ceiling}]
+Let $x_1,\dots,x_k$ be the session's targets, each of variance $\sigma^2$, with
+$\mathrm{corr}(x_i,x_j) = \bar\rho$ for $i \ne j$. The variance of their mean is
+\begin{equation}
+\mathrm{Var}\!\left(\frac{1}{k}\sum_i x_i\right)
+= \frac{\sigma^2}{k^2}\left(k + k(k-1)\bar\rho\right)
+= \frac{\sigma^2}{k}\left(1 + (k-1)\bar\rho\right),
+\end{equation}
+so the session mean is as informative as $m(k) = k / (1 + (k-1)\bar\rho)$
+independent observations. Differentiating,
+\begin{equation}
+m'(k) = \frac{1 - \bar\rho}{\left(1 + (k-1)\bar\rho\right)^2} > 0
+\quad\text{for } \bar\rho < 1,
+\end{equation}
+so $m$ is strictly increasing, and dividing numerator and denominator by $k$
+gives $m(k) \to 1/\bar\rho$ as $k \to \infty$. Since $m$ is increasing and
+convergent, the limit is a supremum. \end{proof}
+
+\begin{proof}[Proof of Proposition~\ref{prop:feasibility}]
+Write $\hat r$ in standardised form $z = (\hat r - \mu_{\hat r})/\sigma_{\hat r}$.
+For a bivariate normal pair with correlation $\rho$,
+\begin{equation}
+\mathbb{E}[r \mid z] = \rho\,\sigma\,z .
+\end{equation}
+Selection holds the $k$ names with the largest $\hat r$, which is a function of
+the standardised scores alone; conditional on the ranking, the selected names
+have standardised scores distributed as the top $k$ order statistics of $N$
+standard normal draws. By the tower property the expected realised return of an
+equally weighted holding is
+\begin{equation}
+\mathbb{E}\!\left[\frac{1}{k}\sum_{i=N-k+1}^{N} r_{(i)}\right]
+= \rho\,\sigma\,\frac{1}{k}\sum_{i=N-k+1}^{N}\mathbb{E}\!\left[Z_{(i:N)}\right]
+= \rho\,\sigma\,\lambda(N,k).
+\end{equation}
+Charging the round-trip cost $c$ on the notional of each position, the expected
+net return per name is $\rho\,\sigma\,\lambda(N,k) - c$, and requiring it to be
+positive gives Equation~\ref{eq:feasibility}. The second form of $\lambda$ in
+Equation~\ref{eq:lambda} follows from exchangeability: a given draw lies among
+the top $k$ exactly when at most $k-1$ of the remaining $N-1$ draws exceed it, so
+\begin{equation}
+\sum_{i=N-k+1}^{N}\mathbb{E}\!\left[Z_{(i:N)}\right]
+= N\,\mathbb{E}\!\left[Z \cdot \mathbf{1}\{Z \text{ in top } k\}\right]
+= N\int_0^1 \Phi^{-1}(u)\,
+  \Pr\!\left[\mathrm{Bin}(N-1,\,1-u) \le k-1\right]\mathrm{d}u,
+\end{equation}
+and the binomial tail is the regularised incomplete beta function
+$I_u(N-k,\,k)$. \end{proof}
+
+\begin{proof}[Proof of Proposition~\ref{prop:trials}]
+$\Phi^{-1}$ is strictly increasing, and $1 - 1/N$ and $1 - 1/(Ne)$ are both
+strictly increasing in $N$ on $(1,\infty)$; $q$ is a convex combination of the
+two with positive weights $1-\gamma$ and $\gamma$, hence strictly increasing and
+continuous there, with $q(N) \to -\infty$ as $N \downarrow 1$ and $q(N) \to
+\infty$ as $N \to \infty$. The right-hand side of Equation~\ref{eq:neff} is
+therefore a continuous strictly increasing bijection from $(1,\infty)$ onto
+$\mathbb{R}$, so for any fixed left-hand side the equation has exactly one
+solution. Bisection converges to it. \end{proof}
+
+\begin{remark}
+Proposition~\ref{prop:trials} identifies $N_{\mathrm{eff}}$ by matching expected
+maxima, not by matching the full distribution of the maximum. Two searches with
+the same expected maximum can differ in the tail, so $N_{\mathrm{eff}}$ should be
+read as a summary of how much independent exploration the grid represents rather
+than as a claim that the grid is distributionally equivalent to
+$N_{\mathrm{eff}}$ independent trials.
+\end{remark}
+
+\section{Feature manifest}
+\label{app:features}
+
+\input{generated/features_appendix}
+
+\section{Run configuration}
+\label{app:configuration}
+
+\input{generated/configuration_appendix}
+
+\section{Executed folds}
+\label{app:folds}
+
+\input{generated/folds_appendix}
+
 \section{Full configuration grid}
+\label{app:grid}
 
 \input{generated/grid_appendix}
+
+\section{Mutation catalogue}
+\label{app:mutations}
+
+\input{generated/mutations_appendix}
 
 \end{document}

@@ -8,8 +8,9 @@ from pathlib import Path
 
 import pytest
 
-ROOT = Path(__file__).resolve().parents[2]
-RUN = ROOT / "runs" / "20260728T223101Z-8b27df3-2a71b8"
+from tests.conftest import ROOT, accepted_run_directory
+
+RUN = accepted_run_directory()
 
 pytestmark = pytest.mark.skipif(not RUN.is_dir(), reason="committed accepted run is unavailable")
 

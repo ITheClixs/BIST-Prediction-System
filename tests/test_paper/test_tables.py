@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import json
-from pathlib import Path
 
 import pytest
 
@@ -14,7 +13,9 @@ from bist_predict.paper.tables import (
     split_row,
 )
 
-RUN = Path(__file__).resolve().parents[2] / "runs" / "20260728T223101Z-8b27df3-2a71b8"
+from tests.conftest import accepted_run_directory
+
+RUN = accepted_run_directory()
 
 pytestmark = pytest.mark.skipif(not RUN.is_dir(), reason="committed accepted run is unavailable")
 

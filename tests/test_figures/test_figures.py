@@ -9,7 +9,9 @@ import pytest
 
 from bist_predict.figures import FIGURE_BUILDERS, RunArtifacts, build_all_figures
 
-RUN = Path(__file__).resolve().parents[2] / "runs" / "20260728T223101Z-8b27df3-2a71b8"
+from tests.conftest import accepted_run_directory
+
+RUN = accepted_run_directory()
 
 pytestmark = pytest.mark.skipif(not RUN.is_dir(), reason="committed accepted run is unavailable")
 
@@ -32,7 +34,7 @@ def test_every_builder_produces_both_a_raster_and_a_vector_copy(
 
 def test_figure_facts_are_written_beside_the_images(built: dict[str, object]) -> None:
     """A caption can then be checked against what the figure computed."""
-    assert built["run_id"] == "20260728T223101Z-8b27df3-2a71b8"
+    assert built["run_id"] == RUN.name
     assert len(built["figures"]) == len(FIGURE_BUILDERS)
 
 

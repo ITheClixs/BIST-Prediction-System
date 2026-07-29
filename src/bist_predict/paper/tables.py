@@ -301,8 +301,9 @@ def sensitivity_table(metrics: Mapping[str, Any]) -> str:
 
 
 def dependence_table(metrics: Mapping[str, Any]) -> str:
-    """Cross-sectional dependence and the sample size it implies."""
+    """Cross-sectional dependence, the sample size it implies, and its ceiling."""
     dependence = metrics["inference"]["cross_sectional_dependence"]
+    panel = metrics["inference"]["detectability"]["panel"]
     rows = [
         f"Panel units & {int(dependence['unit_count'])}",
         f"Evaluated sessions & {int(dependence['session_count'])}",
@@ -310,10 +311,100 @@ def dependence_table(metrics: Mapping[str, Any]) -> str:
         f"Mean within-session correlation & {float(dependence['mean_pairwise_correlation']):.4f}",
         f"Variance inflation factor & {float(dependence['variance_inflation_factor']):.4f}",
         f"Effective independent rows & {float(dependence['effective_row_count']):.1f}",
+        f"Independent rows per session & {float(panel['independent_rows_per_session']):.4f}",
+        "Ceiling on independent rows per session ($1/\\bar\\rho$) & "
+        f"{float(panel['independent_rows_per_session_ceiling']):.4f}",
+        "Standard-error gain from an unlimited universe & "
+        f"{(float(panel['standard_error_headroom']) - 1.0) * 100:.1f}\\%",
     ]
     return _table(
-        "Cross-sectional dependence in the evaluation panel.",
+        "Cross-sectional dependence in the evaluation panel, and the most an arbitrarily wide "
+        "cross-section could add at the same correlation.",
         "dependence",
+        "lr",
+        "Quantity & Value",
+        rows,
+    )
+
+
+def detectability_table(metrics: Mapping[str, Any]) -> str:
+    """The effect sizes the design was powered to find."""
+    report = metrics["inference"]["detectability"]
+    rows = [
+        f"Best-powered candidate & {escape_latex(str(report['reference_model']))}",
+        "Standard error of its session-mean loss differential & "
+        f"{float(report['reference_standard_error']):.3e}",
+        f"Test size $\\alpha$ & {float(report['alpha']):.2f}",
+        f"Target power & {float(report['power']):.2f}",
+        "Smallest detectable loss differential & "
+        f"{float(report['minimum_detectable_loss_differential']):.3e}",
+        f"Mean squared error of the null & {float(report['benchmark_mean_squared_error']):.3e}",
+        "Smallest detectable out-of-sample $R^2_0$ & "
+        f"{float(report['minimum_detectable_r_squared']):.4f}",
+        f"Reference effect assumed plausible & {float(report['reference_r_squared']):.4f}",
+        "Sessions required for that effect & "
+        f"{int(report['sessions_required_for_reference_r_squared']):,}",
+        "Per-session Sharpe required for a deflated ratio of $0.95$ & "
+        f"{float(report['per_period_sharpe_required']):.4f}",
+        f"Its annualised equivalent & {float(report['annualised_sharpe_required']):.4f}",
+    ]
+    return _table(
+        "Inverting the accepted tests: the smallest effects this design could have separated "
+        "from the null at conventional size and power.",
+        "detectability",
+        "lr",
+        "Quantity & Value",
+        rows,
+    )
+
+
+def feasibility_table(metrics: Mapping[str, Any]) -> str:
+    """The information coefficient the cost schedule demands of any forecaster."""
+    report = metrics["inference"]["detectability"]
+    feasibility = report["feasibility"]
+    required = float(feasibility["required_information_coefficient"])
+    realised = float(report["realised_information_coefficient"])
+    rows = [
+        f"Round-trip cost on notional & {float(feasibility['round_trip_cost_rate']) * 1e4:.2f} bp",
+        "Standard deviation of the executable target & "
+        f"{_percent(float(feasibility['target_volatility']))}",
+        f"Names ranked & {int(feasibility['universe_size'])}",
+        f"Names held & {int(feasibility['selected'])}",
+        f"Selection score $\\lambda(N,k)$ & {float(feasibility['selection_score']):.4f}",
+        f"Information coefficient required & {required:.4f}",
+        f"Information coefficient achieved & {realised:.4f}",
+        f"Shortfall factor & {required / realised:.2f}$\\times$",
+    ]
+    return _table(
+        "Proposition~\\ref{prop:feasibility} evaluated on the accepted design. The requirement "
+        "depends on the cost schedule, the volatility of the target and the breadth of the rule, "
+        "and on nothing the forecaster does.",
+        "feasibility",
+        "lr",
+        "Quantity & Value",
+        rows,
+    )
+
+
+def search_dependence_table(metrics: Mapping[str, Any]) -> str:
+    """The search correction under both readings of trial independence."""
+    report = metrics["inference"]["detectability"]
+    rows = [
+        f"Configurations searched & {int(report['trial_count'])}",
+        "Realised variance of trial Sharpe ratios & "
+        f"{float(report['realised_trial_variance']):.6f}",
+        "Variance implied by independent trials & "
+        f"{float(report['independent_trial_variance']):.6f}",
+        f"Effective independent trials & {float(report['effective_trial_count']):.2f}",
+        f"Threshold at the realised dispersion & {float(report['deflated_sharpe_threshold']):.4f}",
+        "Threshold if the trials were independent & "
+        f"{float(report['independent_trial_threshold']):.4f}",
+        f"Best configuration in the grid & {float(report['grid_maximum_sharpe']):.4f}",
+    ]
+    return _table(
+        "The False Strategy threshold under both readings of the grid. The best configuration "
+        "falls below either, so the conclusion does not turn on how the trials are counted.",
+        "search",
         "lr",
         "Quantity & Value",
         rows,
@@ -356,6 +447,9 @@ TABLE_BUILDERS = {
     "costs": cost_table,
     "sensitivity": sensitivity_table,
     "blocks": block_length_table,
+    "detectability": detectability_table,
+    "feasibility": feasibility_table,
+    "search": search_dependence_table,
 }
 
 

@@ -6,12 +6,13 @@ import re
 import shutil
 import subprocess
 import sys
-from pathlib import Path
 
 import pytest
 
-ROOT = Path(__file__).resolve().parents[2]
-RUN = ROOT / "runs" / "20260728T223101Z-8b27df3-2a71b8"
+from bist_predict.figures import FIGURE_BUILDERS
+from tests.conftest import ROOT, accepted_run_directory
+
+RUN = accepted_run_directory()
 PDF = ROOT / "paper" / "main.pdf"
 
 pytestmark = [
@@ -46,7 +47,7 @@ def rendered() -> tuple[int, str]:
 
 def test_the_manuscript_typesets(rendered: tuple[int, str]) -> None:
     page_count, _ = rendered
-    assert 10 <= page_count <= 20, f"unexpected length: {page_count} pages"
+    assert 22 <= page_count <= 40, f"unexpected length: {page_count} pages"
 
 
 def test_no_unresolved_reference_or_citation(rendered: tuple[int, str]) -> None:
@@ -71,15 +72,38 @@ def test_every_declared_table_and_figure_is_referenced(rendered: tuple[int, str]
     figures = {int(number) for number in re.findall(r"Figure (\d+):", text)}
     assert tables == set(range(1, len(tables) + 1)), f"gap in table numbering: {sorted(tables)}"
     assert figures == set(range(1, len(figures) + 1)), f"gap in figure numbering: {sorted(figures)}"
-    assert len(figures) == 9
+    assert len(figures) == len(FIGURE_BUILDERS)
 
 
 def test_the_headline_numbers_reach_the_page(rendered: tuple[int, str]) -> None:
     """A table that renders but drops its numbers would still typeset cleanly."""
     _, text = rendered
     flattened = re.sub(r"\s+", " ", text)
-    for value in ("0.0452", "0.1267", "0.6891", "0.9970", "0.5697", "177.2", "62 of 120"):
+    headline = (
+        "0.0452",  # deflated Sharpe ratio
+        "0.1267",  # search threshold at the realised trial dispersion
+        "0.2203",  # search threshold if the trials were independent
+        "0.6891",  # Hansen SPA, consistent recentring
+        "0.9970",  # White Reality Check
+        "0.5697",  # mean within-session correlation
+        "177.2",  # effective independent rows
+        "62 of 120",  # sessions holding risk
+        "0.1132",  # smallest detectable out-of-sample R-squared
+        "15,126",  # sessions needed for the reference effect
+        "0.3098",  # information coefficient the cost schedule demands
+        "7.01",  # effective independent trials
+    )
+    for value in headline:
         assert value in flattened, f"missing from the rendered PDF: {value}"
+
+
+def test_the_propositions_are_stated_and_proved(rendered: tuple[int, str]) -> None:
+    """Each numbered proposition in the body must have a proof in the appendix."""
+    _, text = rendered
+    flattened = re.sub(r"\s+", " ", text)
+    for index in (1, 2, 3):
+        assert f"Proposition {index}" in flattened
+        assert f"Proof of Proposition {index}" in flattened
 
 
 def test_an_author_name_is_required() -> None:

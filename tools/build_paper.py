@@ -9,59 +9,16 @@ import sys
 from collections.abc import Sequence
 from pathlib import Path
 
+import yaml
+
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "src"))
 
+from bist_predict.paper.appendix import render_all_appendices  # noqa: E402
 from bist_predict.paper.tables import escape_latex, render_all_tables  # noqa: E402
 
 ROOT = Path(__file__).resolve().parent.parent
 PAPER = ROOT / "paper"
-
-
-def _grid_appendix(metrics: dict[str, object]) -> str:
-    """Render every configuration trial.
-
-    Seventy-two rows do not fit in a ``table`` float: the overflow silently runs
-    off the page and prints over the folio. ``longtable`` breaks across pages and
-    repeats the header.
-    """
-    trials = metrics["configuration_sensitivity"]["trials"]  # type: ignore[index]
-    ordered = sorted(trials, key=lambda trial: -float(trial["per_period_sharpe"]))
-    header = r"    Configuration & Folds & Sessions & Net return & Sharpe & Round trips \\"
-    lines = [
-        r"\begin{center}",
-        r"\footnotesize",
-        r"\begin{longtable}{lrrrrr}",
-        r"  \caption{Every configuration in the grid, ordered by per-session Sharpe ratio.",
-        r"  Each row is a complete re-run of the evaluation.}",
-        r"  \label{tab:grid} \\",
-        r"    \toprule",
-        header,
-        r"    \midrule",
-        r"  \endfirsthead",
-        r"    \toprule",
-        header,
-        r"    \midrule",
-        r"  \endhead",
-        r"    \bottomrule",
-        r"  \endfoot",
-    ]
-    for trial in ordered:
-        lines.append(
-            "    "
-            + " & ".join(
-                (
-                    rf"\texttt{{{escape_latex(trial['trial_id'])}}}",
-                    str(int(trial["fold_count"])),
-                    str(int(trial["session_count"])),
-                    rf"{float(trial['net_return']) * 100:.2f}\%",
-                    f"{float(trial['per_period_sharpe']):.4f}",
-                    str(int(trial["trade_count"])),
-                )
-            )
-            + r" \\"
-        )
-    lines += [r"\end{longtable}", r"\end{center}", ""]
-    return "\n".join(lines)
+MUTATION_HARNESS = ROOT / "tools" / "mutation_check.py"
 
 
 def _authors(author: str, affiliation: str, address: str = "") -> str:
@@ -90,11 +47,19 @@ def main(argv: Sequence[str] | None = None) -> int:
     parser.add_argument("--skip-typeset", action="store_true", help="write tables only")
     arguments = parser.parse_args(argv)
 
-    metrics = json.loads((arguments.run / "metrics.json").read_text(encoding="utf-8"))
+    run = arguments.run
+    metrics = json.loads((run / "metrics.json").read_text(encoding="utf-8"))
     generated = PAPER / "generated"
     generated.mkdir(parents=True, exist_ok=True)
     tables = render_all_tables(metrics)
-    tables["grid_appendix"] = _grid_appendix(metrics)
+    tables.update(
+        render_all_appendices(
+            metrics=metrics,
+            config=yaml.safe_load((run / "config.yaml").read_text(encoding="utf-8")),
+            folds=json.loads((run / "folds.json").read_text(encoding="utf-8")),
+            mutation_source=MUTATION_HARNESS.read_text(encoding="utf-8"),
+        )
+    )
     for name, body in tables.items():
         (generated / f"{name}.tex").write_text(body, encoding="utf-8")
     (generated / "authors.tex").write_text(
