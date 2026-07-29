@@ -4395,6 +4395,45 @@
       },
       "verdict": "no_candidate_beats_benchmark"
     },
+    "detectability": {
+      "alpha": 0.05,
+      "annualised_sharpe_required": 4.5785187214125065,
+      "benchmark_mean_squared_error": 0.00036039396789081337,
+      "deflated_sharpe_threshold": 0.12669711763142574,
+      "effective_trial_count": 7.010726452101544,
+      "feasibility": {
+        "required_information_coefficient": 0.30984441883744546,
+        "round_trip_cost_rate": 0.00202,
+        "selected": 3,
+        "selection_score": 0.3431251242698938,
+        "target_volatility": 0.01900006876105416,
+        "universe_size": 4
+      },
+      "grid_maximum_sharpe": 0.035570809845700116,
+      "independent_trial_threshold": 0.22030032065517674,
+      "independent_trial_variance": 0.00833670141424204,
+      "minimum_detectable_loss_differential": 4.079375238677676e-05,
+      "minimum_detectable_r_squared": 0.11319210647592144,
+      "panel": {
+        "headroom": 1.1888463983025985,
+        "independent_rows_per_session": 1.4765453263909316,
+        "independent_rows_per_session_ceiling": 1.755385593210394,
+        "mean_pairwise_correlation": 0.5696754057159131,
+        "standard_error_headroom": 1.0903423307854274,
+        "unit_count": 4
+      },
+      "per_period_sharpe": -0.028431310523605955,
+      "per_period_sharpe_required": 0.28841956928359314,
+      "power": 0.8,
+      "realised_information_coefficient": 0.03871243681199547,
+      "realised_trial_variance": 0.002757385313670684,
+      "reference_model": "logistic",
+      "reference_r_squared": 0.01,
+      "reference_standard_error": 1.4441533820655354e-05,
+      "session_count": 120,
+      "sessions_required_for_reference_r_squared": 15126,
+      "trial_count": 72
+    },
     "equal_predictive_accuracy": {
       "any_candidate_survives_correction": true,
       "benchmark": "zero_return",

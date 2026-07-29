@@ -111,9 +111,9 @@
       "pdf": "fig11_breadth_cost_feasibility.pdf",
       "png": "fig11_breadth_cost_feasibility.png",
       "realised_information_coefficient": 0.03871243681199547,
-      "required_information_coefficient": 0.3098444187805461,
+      "required_information_coefficient": 0.30984441883744546,
       "round_trip_cost_rate": 0.00202,
-      "shortfall_factor": 8.00374361049102,
+      "shortfall_factor": 8.003743611960816,
       "target_volatility": 0.01900006876105416
     },
     {
@@ -128,5 +128,5 @@
       "trial_count": 72
     }
   ],
-  "run_id": "20260729T154855Z-c75fb58-2a71b8"
+  "run_id": "20260729T224915Z-38742b7-2a71b8"
 }

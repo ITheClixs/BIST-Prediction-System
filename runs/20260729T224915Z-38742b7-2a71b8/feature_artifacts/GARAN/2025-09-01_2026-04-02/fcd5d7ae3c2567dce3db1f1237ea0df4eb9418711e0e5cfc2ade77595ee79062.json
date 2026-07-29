@@ -1,11 +1,11 @@
 {
   "lineage": {
-    "calculation_timestamp": "2026-07-28T22:31:01.318159+00:00",
+    "calculation_timestamp": "2026-07-29T22:49:15.574824+00:00",
     "code_version": "accepted-baseline-v2",
     "end_date": "2026-04-02",
     "feature_manifest_hash": "b0349ccf178ddaf18885ffadcf3685d71f845458b211792d82ccbc866c84cf71",
-    "git_commit": "8b27df39d1d013487cb227baf026c5226635d644",
-    "input_data_manifest_hash": "9c1ac0e6a8a5370dbec80c7e706ad5a2f5fed8613de3f33edb97336a27ee50f7",
+    "git_commit": "38742b7e8a6c34d4e75ba8d5cfd93d6fed99d068",
+    "input_data_manifest_hash": "717b9d94f9441d84987aca4340c5dcd87d50f9b917445194e9bf7ee5ccb99a16",
     "start_date": "2025-09-01",
     "ticker": "GARAN"
   },

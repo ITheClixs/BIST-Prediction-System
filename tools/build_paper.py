@@ -19,6 +19,7 @@ from bist_predict.paper.tables import escape_latex, render_all_tables  # noqa: E
 ROOT = Path(__file__).resolve().parent.parent
 PAPER = ROOT / "paper"
 MUTATION_HARNESS = ROOT / "tools" / "mutation_check.py"
+RENDERED = ROOT / "paper.pdf"
 
 
 def _authors(author: str, affiliation: str, address: str = "") -> str:
@@ -79,6 +80,11 @@ def main(argv: Sequence[str] | None = None) -> int:
     if result.returncode != 0:
         return result.returncode
     print(f"typeset {PAPER / 'main.pdf'}")
+    # The rendered manuscript is the artifact a reader wants first, so a copy is
+    # committed at the repository root. The LaTeX sources and the intermediate
+    # files stay under paper/, where they are ignored.
+    RENDERED.write_bytes((PAPER / "main.pdf").read_bytes())
+    print(f"copied {RENDERED}")
     return 0
 
 
