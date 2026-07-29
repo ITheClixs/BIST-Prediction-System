@@ -1,8 +1,8 @@
 {
   "break_even_input_size": 1000,
-  "created_at": "2026-07-29T23:10:20.652200+00:00",
+  "created_at": "2026-07-29T23:51:11.157831+00:00",
   "dirty_working_tree": false,
-  "git_commit": "45be875",
+  "git_commit": "fb6c868",
   "indicators": [
     "sma",
     "ema",
@@ -16,78 +16,78 @@
   "platform": "macOS-26.0.1-arm64-arm-64bit-Mach-O",
   "processor": "arm",
   "pyo3_boundary_note": "One-element Rust SMA call minus NumPy copy; includes Rust output allocation and is an upper bound.",
-  "pyo3_boundary_overhead_upper_bound_ns": 375,
+  "pyo3_boundary_overhead_upper_bound_ns": 249,
   "python_version": "3.13.5",
   "repetitions": 3,
-  "report_sha256": "86d94a4f0a0716df05f5cf99e2a7f1efe9b29ced58a156ef589c10461951fe0a",
+  "report_sha256": "ce1b44104f8abee4fec0c2089d4ccba850a9588445a5d90965929ab20006a607",
   "results": [
     {
       "maximum_absolute_difference": 0.0,
       "numpy_backed_python_reference": {
         "memory_measurement": "fresh_process_peak_rss_including_inputs",
-        "peak_memory_bytes": 36438016,
+        "peak_memory_bytes": 36749312,
         "repetitions": 3,
-        "wall_clock_seconds": 0.005961958999250783
+        "wall_clock_seconds": 0.004970707999746082
       },
       "rust": {
         "memory_measurement": "fresh_process_peak_rss_including_inputs",
-        "peak_memory_bytes": 36487168,
+        "peak_memory_bytes": 36569088,
         "repetitions": 3,
-        "wall_clock_seconds": 0.000109583001176361
+        "wall_clock_seconds": 0.00016641700131003745
       },
       "size": 1000,
-      "speedup": 54.40587440798148
+      "speedup": 29.86899151298596
     },
     {
       "maximum_absolute_difference": 1.1368683772161603e-13,
       "numpy_backed_python_reference": {
         "memory_measurement": "fresh_process_peak_rss_including_inputs",
-        "peak_memory_bytes": 37289984,
+        "peak_memory_bytes": 37748736,
         "repetitions": 3,
-        "wall_clock_seconds": 0.05453420800040476
+        "wall_clock_seconds": 0.04756887500116136
       },
       "rust": {
         "memory_measurement": "fresh_process_peak_rss_including_inputs",
-        "peak_memory_bytes": 37093376,
+        "peak_memory_bytes": 37601280,
         "repetitions": 3,
-        "wall_clock_seconds": 0.0006197499969857745
+        "wall_clock_seconds": 0.0006596250022994354
       },
       "size": 10000,
-      "speedup": 87.99388183241334
+      "speedup": 72.1150272281031
     },
     {
       "maximum_absolute_difference": 0.0,
       "numpy_backed_python_reference": {
         "memory_measurement": "fresh_process_peak_rss_including_inputs",
-        "peak_memory_bytes": 51298304,
+        "peak_memory_bytes": 52248576,
         "repetitions": 3,
-        "wall_clock_seconds": 0.5803382500016596
+        "wall_clock_seconds": 0.4632600840013765
       },
       "rust": {
         "memory_measurement": "fresh_process_peak_rss_including_inputs",
-        "peak_memory_bytes": 49348608,
+        "peak_memory_bytes": 49381376,
         "repetitions": 3,
-        "wall_clock_seconds": 0.005542082999454578
+        "wall_clock_seconds": 0.004888040999503573
       },
       "size": 100000,
-      "speedup": 104.71482474347161
+      "speedup": 94.7741813230341
     },
     {
       "maximum_absolute_difference": 0.0,
       "numpy_backed_python_reference": {
         "memory_measurement": "fresh_process_peak_rss_including_inputs",
-        "peak_memory_bytes": 174014464,
+        "peak_memory_bytes": 173817856,
         "repetitions": 3,
-        "wall_clock_seconds": 6.151733833998151
+        "wall_clock_seconds": 5.428451624997251
       },
       "rust": {
         "memory_measurement": "fresh_process_peak_rss_including_inputs",
-        "peak_memory_bytes": 165085184,
+        "peak_memory_bytes": 165281792,
         "repetitions": 3,
-        "wall_clock_seconds": 0.055109958000684856
+        "wall_clock_seconds": 0.050811707998946076
       },
       "size": 1000000,
-      "speedup": 111.6265382369136
+      "speedup": 106.83466151363868
     }
   ],
   "schema_version": 1,
