@@ -1,8 +1,8 @@
 {
   "break_even_input_size": 1000,
-  "created_at": "2026-07-14T13:23:00.070314+00:00",
-  "dirty_working_tree": true,
-  "git_commit": "c3c05fd",
+  "created_at": "2026-07-29T23:10:20.652200+00:00",
+  "dirty_working_tree": false,
+  "git_commit": "45be875",
   "indicators": [
     "sma",
     "ema",
@@ -16,78 +16,78 @@
   "platform": "macOS-26.0.1-arm64-arm-64bit-Mach-O",
   "processor": "arm",
   "pyo3_boundary_note": "One-element Rust SMA call minus NumPy copy; includes Rust output allocation and is an upper bound.",
-  "pyo3_boundary_overhead_upper_bound_ns": 42,
+  "pyo3_boundary_overhead_upper_bound_ns": 375,
   "python_version": "3.13.5",
   "repetitions": 3,
-  "report_sha256": "41b5804a1a99df734a12bf64f11909e35ad48acdb4f5daf022ed14b6c9e22afe",
+  "report_sha256": "86d94a4f0a0716df05f5cf99e2a7f1efe9b29ced58a156ef589c10461951fe0a",
   "results": [
     {
       "maximum_absolute_difference": 0.0,
       "numpy_backed_python_reference": {
         "memory_measurement": "fresh_process_peak_rss_including_inputs",
-        "peak_memory_bytes": 36519936,
+        "peak_memory_bytes": 36438016,
         "repetitions": 3,
-        "wall_clock_seconds": 0.0015845829620957375
+        "wall_clock_seconds": 0.005961958999250783
       },
       "rust": {
         "memory_measurement": "fresh_process_peak_rss_including_inputs",
-        "peak_memory_bytes": 36552704,
+        "peak_memory_bytes": 36487168,
         "repetitions": 3,
-        "wall_clock_seconds": 2.5791930966079235e-05
+        "wall_clock_seconds": 0.000109583001176361
       },
       "size": 1000,
-      "speedup": 61.437158938573965
+      "speedup": 54.40587440798148
     },
     {
       "maximum_absolute_difference": 1.1368683772161603e-13,
       "numpy_backed_python_reference": {
         "memory_measurement": "fresh_process_peak_rss_including_inputs",
-        "peak_memory_bytes": 37404672,
+        "peak_memory_bytes": 37289984,
         "repetitions": 3,
-        "wall_clock_seconds": 0.016460875049233437
+        "wall_clock_seconds": 0.05453420800040476
       },
       "rust": {
         "memory_measurement": "fresh_process_peak_rss_including_inputs",
-        "peak_memory_bytes": 37175296,
+        "peak_memory_bytes": 37093376,
         "repetitions": 3,
-        "wall_clock_seconds": 0.00021854194346815348
+        "wall_clock_seconds": 0.0006197499969857745
       },
       "size": 10000,
-      "speedup": 75.32135382346941
+      "speedup": 87.99388183241334
     },
     {
       "maximum_absolute_difference": 0.0,
       "numpy_backed_python_reference": {
         "memory_measurement": "fresh_process_peak_rss_including_inputs",
-        "peak_memory_bytes": 51331072,
+        "peak_memory_bytes": 51298304,
         "repetitions": 3,
-        "wall_clock_seconds": 0.16355674993246794
+        "wall_clock_seconds": 0.5803382500016596
       },
       "rust": {
         "memory_measurement": "fresh_process_peak_rss_including_inputs",
-        "peak_memory_bytes": 49299456,
+        "peak_memory_bytes": 49348608,
         "repetitions": 3,
-        "wall_clock_seconds": 0.0022294590016826987
+        "wall_clock_seconds": 0.005542082999454578
       },
       "size": 100000,
-      "speedup": 73.3616315926969
+      "speedup": 104.71482474347161
     },
     {
       "maximum_absolute_difference": 0.0,
       "numpy_backed_python_reference": {
         "memory_measurement": "fresh_process_peak_rss_including_inputs",
-        "peak_memory_bytes": 173948928,
+        "peak_memory_bytes": 174014464,
         "repetitions": 3,
-        "wall_clock_seconds": 1.6141213329974562
+        "wall_clock_seconds": 6.151733833998151
       },
       "rust": {
         "memory_measurement": "fresh_process_peak_rss_including_inputs",
-        "peak_memory_bytes": 165134336,
+        "peak_memory_bytes": 165085184,
         "repetitions": 3,
-        "wall_clock_seconds": 0.021178666967898607
+        "wall_clock_seconds": 0.055109958000684856
       },
       "size": 1000000,
-      "speedup": 76.2144914712549
+      "speedup": 111.6265382369136
     }
   ],
   "schema_version": 1,
