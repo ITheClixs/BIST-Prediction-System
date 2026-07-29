@@ -2,7 +2,7 @@
 
 UV_RUN = UV_CACHE_DIR=/tmp/bist-uv-cache PYTHONPATH=src uv run
 RUNS_ROOT ?= runs
-COMMITTED_RUN_ID ?= 20260729T224915Z-38742b7-2a71b8
+COMMITTED_RUN_ID ?= 20260729T234258Z-2bb3dbd-2a71b8
 
 reproduce-smoke:
 	$(UV_RUN) bist-predict reproduce-smoke --runs-root $(RUNS_ROOT)

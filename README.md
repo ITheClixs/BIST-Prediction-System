@@ -336,8 +336,8 @@ The block below is generated from the immutable run artifacts by `bist_predict.r
 
 | Field | Value |
 |---|---|
-| Run | `20260729T224915Z-38742b7-2a71b8` |
-| Git commit | `38742b7e8a6c` (clean working tree recorded) |
+| Run | `20260729T234258Z-2bb3dbd-2a71b8` |
+| Git commit | `2bb3dbd53f36` (clean working tree recorded) |
 | Dataset | `fixed_bist_large_cap_prototype-150d24cf4251` |
 | Scope | `fixed_bist_large_cap_prototype` |
 | Tickers | GARAN, ISCTR, KCHOL, THYAO |
@@ -562,18 +562,18 @@ make reproduce-committed
 Regenerate the figures, the generated document blocks, and the claim check:
 
 ```bash
-make figures        RUN_ID=20260729T224915Z-38742b7-2a71b8
-make readme-results RUN_ID=20260729T224915Z-38742b7-2a71b8
-make verify-claims  RUN_ID=20260729T224915Z-38742b7-2a71b8
+make figures        RUN_ID=20260729T234258Z-2bb3dbd-2a71b8
+make readme-results RUN_ID=20260729T234258Z-2bb3dbd-2a71b8
+make verify-claims  RUN_ID=20260729T234258Z-2bb3dbd-2a71b8
 ```
 
 Build a new run from explicit, provenance-bearing inputs:
 
 ```bash
 make benchmark \
-  INPUT=runs/20260729T224915Z-38742b7-2a71b8/input_prices.parquet \
-  ACTIONS=runs/20260729T224915Z-38742b7-2a71b8/corporate_actions.parquet \
-  ACTION_COVERAGE=runs/20260729T224915Z-38742b7-2a71b8/corporate_action_coverage.parquet
+  INPUT=runs/20260729T234258Z-2bb3dbd-2a71b8/input_prices.parquet \
+  ACTIONS=runs/20260729T234258Z-2bb3dbd-2a71b8/corporate_actions.parquet \
+  ACTION_COVERAGE=runs/20260729T234258Z-2bb3dbd-2a71b8/corporate_action_coverage.parquet
 ```
 
 The optional Rust indicator library builds from inside its own crate directory, because `maturin` resolves the Python project from the working directory rather than from the manifest path:
