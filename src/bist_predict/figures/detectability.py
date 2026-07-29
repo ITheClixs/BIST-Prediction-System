@@ -68,12 +68,12 @@ def plot_detectable_effect(artifacts: RunArtifacts, directory: Path) -> dict[str
             zorder=1,
         )
         left.text(
-            grid.max() * 0.7,
-            _PLAUSIBLE_R_SQUARED[0] * 1.15,
-            "effects a daily forecast plausibly has",
+            grid.min() * 1.4,
+            _PLAUSIBLE_R_SQUARED[1] * 1.25,
+            "plausible effect sizes",
             fontsize=7.0,
             color=COLOURS["muted"],
-            ha="right",
+            ha="left",
             va="bottom",
         )
         left.plot(grid, detectable, color=COLOURS["model"], linewidth=1.8, zorder=3)
@@ -90,7 +90,7 @@ def plot_detectable_effect(artifacts: RunArtifacts, directory: Path) -> dict[str
         left.annotate(
             f"{required:,} sessions\nwould reach {reference:.2f}",
             xy=(required, reference),
-            xytext=(required / 26.0, reference / 9.0),
+            xytext=(required / 40.0, reference / 7.5),
             fontsize=7.5,
             color=COLOURS["reference"],
             arrowprops={"arrowstyle": "-", "color": COLOURS["reference"], "linewidth": 0.8},
