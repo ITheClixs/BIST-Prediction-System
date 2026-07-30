@@ -272,7 +272,7 @@ CLAIMS: tuple[Claim, ...] = (
     ),
     Claim(
         "independent rows per session ceiling",
-        r"carries at most (?P<value>\d+(?:\.\d+)?) independent rows",
+        r"carry at most (?P<value>\d+(?:\.\d+)?) independent rows",
         _field("inference.detectability.panel.independent_rows_per_session_ceiling"),
         tolerance=5e-5,
     ),
@@ -283,9 +283,15 @@ CLAIMS: tuple[Claim, ...] = (
         tolerance=5e-5,
     ),
     Claim(
-        "information coefficient achieved",
-        r"portfolio model achieved (?P<value>\d+(?:\.\d+)?)",
-        _field("inference.detectability.realised_information_coefficient"),
+        "per-session information coefficient achieved",
+        r"portfolio model achieved (?P<value>\d+(?:\.\d+)?) per session",
+        _field("inference.detectability.session_information_coefficient"),
+        tolerance=5e-5,
+    ),
+    Claim(
+        "pooled information coefficient",
+        r"pooled correlation of (?P<value>\d+(?:\.\d+)?)",
+        _field("inference.detectability.pooled_information_coefficient"),
         tolerance=5e-5,
     ),
     Claim(

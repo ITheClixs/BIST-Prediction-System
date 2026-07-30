@@ -72,13 +72,16 @@ run's own artifacts. First, the design could only have separated an
 out-of-sample $R^2$ above $0.113$ from zero at conventional size and power,
 roughly eleven times the largest effect this literature credibly reports;
 reaching $0.01$ would take $15{,}126$ sessions. Second, widening the
-cross-section cannot fix this: at a mean pairwise correlation of $\bar\rho$ a
-session carries at most $1/\bar\rho$ independent observations however many names
-are added, worth a $9\%$ standard-error gain here for an unlimited universe.
-Third, a closed-form feasibility bound shows the cost schedule demands a
-cross-sectional information coefficient of $0.310$ from any forecaster in this
-design, against the $0.039$ achieved---and no universe width restores
-feasibility at that level of skill. The negative result is therefore a statement
+cross-section buys little: the loss differentials of names correlated at
+$\bar\rho$ carry at most $1/\bar\rho$ independent observations per session,
+worth a $9\%$ standard-error gain here for an unlimited universe. Third, a
+closed-form feasibility bound shows the cost schedule demands a cross-sectional
+information coefficient of $0.310$ from any forecaster in this design, against
+the $0.009$ achieved per session. That bound is not an impossibility result: at a
+fixed holding count the selection score grows without bound, so sufficient
+breadth always clears it: but the universe required at this level of skill
+exceeds $10^{6}$ names, and the concentrated rule that gets closest is the one
+capacity and market impact rule out. The negative result is therefore a statement
 about the experiment, not about the market, and we give the sample sizes,
 breadths and cost levels at which the question becomes answerable. The committed
 run replays byte-for-byte from bundled inputs, and sixteen seeded defects in the
@@ -144,8 +147,11 @@ of $N$ ranked names against a round-trip cost $c$ and a target of volatility
 $\sigma$, positive expected net return requires a cross-sectional information
 coefficient above $c / (\sigma\,\lambda(N,k))$, where $\lambda$ is the mean of
 the top-$k$ standard normal order statistics. The bound is a property of the
-experimental design, computable before any model is fitted, and it rules this
-design out by a factor of eight.
+experimental design, computable before any model is fitted, and this design
+misses it by a factor of thirty. Its two breadth regimes differ
+(Proposition~\ref{prop:regimes}): at a fixed holding fraction the requirement
+converges, while at a fixed holding count it falls to zero, so the bound reports
+the universe a design would need rather than declaring any design impossible.
 
 \textbf{C5. An effective trial count for correlated searches
 (Proposition~\ref{prop:trials}).} The False Strategy Theorem assumes independent
@@ -395,7 +401,10 @@ model on the same index draw, preserving cross-model dependence, with the block
 length chosen automatically \citep{white2000,hansen2005,politis1994,politis2004}.
 One deviation from \citet{hansen2005} is recorded here because it matters in
 exactly this regime: the p-values compare untruncated maxima rather than the
-floored statistic $T_n$. Applying the floor to both the observed value and every
+floored statistic $T_n$. This makes the reported quantity a \emph{variant} of
+Hansen's test rather than the test itself; its finite-sample size and power are
+not established here, so it is read as a diagnostic alongside the standard
+statistic rather than as a validated replacement for it. Applying the floor to both the observed value and every
 bootstrap draw collapses the comparison onto the atom at zero as soon as no
 candidate has a positive mean, and returns an arbitrary p-value precisely when
 the evidence is weakest.
@@ -477,11 +486,17 @@ $\hat{SR}$ gives the per-session Sharpe ratio that would have counted as
 evidence of skill after the search actually performed.
 
 \begin{remark}
-The threshold $SR^{\ast}_0$ does not shrink with the sample size. Lengthening the
-record shrinks the sampling noise around $\hat{SR}$ but leaves the bar the search
-sets exactly where it was, so a strategy whose true Sharpe ratio lies below
-$SR^{\ast}_0$ can never establish skill at any record length. The search
-correction is a floor on the effect size, not merely a penalty on the p-value.
+Whether $SR^{\ast}_0$ shrinks with the sample size depends entirely on what
+$V[\hat{SR}]$ stands for, and the distinction is easy to lose. Under Lo's iid
+expression $V = (1 + \hat{SR}^2/2)/n$ the threshold falls like $n^{-1/2}$, so a
+longer record does lower the bar the search sets. The threshold is a floor that a
+longer record cannot erode only if $V$ measures persistent heterogeneity in the
+\emph{true} Sharpe ratios of the configurations. The realised cross-trial
+variance this run plugs in is neither: it mixes true heterogeneity, estimation
+noise, and the fact that the trials cover different evaluation windows. We
+therefore report the threshold at the sample size actually observed and do not
+extrapolate it, and we make no claim that a strategy below it could never
+establish skill at any record length.
 \end{remark}
 
 \subsection{The information ceiling of a correlated panel}
@@ -537,15 +552,44 @@ round-trip cost $c$ on notional, has positive expected net return only if
 \end{equation}
 \end{proposition}
 
-The proof is in Appendix~\ref{app:proofs}. Three features of the bound are worth
+The proof is in Appendix~\ref{app:proofs}. Four features of the bound are worth
 stating plainly. It is \emph{generous}: it ignores estimation error in the
 ranking, charges the cost only once per round trip, and assumes an unbiased
 forecast. It is \emph{model-free}: $c$, $\sigma$ and $\lambda(N,k)$ are
 properties of the experimental design, not of the forecaster, so the requirement
-can be computed before a single model is fitted. And it is \emph{not} a
-statistical statement: a strategy can fail Equation~\ref{eq:feasibility} while
-producing a forecast that is significantly better than the null, which is exactly
-what happens when a real but small edge is smaller than the spread.
+can be computed before a single model is fitted. It is \emph{not} a statistical
+statement: a strategy can fail Equation~\ref{eq:feasibility} while producing a
+forecast that is significantly better than the null, which is exactly what
+happens when a real but small edge is smaller than the spread.
+
+And it is \emph{not an impossibility result}, which is the reading it most
+invites. The two breadth regimes diverge. At a fixed holding fraction $q = k/N$,
+$\lambda \to \varphi(\Phi^{-1}(1-q))/q$, a finite tail mean, so the
+requirement converges and extra names stop helping. At a fixed holding count,
+$\lambda(N,1) \sim \sqrt{2\log N}$ grows without bound, so the requirement
+falls to zero and a sufficiently wide ranking always satisfies the bound. What
+the proposition delivers is therefore the universe a design would need, not a
+proof that none suffices: and in the fixed-count regime it omits precisely the
+capacity, participation and impact constraints that bind hardest on a rule
+holding one name out of many. Proposition~\ref{prop:regimes} states both limits.
+
+\begin{proposition}[Breadth regimes]
+\label{prop:regimes}
+With $\lambda$ as in Equation~\ref{eq:lambda}, for fixed $q \in (0,1)$,
+$\lambda(N, \lceil qN \rceil) \to \varphi(\Phi^{-1}(1-q))/q < \infty$ as
+$N \to \infty$; while for fixed $k$, $\lambda(N,k) \to \infty$, with
+$\lambda(N,1) \sim \sqrt{2 \log N}$.
+\end{proposition}
+
+\begin{remark}
+Proposition~\ref{prop:feasibility} selects within a session, so $\rho$ is the
+\emph{per-session cross-sectional} correlation between forecast and realised
+return. A correlation pooled over stock-sessions is a different quantity: it also
+absorbs the common time-series component, so a forecast that only tracks the
+market direction earns pooled correlation while ranking nothing. Both are
+reported in Table~\ref{tab:feasibility}, and they differ here by a factor of
+four.
+\end{remark}
 
 Equation~\ref{eq:feasibility} is a cost-aware relative of the fundamental law of
 active management \citep{grinold1989}, used in the opposite direction: rather
@@ -711,12 +755,21 @@ best out-of-sample $R^2$ in 72 of 72.
 
 The strategy earns a gross return of $7.77\%$ and loses $4.77\%$ of its capital
 after costs, on $123.7\times$ turnover and TRY $12{,}404$ of modelled cost
-(Table~\ref{tab:portfolio}). Because the trading decisions are held fixed across
-the three cost cases, Table~\ref{tab:costs} isolates the bill: net return falls
-monotonically, and interpolating between the zero-cost and modelled-cost cases
-puts breakeven at $0.62\times$ the modelled schedule, comfortably below what an
-actual desk would pay. This reproduces \citet{novymarx2016} at small scale: the
-gross edge is real and the net edge is not.
+(Table~\ref{tab:portfolio}). The three cost cases hold the trading
+\emph{decisions} fixed---the same 143 round trips in each---but re-simulate the
+capital path, so gross return is not exactly invariant across them: it moves by
+$5\times 10^{-4}$, because position sizing responds to the cash the previous
+session's costs consumed. A strictly frozen ledger, in which only the debited
+bill changes, is the cleaner counterfactual and is not what is computed here.
+Table~\ref{tab:costs} should be read accordingly: net return falls
+monotonically, and interpolating linearly between the zero-cost and
+modelled-cost cases puts breakeven near $0.62\times$ the modelled schedule,
+which is an approximation through a nonlinear simulation rather than an exact
+root. The schedule itself is a declared scenario, not a desk quote calibrated to
+BIST spreads and depth. This reproduces \citet{novymarx2016} at small
+scale, with one caveat the phrase usually elides: a positive realised gross
+return over 120 sessions is a sample outcome, not an established population
+edge, and the forecast behind it is not distinguishable from the null.
 
 Figure~\ref{fig:equity} shows something the return statistics hide. The flat
 stretches are sessions in which no eligible name had a positive expected net
@@ -803,17 +856,26 @@ of $20.2$ basis points against a target standard deviation of $1.90\%$, holding
 the top 3 of 4 names---a selection score of only $\lambda(4,3) = 0.3431$, since
 holding three quarters of the universe barely selects at all---requires a
 cross-sectional information coefficient of $0.3098$. The ridge model achieved
-$0.0387$. The design demanded eight times the skill it got, and the level it
-demanded is roughly an order of magnitude above what cross-sectional equity
-forecasting attains anywhere.
+$0.0092$ per session, with a standard error of $0.0549$: indistinguishable from
+zero. The design demanded roughly thirty times the skill it got.
 
-Figure~\ref{fig:feasible} shows that this cannot be fixed by widening the
-universe alone. A wider ranking does lower the requirement, but $\lambda(N,k)$
-converges to the mean of the corresponding tail of the normal, so past a few
-dozen names only a more selective rule helps: holding the top $2\%$ of 500 names
-still requires an information coefficient of about $0.043$, above what this study
-achieved. Under this cost schedule, at this target volatility, no long-only
-top-$k$ rule fed by a forecast of this quality is profitable at any breadth.
+The correlation pooled over stock-sessions is $0.0387$, four times larger, and it
+is the number a study would quote without distinguishing the two. It is not the
+quantity ranking uses: it also absorbs the common time-series component, so a
+forecast that merely tracks the market direction earns it while ordering nothing
+within a session.
+
+Figure~\ref{fig:feasible} shows what breadth can and cannot do, and the two
+regimes of Proposition~\ref{prop:regimes} answer differently. At a fixed holding
+fraction the requirement converges: holding the top $2\%$ of 500 names still
+needs about $0.043$. At a fixed holding count it does not converge, so a
+sufficiently wide ranking always clears the bound---at the pooled correlation, a
+few hundred names ranked with one held would already suffice. Measured at the
+per-session coefficient the universe required exceeds $10^{6}$ names. That is the
+defensible form of the claim: not that breadth cannot help, but that no
+attainable market is wide enough at this level of skill, and that the
+single-name rule which comes closest is exactly the one capacity and market
+impact exclude.
 
 This is worth separating from the statistical result, because the two are
 independent. The tests in Section~\ref{sec:snooping} say the forecast is not
@@ -947,13 +1009,26 @@ tests; the empirical snapshot contains cash dividends only.
 The detectability results carry their own assumptions.
 Proposition~\ref{prop:ceiling} uses an equicorrelated approximation, which is a
 simplification of a correlation matrix whose realised pairwise values here range
-from $0.46$ to $0.83$; the ceiling it gives is an average-case statement.
-Proposition~\ref{prop:feasibility} assumes joint normality and an unbiased
-forecast, and ignores estimation error in the ranking---all of which make the
-bound optimistic, so a design that fails it fails a fortiori. The power
-calculation of Equation~\ref{eq:mde} treats the loss-differential standard error
-as fixed while the sample size varies, which is exact only if the higher moments
-of the differential are stable across window lengths.
+from $0.46$ to $0.83$; the ceiling it gives is an average-case statement, and it
+holds the average correlation fixed as the universe expands, which a real
+expansion would not. It is instantiated on the dependence of the loss
+differential rather than of the raw target, since that is what enters the
+standard error of the test; the two are close here but they are not the same
+object. Proposition~\ref{prop:feasibility} assumes joint normality, an unbiased
+forecast and an iid cross-section, and ignores estimation error in the
+ranking---all of which make the bound optimistic, so a design that fails it fails
+a fortiori, while a design that clears it has met a necessary condition only.
+
+The power calculation of Equation~\ref{eq:mde} is the weakest of the three. It
+treats the loss-differential standard error as scaling exactly as $n^{-1/2}$,
+which is exact only if the dependence and the higher moments of the differential
+are stable across window lengths---an assumption a sixty-year extrapolation
+strains badly. It inverts the test with central $t$ quantiles rather than the
+noncentral distribution, and it instantiates the calculation at the standard
+error of the candidate selected \emph{after} seeing the run. The resulting
+session counts are order-of-magnitude statements about the design, not
+sample-size requirements, and a simulation-calibrated analysis that reruns the
+whole pipeline under injected signals of known size would replace them.
 
 Finally, the repository implements Kalman filters, Ornstein--Uhlenbeck mean
 reversion, GARCH, HMM regimes, wavelets, cointegration, Kelly sizing, gradient
@@ -977,11 +1052,11 @@ Inverting the same apparatus turns that from a verdict about the market into a
 verdict about the experiment. The design could only have resolved an
 out-of-sample $R^2$ above $0.113$, roughly eleven times the largest effect this
 literature credibly reports; reaching $0.01$ would take $15{,}126$ sessions.
-Widening the cross-section cannot substitute, because a session of correlated
-names carries at most $1/\bar\rho$ independent observations. And the cost
-schedule demanded an information coefficient of $0.310$ from a design that
-delivered $0.039$---a bound that no choice of model family could have met, and
-that would have been known before any model was fitted had it been computed.
+Widening the cross-section substitutes poorly, because the loss differentials of
+correlated names carry at most $1/\bar\rho$ independent observations per
+session. And the cost schedule demanded an information coefficient of $0.310$
+from a design that delivered $0.009$ per session---a bound no choice of model
+family could have met, and one computable before any model was fitted.
 
 The useful output is therefore the apparatus and its self-assessment: a target
 the backtest can trade, an evaluation whose unit of inference matches the data's
@@ -1057,6 +1132,18 @@ the top $k$ exactly when at most $k-1$ of the remaining $N-1$ draws exceed it, s
 \end{equation}
 and the binomial tail is the regularised incomplete beta function
 $I_u(N-k,\,k)$. \end{proof}
+
+\begin{proof}[Proof of Proposition~\ref{prop:regimes}]
+For fixed $q$, the empirical distribution of the top $\lceil qN \rceil$ of $N$
+standard normal draws converges to the conditional law of $Z$ given
+$Z > \Phi^{-1}(1-q)$, whose mean is $\varphi(\Phi^{-1}(1-q))/q$ by direct
+integration; $\lambda$ is that mean, so it converges to the same finite limit.
+For fixed $k$, $\lambda(N,k) \ge \mathbb{E}[Z_{(N-k+1:N)}]$, and the smallest
+retained order statistic already diverges: for $k=1$ the classical extreme-value
+result for the Gaussian maximum gives
+$\mathbb{E}[Z_{(N:N)}] = \sqrt{2\log N}\,(1 + o(1))$. Hence $\lambda(N,k) \to
+\infty$ and $c/(\sigma\lambda(N,k)) \to 0$, so for any $\rho > 0$ there is an
+$N$ satisfying Equation~\ref{eq:feasibility}. \end{proof}
 
 \begin{proof}[Proof of Proposition~\ref{prop:trials}]
 $\Phi^{-1}$ is strictly increasing, and $1 - 1/N$ and $1 - 1/(Ne)$ are both

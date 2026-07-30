@@ -1,7 +1,7 @@
 {
   "config_hash": "2a71b88885296b5fca4341f5c9ee69c4753a2f4b4a3fd78652913d4cd366b14d",
-  "created_at": "2026-07-29T23:42:58.192130+00:00",
-  "data_manifest_sha256": "29cacb6999d447d04464c7f3b3d858d1aee8b0f28cddb045b96b8b00ebfe01de",
+  "created_at": "2026-07-30T17:41:10.972172+00:00",
+  "data_manifest_sha256": "118208570dc72f6dda22b03f92453728fd47b7e2e9737e8b25a2eef263b2e879",
   "dirty_working_tree": false,
   "environment": {
     "machine": "arm64",
@@ -9,13 +9,13 @@
     "python_version": "3.13.5 (main, Jun 11 2025, 15:36:57) [Clang 17.0.0 (clang-1700.0.13.3)]"
   },
   "feature_manifest_hash": "b0349ccf178ddaf18885ffadcf3685d71f845458b211792d82ccbc866c84cf71",
-  "git_sha": "2bb3dbd53f361442a3b0fcc811cb99ca2e0fe47c",
+  "git_sha": "21e94d02cec7cd3c23c16e20bcccc43bfe2574bc",
   "model_artifact_sha256": "6d2188e8686a8f05a9cfa804a724f9c8611de559346332f1f370df2b9de77460",
   "predictions_sha256": "d70b12060f2f8ee7eec23f97ce6a4f9db7746953de9771c140b67643a35dcb5a",
   "random_seeds": [
     42
   ],
-  "run_id": "20260729T234258Z-2bb3dbd-2a71b8",
+  "run_id": "20260730T174110Z-21e94d0-2a71b8",
   "schema_version": 1,
   "training_command": "bist-predict benchmark --prices $RUN/input_prices.parquet --corporate-actions $RUN/corporate_actions.parquet --corporate-action-coverage $RUN/corporate_action_coverage.parquet",
   "universe_manifest_sha256": "7ee21b4a59028096947f0de2b41c489a674b63dd1b8b2f5a4e00c48dae858839"

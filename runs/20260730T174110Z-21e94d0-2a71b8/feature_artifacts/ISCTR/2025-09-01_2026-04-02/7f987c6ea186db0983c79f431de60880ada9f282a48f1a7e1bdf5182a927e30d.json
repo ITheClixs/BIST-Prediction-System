@@ -1,11 +1,11 @@
 {
   "lineage": {
-    "calculation_timestamp": "2026-07-29T23:42:58.192130+00:00",
+    "calculation_timestamp": "2026-07-30T17:41:10.972172+00:00",
     "code_version": "accepted-baseline-v2",
     "end_date": "2026-04-02",
     "feature_manifest_hash": "b0349ccf178ddaf18885ffadcf3685d71f845458b211792d82ccbc866c84cf71",
-    "git_commit": "2bb3dbd53f361442a3b0fcc811cb99ca2e0fe47c",
-    "input_data_manifest_hash": "f629a729e6ef379290b6bb53cb50c5b690ab9aa0be4b528908bff692a01b08b7",
+    "git_commit": "21e94d02cec7cd3c23c16e20bcccc43bfe2574bc",
+    "input_data_manifest_hash": "6bd128b151af49505f9b6fbd8f3da37639f02eb7e0d7a90f817914e681d947a5",
     "start_date": "2025-09-01",
     "ticker": "ISCTR"
   },
