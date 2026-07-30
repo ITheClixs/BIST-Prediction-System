@@ -311,7 +311,10 @@ def dependence_table(metrics: Mapping[str, Any]) -> str:
         f"Mean within-session correlation & {float(dependence['mean_pairwise_correlation']):.4f}",
         f"Variance inflation factor & {float(dependence['variance_inflation_factor']):.4f}",
         f"Effective independent rows & {float(dependence['effective_row_count']):.1f}",
-        f"Independent rows per session & {float(panel['independent_rows_per_session']):.4f}",
+        "Mean within-session correlation of the loss differential & "
+        f"{float(panel['loss_differential_correlation']):.4f}",
+        "Independent rows per session, from the loss differential & "
+        f"{float(panel['independent_rows_per_session']):.4f}",
         "Ceiling on independent rows per session ($1/\\bar\\rho$) & "
         f"{float(panel['independent_rows_per_session_ceiling']):.4f}",
         "Standard-error gain from an unlimited universe & "
@@ -363,7 +366,10 @@ def feasibility_table(metrics: Mapping[str, Any]) -> str:
     report = metrics["inference"]["detectability"]
     feasibility = report["feasibility"]
     required = float(feasibility["required_information_coefficient"])
-    realised = float(report["realised_information_coefficient"])
+    session = float(report["session_information_coefficient"])
+    pooled = float(report["pooled_information_coefficient"])
+    error = float(report["session_information_coefficient_standard_error"])
+    breadth = report["feasible_breadth_at_unit_holding"]
     rows = [
         f"Round-trip cost on notional & {float(feasibility['round_trip_cost_rate']) * 1e4:.2f} bp",
         "Standard deviation of the executable target & "
@@ -372,13 +378,21 @@ def feasibility_table(metrics: Mapping[str, Any]) -> str:
         f"Names held & {int(feasibility['selected'])}",
         f"Selection score $\\lambda(N,k)$ & {float(feasibility['selection_score']):.4f}",
         f"Information coefficient required & {required:.4f}",
-        f"Information coefficient achieved & {realised:.4f}",
-        f"Shortfall factor & {required / realised:.2f}$\\times$",
+        f"Per-session cross-sectional IC achieved & {session:.4f} ($\\pm$ {error:.4f})",
+        f"Shortfall factor & {required / session:.1f}$\\times$",
+        f"Pooled IC over stock-sessions, for contrast & {pooled:.4f}",
+        "Universe clearing the bound while holding one name & "
+        + ("$>10^{6}$" if breadth is None else f"{int(breadth):,}"),
     ]
     return _table(
         "Proposition~\\ref{prop:feasibility} evaluated on the accepted design. The requirement "
         "depends on the cost schedule, the volatility of the target and the breadth of the rule, "
-        "and on nothing the forecaster does.",
+        "and on nothing the forecaster does. Selection happens within a session, so the "
+        "per-session cross-sectional IC is what instantiates $\\rho$; the pooled correlation is "
+        "larger because it also absorbs the common time-series component that ranking cannot "
+        "use. The final row is the fixed-count breadth at which the bound would be met: "
+        "$\\lambda$ is unbounded in $N$, so this is a statement about attainable universes, not "
+        "an impossibility result.",
         "feasibility",
         "lr",
         "Quantity & Value",

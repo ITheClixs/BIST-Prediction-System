@@ -43,6 +43,57 @@ def session_squared_error_panel(predictions: pd.DataFrame) -> pd.DataFrame:
     return panel.sort_index()
 
 
+def _session_information_coefficient(frame: pd.DataFrame) -> tuple[float, float]:
+    """Return the mean per-session cross-sectional IC and its standard error.
+
+    A correlation pooled over stock-sessions also absorbs the common time-series
+    component, so a forecast that only tracks the market direction earns one while
+    ranking nothing. Selection within a session is a cross-sectional operation, so
+    the quantity a top-k feasibility bound needs is the per-session correlation,
+    averaged over sessions with its own dispersion as the error bar.
+    """
+    per_session = (
+        frame.groupby("date")
+        .apply(
+            lambda group: group["predicted_return"].corr(group["target"]),
+            include_groups=False,
+        )
+        .dropna()
+    )
+    if per_session.empty:
+        raise ValueError("no session admits a cross-sectional correlation")
+    mean = float(per_session.mean())
+    if len(per_session) < 2:
+        return mean, float("nan")
+    return mean, float(per_session.std(ddof=1) / np.sqrt(len(per_session)))
+
+
+def _loss_differential_correlation(
+    predictions: pd.DataFrame, *, candidate: str, benchmark: str
+) -> float:
+    """Return the mean within-session correlation of the loss differential.
+
+    ``cross_sectional_dependence`` measures the dependence of the target, which is
+    what the panel diagnostic is about. The standard error of a Diebold-Mariano
+    test is a function of the dependence of ``d_it`` instead, and the two are not
+    equal, so the quantity that governs the test is computed here directly.
+    """
+    differential = squared_error_differential(
+        predictions, candidate=candidate, benchmark=benchmark, aggregation="row"
+    )
+    # The row-level differential is indexed by the "<date>|<ticker>" sample id the
+    # prediction artifact threads through the pipeline.
+    keys = differential.index.to_series().str.split("|", n=1, expand=True)
+    frame = pd.DataFrame(
+        {
+            "date": keys[0].to_numpy(),
+            "ticker": keys[1].to_numpy(),
+            "value": differential.to_numpy(dtype=float),
+        }
+    )
+    return float(cross_sectional_dependence(frame, value_column="value").mean_pairwise_correlation)
+
+
 def _equal_predictive_accuracy(
     predictions: pd.DataFrame,
     *,
@@ -136,7 +187,9 @@ def build_inference_report(
         name: float(test["standard_error"]) for name, test in session_aggregated.items()
     }
     portfolio_rows = predictions.loc[predictions["model_name"] == portfolio_model]
-    realised_ic = float(portfolio_rows["predicted_return"].corr(portfolio_rows["target"]))
+    pooled_ic = float(portfolio_rows["predicted_return"].corr(portfolio_rows["target"]))
+    session_ic, session_ic_error = _session_information_coefficient(portfolio_rows)
+    reference_candidate = min(session_errors, key=lambda name: session_errors[name])
     detectability = detectability_report(
         session_standard_errors=session_errors,
         benchmark_mean_squared_error=float(loss_panel[benchmark_model].mean()),
@@ -147,7 +200,12 @@ def build_inference_report(
         periods_per_year=periods_per_year,
         round_trip_cost_rate=round_trip_cost_rate,
         target_volatility=float(target_frame["target"].std(ddof=1)),
-        realised_information_coefficient=realised_ic,
+        pooled_information_coefficient=pooled_ic,
+        session_information_coefficient=session_ic,
+        session_information_coefficient_standard_error=session_ic_error,
+        loss_differential_correlation=_loss_differential_correlation(
+            predictions, candidate=reference_candidate, benchmark=benchmark_model
+        ),
         universe_size=universe_size,
         selected=selected,
     )

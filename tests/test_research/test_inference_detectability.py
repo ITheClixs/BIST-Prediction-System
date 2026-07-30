@@ -8,6 +8,7 @@ import pytest
 from scipy import stats
 
 from bist_predict.research.inference.detectability import (
+    breadth_for_feasibility,
     detectability_report,
     effective_trial_count,
     expected_top_selection_score,
@@ -15,8 +16,10 @@ from bist_predict.research.inference.detectability import (
     minimum_detectable_mean,
     panel_information_ceiling,
     required_information_coefficient,
+    sampling_search_threshold,
     sessions_required_for_effect,
     sharpe_required_for_confidence,
+    tail_mean_selection_score,
 )
 
 # Expected values of the largest standard normal order statistic, from the
@@ -209,12 +212,82 @@ def test_a_longer_record_lowers_the_sharpe_that_would_have_convinced() -> None:
     assert 0.1267 < long < short
 
 
-def test_the_search_threshold_survives_however_long_the_record_gets() -> None:
-    """Sampling noise vanishes with n; the bar the search sets does not."""
+def test_the_required_sharpe_converges_on_whatever_threshold_is_supplied() -> None:
+    """Sampling noise around the estimate vanishes with n; the supplied bar does not.
+
+    This says nothing about whether the bar itself shrinks. It does, when the
+    variance fed to the False Strategy Theorem is sampling variance --- which is
+    what test_the_search_threshold_falls_as_the_record_lengthens pins.
+    """
     limit = sharpe_required_for_confidence(
         threshold=0.1267, observations=250_000, skewness=0.0, kurtosis=3.0
     )
     assert limit == pytest.approx(0.1267, abs=5e-3)
+
+
+def test_the_search_threshold_falls_as_the_record_lengthens() -> None:
+    """A sampling-variance threshold shrinks like n to the minus one half.
+
+    Reading the False Strategy threshold as a permanent floor requires V to be
+    persistent heterogeneity in true Sharpe ratios. Under Lo's sampling variance it
+    is not a floor at all, and a claim that a strategy below it can never establish
+    skill at any record length is false.
+    """
+    thresholds = [
+        sampling_search_threshold(per_period_sharpe=-0.0284, observations=n, trial_count=72)
+        for n in (120, 1_200, 12_000)
+    ]
+    assert thresholds == sorted(thresholds, reverse=True)
+    assert thresholds[1] == pytest.approx(thresholds[0] / math.sqrt(10.0), rel=1e-6)
+    assert thresholds[2] == pytest.approx(thresholds[0] / 10.0, rel=1e-6)
+
+
+def test_breadth_at_a_fixed_holding_fraction_converges() -> None:
+    """The requirement stops falling once the rule holds a fixed share of the names."""
+    for fraction in (0.5, 0.25, 0.1, 0.02):
+        limit = tail_mean_selection_score(fraction)
+        achieved = [
+            expected_top_selection_score(size, max(1, int(round(size * fraction))))
+            for size in (200, 1000, 4000)
+        ]
+        assert achieved[-1] == pytest.approx(limit, rel=2e-3)
+        assert all(value <= limit * 1.02 for value in achieved)
+
+
+def test_breadth_at_a_fixed_holding_count_does_not_converge() -> None:
+    """Contradicts any claim that no universe width can restore feasibility.
+
+    At fixed k the selection score grows without bound, so the required information
+    coefficient falls to zero. This test exists because an earlier version of this
+    work asserted the opposite in prose.
+    """
+    scores = [expected_top_selection_score(size, 1) for size in (10, 100, 1_000, 10_000)]
+    assert scores == sorted(scores)
+    assert scores[-1] > 3.5
+    # Sufficient breadth clears the bound at the pooled correlation this run reported.
+    universe = breadth_for_feasibility(
+        round_trip_cost_rate=0.00202,
+        target_volatility=0.01900006876105416,
+        information_coefficient=0.03871243681199547,
+    )
+    assert universe is not None and universe < 1_000
+    assert (
+        0.00202 / (0.01900006876105416 * expected_top_selection_score(universe, 1))
+        < 0.03871243681199547
+    )
+
+
+def test_a_universe_beyond_the_cap_is_reported_as_unreachable_not_impossible() -> None:
+    """At the per-session IC the bound needs more names than any market has."""
+    assert (
+        breadth_for_feasibility(
+            round_trip_cost_rate=0.00202,
+            target_volatility=0.01900006876105416,
+            information_coefficient=0.009234579606611514,
+            maximum_universe=100_000,
+        )
+        is None
+    )
 
 
 def _report_inputs() -> dict[str, object]:
@@ -235,7 +308,10 @@ def _report_inputs() -> dict[str, object]:
         "periods_per_year": 252,
         "round_trip_cost_rate": 0.00202,
         "target_volatility": 0.01900006876105416,
-        "realised_information_coefficient": 0.03871243681199547,
+        "pooled_information_coefficient": 0.03871243681199547,
+        "session_information_coefficient": 0.009234579606611514,
+        "session_information_coefficient_standard_error": 0.05492647684546451,
+        "loss_differential_correlation": 0.5661687830549406,
         "universe_size": 4,
         "selected": 3,
     }
@@ -256,6 +332,12 @@ def test_the_report_reproduces_the_accepted_run_bounds() -> None:
     )
     assert report.effective_trial_count == pytest.approx(7.010726452101544, rel=1e-6)
     assert report.annualised_sharpe_required == pytest.approx(4.5785187214125065, rel=1e-9)
+    # The ceiling is instantiated on the loss differential, not on the target.
+    assert report.panel["loss_differential_correlation"] == pytest.approx(0.5661687830549406)
+    assert (
+        report.panel["mean_pairwise_correlation"] == report.panel["loss_differential_correlation"]
+    )
+    assert report.panel["target_correlation"] == pytest.approx(0.5696754057159131)
 
 
 def test_the_design_could_not_have_detected_a_plausible_effect() -> None:
@@ -263,8 +345,12 @@ def test_the_design_could_not_have_detected_a_plausible_effect() -> None:
     report = detectability_report(**_report_inputs())  # type: ignore[arg-type]
     assert report.minimum_detectable_r_squared > 10.0 * report.reference_r_squared
     assert report.feasibility["required_information_coefficient"] > (
-        5.0 * report.realised_information_coefficient
+        5.0 * report.session_information_coefficient
     )
+    # The pooled correlation is the larger, easier number; the bound is compared
+    # against the per-session one because that is what selection uses.
+    assert report.session_information_coefficient < report.pooled_information_coefficient
+    assert report.feasible_breadth_at_unit_holding is None
     assert report.grid_maximum_sharpe < report.deflated_sharpe_threshold
     assert report.grid_maximum_sharpe < report.independent_trial_threshold
 

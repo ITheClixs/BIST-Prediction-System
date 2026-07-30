@@ -44,7 +44,9 @@ def plot_detectable_effect(artifacts: RunArtifacts, directory: Path) -> dict[str
     required = int(report["sessions_required_for_reference_r_squared"])
     reference = float(report["reference_r_squared"])
     panel = report["panel"]
-    correlation = float(panel["mean_pairwise_correlation"])
+    # The ceiling that matters for a forecast comparison is set by the dependence
+    # of the loss differential, which is what the report now instantiates it on.
+    correlation = float(panel["loss_differential_correlation"])
 
     grid = np.unique(np.round(np.geomspace(20, 400_000, 220)).astype(int))
     detectable = np.array(
@@ -143,7 +145,7 @@ def plot_detectable_effect(artifacts: RunArtifacts, directory: Path) -> dict[str
             arrowprops={"arrowstyle": "-", "color": COLOURS["adverse"], "linewidth": 0.8},
         )
         right.set_xscale("log")
-        right.set_xlabel("names in the cross-section")
+        right.set_xlabel("names in the cross-section")  # dependence of $d_{it}$, not of the target
         right.set_ylabel("independent rows per session")
         right.set_ylim(0.0, ceiling * 1.22)
         right.set_title("Breadth cannot buy precision", loc="left", color=COLOURS["ink"])
@@ -181,22 +183,22 @@ def plot_breadth_cost_feasibility(artifacts: RunArtifacts, directory: Path) -> d
     selects. None of them is a modelling choice, so the curve is a property of
     the experiment rather than of the forecaster placed inside it.
     """
-    feasibility = artifacts.metrics["inference"]["detectability"]["feasibility"]
-    realised = float(
-        artifacts.metrics["inference"]["detectability"]["realised_information_coefficient"]
-    )
+    report = artifacts.metrics["inference"]["detectability"]
+    feasibility = report["feasibility"]
+    session_ic = float(report["session_information_coefficient"])
+    pooled_ic = float(report["pooled_information_coefficient"])
     cost = float(feasibility["round_trip_cost_rate"])
     volatility = float(feasibility["target_volatility"])
     universe = int(feasibility["universe_size"])
     selected = int(feasibility["selected"])
     required = float(feasibility["required_information_coefficient"])
 
-    fractions = (0.5, 0.25, 0.1, 0.02)
-    largest = 500
+    fractions = (0.5, 0.1, 0.02)
+    largest = 5000
 
     with figure(7.2, 4.0) as fig:
         axes = fig.add_subplot(111)
-        shades = (COLOURS["null"], COLOURS["model"], COLOURS["portfolio"], COLOURS["reference"])
+        shades = (COLOURS["null"], COLOURS["model"], COLOURS["portfolio"])
         for fraction, colour in zip(fractions, shades, strict=True):
             # Step in whole held names so that every plotted point is an exactly
             # achievable ratio; rounding a fixed grid of universe sizes instead
@@ -218,21 +220,44 @@ def plot_breadth_cost_feasibility(artifacts: RunArtifacts, directory: Path) -> d
                 label=f"hold the top {fraction:.0%}",
                 zorder=3,
             )
-        axes.axhline(
-            realised,
-            color=COLOURS["ink"],
-            linewidth=1.3,
-            linestyle=(0, (4, 3)),
-            zorder=4,
+        # The fixed-count regime is the one that keeps the bound from being an
+        # impossibility result: lambda(N, 1) grows like sqrt(2 log N), so the
+        # requirement falls without limit. Drawing only fixed fractions hides that.
+        single = [int(round(v)) for v in np.geomspace(2, largest, 40)]
+        axes.plot(
+            single,
+            [cost / (volatility * expected_top_selection_score(size, 1)) for size in single],
+            color=COLOURS["reference"],
+            linewidth=2.0,
+            linestyle=(0, (5, 2)),
+            label="hold one name",
+            zorder=3,
         )
+        axes.axhline(session_ic, color=COLOURS["ink"], linewidth=1.4, zorder=4)
         axes.text(
-            4.2,
-            realised * 0.94,
-            f"information coefficient this study achieved = {realised:.3f}",
+            2.2,
+            session_ic * 1.06,
+            f"per-session cross-sectional IC achieved = {session_ic:.4f}",
             fontsize=7.5,
             color=COLOURS["ink"],
             ha="left",
-            va="top",
+            va="bottom",
+        )
+        axes.axhline(
+            pooled_ic,
+            color=COLOURS["muted"],
+            linewidth=1.1,
+            linestyle=(0, (2, 2)),
+            zorder=4,
+        )
+        axes.text(
+            2.2,
+            pooled_ic * 1.06,
+            f"pooled IC over stock-sessions = {pooled_ic:.4f}, which ranking cannot use",
+            fontsize=7.0,
+            color=COLOURS["muted"],
+            ha="left",
+            va="bottom",
         )
         axes.scatter([universe], [required], s=90, color=COLOURS["adverse"], zorder=6)
         axes.annotate(
@@ -245,11 +270,11 @@ def plot_breadth_cost_feasibility(artifacts: RunArtifacts, directory: Path) -> d
         )
         axes.set_xscale("log")
         axes.set_yscale("log")
-        axes.set_ylim(0.02, 0.6)
+        axes.set_ylim(0.004, 0.6)
         axes.set_xlabel("names ranked")
         axes.set_ylabel("information coefficient required to break even")
         axes.set_title(
-            "What the cost schedule demands of a forecast, before any model is chosen",
+            "What the cost schedule demands of a forecast, and what breadth can do about it",
             loc="left",
             color=COLOURS["ink"],
         )
@@ -258,11 +283,12 @@ def plot_breadth_cost_feasibility(artifacts: RunArtifacts, directory: Path) -> d
             fig,
             f"At a round-trip cost of {cost * 1e4:.1f} basis points against a target volatility of "
             f"{volatility * 100:.2f}%, holding the top {selected} of {universe} names requires a "
-            f"cross-sectional information coefficient of {required:.3f}. The portfolio model "
-            f"achieved {realised:.3f}, short by a factor of {required / realised:.1f}. Breadth "
-            "relaxes the requirement sharply at first and then hardly at all: at a fixed holding "
-            "fraction the selection score converges to the mean of that tail of the normal, so "
-            "past a few dozen names only a more selective rule helps.",
+            f"cross-sectional information coefficient of {required:.3f}, against the "
+            f"{session_ic:.4f} achieved per session: short by a factor of "
+            f"{required / session_ic:.0f}. The two regimes differ. At a fixed holding fraction "
+            "the selection score converges to the mean of that tail of the normal, so breadth "
+            "stops helping. Holding a fixed number of names it grows without bound, so breadth "
+            "always helps eventually -- the question is whether the universe it needs exists.",
         )
         png, pdf = save_figure(fig, directory, "fig11_breadth_cost_feasibility")
     return {
@@ -272,8 +298,12 @@ def plot_breadth_cost_feasibility(artifacts: RunArtifacts, directory: Path) -> d
         "round_trip_cost_rate": cost,
         "target_volatility": volatility,
         "required_information_coefficient": required,
-        "realised_information_coefficient": realised,
-        "shortfall_factor": float(required / realised),
+        "session_information_coefficient": session_ic,
+        "pooled_information_coefficient": pooled_ic,
+        "shortfall_factor": float(required / session_ic),
+        "requirement_falls_without_limit_at_fixed_count": bool(
+            expected_top_selection_score(largest, 1) > expected_top_selection_score(500, 1)
+        ),
     }
 
 

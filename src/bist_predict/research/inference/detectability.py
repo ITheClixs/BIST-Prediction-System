@@ -14,24 +14,32 @@ smallest mean loss differential the design could have separated from zero, and
 dividing that by the null's mean squared error puts it on the scale of
 out-of-sample :math:`R^2` --- the scale forecasting papers report.
 
-**The information ceiling of a panel.**  Widening the cross-section is the usual
-answer to a short sample.  It does not work when the units share a market
-factor.  With :math:`k` units correlating pairwise at :math:`\bar\rho`, one
-session carries
+**The design effect of a correlated cross-section.**  Widening the cross-section
+is the usual answer to a short sample.  It buys less than it appears to when the
+units move together.  For a mean over :math:`k` units that are equicorrelated at
+:math:`\bar\rho`, the variance is inflated by :math:`1 + (k-1)\bar\rho`, so one
+session is worth
 
 .. math::
     \frac{k}{1 + (k - 1)\bar\rho}
 
-independent observations, which increases in :math:`k` but is bounded above by
-:math:`1/\bar\rho` --- however many names are added.  The ratio of the achieved
-value to that ceiling says how much precision a wider universe could still buy.
+independent observations: increasing in :math:`k`, but bounded above by
+:math:`1/\bar\rho` however many names are added.
 
-**The cost floor on breadth.**  Breadth does buy something else: selectivity.
-Ranking :math:`N` names and holding the best :math:`k` of them concentrates the
-forecast in its right tail, and the strength of that concentration is the mean
-of the top-:math:`k` standard normal order statistics.  Proposition 1 below
-turns this into a lower bound on the cross-sectional information coefficient a
-strategy needs before costs, which is a hurdle no amount of statistical
+The quantity that governs the precision of a *forecast comparison* is the
+cross-sectional correlation of the model-versus-null loss differential
+:math:`d_{i,t}`, not of the raw return.  They are different objects and only the
+first one enters the standard error of the test that is actually run, so both are
+computed and the loss differential is the one used.  Applying an equicorrelated
+approximation to either is a simplification of a correlation matrix whose
+realised entries vary, and the resulting ceiling is an average-case statement.
+
+**The cost floor on breadth.**  Breadth buys something the design effect does
+not: selectivity.  Ranking :math:`N` names and holding the best :math:`k`
+concentrates the forecast in its right tail, and the strength of that
+concentration is the mean of the top-:math:`k` standard normal order statistics.
+Proposition 1 turns this into a lower bound on the cross-sectional information
+coefficient a strategy needs before costs --- a hurdle no amount of statistical
 significance can substitute for.
 
     **Proposition 1.**  Let the forecast :math:`\hat r` and the realised return
@@ -54,13 +62,44 @@ significance can substitute for.
     expectation is :math:`\rho \sigma \lambda(N,k) - c`, and requiring it to
     exceed zero rearranges to the claim. :math:`\square`
 
+**The bound is not an impossibility result, and the two breadth regimes differ.**
+This matters, because it is easy to read the proposition as saying that no
+universe is wide enough.  It does not.
+
+*Fixed holding fraction* :math:`q = k/N`.  Here
+:math:`\lambda \to \varphi(\Phi^{-1}(1-q))/q`, the mean of the upper-:math:`q`
+tail of the standard normal, which is finite.  The requirement converges, so
+past a few dozen names extra breadth at a fixed fraction buys almost nothing and
+only a more selective rule helps.
+
+*Fixed holding count* :math:`k`.  Here :math:`\lambda(N,k)` grows without bound,
+like :math:`\sqrt{2 \log N}` for :math:`k = 1`, so the requirement falls to zero
+and **sufficient breadth at fixed concentration always restores feasibility in
+this idealised model.**  Any claim that breadth cannot help is false as a
+statement about the model; what is true is a statement about *attainable*
+breadth, which is why :func:`breadth_for_feasibility` reports the universe size
+required rather than asserting impossibility.
+
 The bound is deliberately generous to the strategy: it ignores estimation error
-in the ranking, charges cost only once per round trip, and assumes the forecast
-is unbiased.  A design that fails it fails for reasons no model choice can fix.
+in the ranking, charges cost only once per round trip, assumes an unbiased
+forecast, and --- most importantly in the fixed-:math:`k` regime --- ignores
+capacity, participation limits and market impact, all of which bind hard on a
+rule that puts the whole book into one name.  A design that fails the bound fails
+for reasons no model choice can fix; a design that clears it has cleared a
+necessary condition, not a sufficient one.
+
+**Which correlation instantiates** :math:`\rho`.  Proposition 1 selects within a
+session, so :math:`\rho` is the *per-session cross-sectional* correlation between
+forecast and realised return.  A correlation pooled over stock-sessions is a
+different quantity: it also absorbs the common time-series component, so a model
+that only tracks the market direction earns pooled correlation while ranking
+nothing.  Both are reported, and the per-session mean is the one compared against
+the bound.
 
 References: Lo (2002) and Bailey and Lopez de Prado (2014) for the Sharpe-ratio
-inversion, Grinold's breadth argument for the selection term, and Cohen (1988)
-for the conventional 80% power target used when inverting a two-sided test.
+inversion, Grinold (1989) for the breadth argument, David and Nagaraja (2003) for
+the order-statistic machinery, and Cohen (1988) for the conventional 80% power
+target used when inverting a two-sided test.
 """
 
 from __future__ import annotations
@@ -76,6 +115,7 @@ from bist_predict.research.inference.sharpe import EULER_MASCHERONI
 
 __all__ = [
     "DetectabilityReport",
+    "breadth_for_feasibility",
     "detectability_report",
     "effective_trial_count",
     "expected_top_selection_score",
@@ -83,8 +123,10 @@ __all__ = [
     "minimum_detectable_mean",
     "panel_information_ceiling",
     "required_information_coefficient",
+    "sampling_search_threshold",
     "sessions_required_for_effect",
     "sharpe_required_for_confidence",
+    "tail_mean_selection_score",
 ]
 
 _MAX_SESSIONS = 10_000_000
@@ -228,6 +270,60 @@ def expected_top_selection_score(universe_size: int, selected: int) -> float:
 
     value, _error = integrate.quad(integrand, 0.0, 1.0, limit=400)
     return universe_size * value / selected
+
+
+def tail_mean_selection_score(holding_fraction: float) -> float:
+    r"""Return the limit of :math:`\lambda(N, qN)` as the universe grows.
+
+    Holding a fixed fraction :math:`q` of an expanding universe converges on
+    selecting the upper-:math:`q` tail of the score distribution, whose mean is
+
+    .. math::
+        \lim_{N \to \infty} \lambda(N, qN)
+        = \frac{\varphi\!\left(\Phi^{-1}(1-q)\right)}{q}.
+
+    The limit is finite, which is why breadth at a fixed holding fraction stops
+    helping.  It is the fixed-*count* regime, where no such limit exists, that
+    keeps the bound from being an impossibility result.
+    """
+    if not 0.0 < holding_fraction < 1.0:
+        raise ValueError("the holding fraction must lie strictly in (0, 1)")
+    quantile = float(stats.norm.ppf(1.0 - holding_fraction))
+    return float(stats.norm.pdf(quantile) / holding_fraction)
+
+
+def breadth_for_feasibility(
+    *,
+    round_trip_cost_rate: float,
+    target_volatility: float,
+    information_coefficient: float,
+    selected: int = 1,
+    maximum_universe: int = 1_000_000,
+) -> int | None:
+    """Return the smallest universe that satisfies Proposition 1 at a fixed hold count.
+
+    Because :math:`\\lambda(N, k)` is unbounded in :math:`N` for fixed :math:`k`,
+    such a universe always exists in the model; the useful question is whether it
+    is remotely attainable.  ``None`` means the answer exceeds
+    ``maximum_universe``, which is the honest way to say "not in any real market"
+    without claiming the bound can never be met.
+    """
+    if information_coefficient <= 0.0:
+        return None
+    required = round_trip_cost_rate / (target_volatility * information_coefficient)
+    universe = max(selected + 1, 2)
+    while universe <= maximum_universe:
+        if expected_top_selection_score(universe, selected) > required:
+            low, high = max(selected + 1, universe // 2), universe
+            while high - low > 1:
+                middle = (low + high) // 2
+                if expected_top_selection_score(middle, selected) > required:
+                    high = middle
+                else:
+                    low = middle
+            return high
+        universe *= 2
+    return None
 
 
 def required_information_coefficient(
@@ -381,6 +477,33 @@ def sharpe_required_for_confidence(
     return 0.5 * (low + high)
 
 
+def sampling_search_threshold(
+    *,
+    per_period_sharpe: float,
+    observations: int,
+    trial_count: int,
+) -> float:
+    r"""Return the search threshold implied by *sampling* variance alone.
+
+    The False Strategy threshold is :math:`\sqrt{V}\,q(N)`, and what :math:`V`
+    stands for decides how the threshold behaves as the record lengthens.  Under
+    Lo's (2002) iid expression :math:`V = (1 + \widehat{SR}^2/2)/n`, so the
+    threshold falls like :math:`n^{-1/2}`: a longer record does lower the bar the
+    search sets.  The threshold is only a floor that a longer record cannot erode
+    if :math:`V` measures persistent heterogeneity in the *true* Sharpe ratios of
+    the configurations, which is a different quantity.
+
+    The realised cross-trial variance the run plugs in is neither: it mixes true
+    heterogeneity, estimation noise, and the fact that the trials cover different
+    evaluation windows.  Both readings are therefore reported, and neither is
+    extrapolated to a sample size the run did not observe.
+    """
+    if observations < 2:
+        raise ValueError("a sampling variance needs at least two observations")
+    variance = (1.0 + per_period_sharpe * per_period_sharpe / 2.0) / observations
+    return float(math.sqrt(variance) * false_strategy_quantile(float(trial_count)))
+
+
 @dataclass(frozen=True)
 class DetectabilityReport:
     """The bounds on what the accepted design was capable of establishing."""
@@ -397,7 +520,10 @@ class DetectabilityReport:
     sessions_required_for_reference_r_squared: int
     panel: dict[str, float]
     feasibility: dict[str, float]
-    realised_information_coefficient: float
+    pooled_information_coefficient: float
+    session_information_coefficient: float
+    session_information_coefficient_standard_error: float
+    feasible_breadth_at_unit_holding: int | None
     per_period_sharpe: float
     grid_maximum_sharpe: float
     deflated_sharpe_threshold: float
@@ -426,7 +552,12 @@ class DetectabilityReport:
             ),
             "panel": dict(self.panel),
             "feasibility": dict(self.feasibility),
-            "realised_information_coefficient": self.realised_information_coefficient,
+            "pooled_information_coefficient": self.pooled_information_coefficient,
+            "session_information_coefficient": self.session_information_coefficient,
+            "session_information_coefficient_standard_error": (
+                self.session_information_coefficient_standard_error
+            ),
+            "feasible_breadth_at_unit_holding": self.feasible_breadth_at_unit_holding,
             "per_period_sharpe": self.per_period_sharpe,
             "grid_maximum_sharpe": self.grid_maximum_sharpe,
             "deflated_sharpe_threshold": self.deflated_sharpe_threshold,
@@ -451,7 +582,10 @@ def detectability_report(
     periods_per_year: int,
     round_trip_cost_rate: float,
     target_volatility: float,
-    realised_information_coefficient: float,
+    pooled_information_coefficient: float,
+    session_information_coefficient: float,
+    session_information_coefficient_standard_error: float,
+    loss_differential_correlation: float,
     universe_size: int,
     selected: int,
     reference_r_squared: float = 0.01,
@@ -485,6 +619,7 @@ def detectability_report(
         power=power,
     )
 
+    unit_count = int(cast(int, dependence["unit_count"]))
     per_period_sharpe = float(cast(float, sharpe["per_period_sharpe"]))
     trial_count = int(cast(int, sharpe["trial_count"]))
     realised_variance = float(cast(float, sharpe["trial_sharpe_variance"]))
@@ -508,17 +643,34 @@ def detectability_report(
         minimum_detectable_r_squared=float(detectable_r_squared),
         reference_r_squared=float(reference_r_squared),
         sessions_required_for_reference_r_squared=int(required_sessions),
-        panel=panel_information_ceiling(
-            float(cast(float, dependence["mean_pairwise_correlation"])),
-            int(cast(int, dependence["unit_count"])),
-        ),
+        # The precision of the forecast comparison is governed by the dependence
+        # of the loss differential, not of the raw target, so the ceiling is
+        # instantiated on the former; the target correlation stays alongside it
+        # because it is what the panel diagnostic reports.
+        panel={
+            **panel_information_ceiling(loss_differential_correlation, int(unit_count)),
+            "target_correlation": float(cast(float, dependence["mean_pairwise_correlation"])),
+            "loss_differential_correlation": float(loss_differential_correlation),
+        },
         feasibility=required_information_coefficient(
             round_trip_cost_rate=round_trip_cost_rate,
             target_volatility=target_volatility,
             universe_size=universe_size,
             selected=selected,
         ),
-        realised_information_coefficient=float(realised_information_coefficient),
+        pooled_information_coefficient=float(pooled_information_coefficient),
+        session_information_coefficient=float(session_information_coefficient),
+        session_information_coefficient_standard_error=float(
+            session_information_coefficient_standard_error
+        ),
+        # Fixed-count breadth makes the requirement vanish in the limit, so the
+        # honest answer to "could a wider universe fix this?" is a number, not a
+        # denial. None means it exceeds a million names.
+        feasible_breadth_at_unit_holding=breadth_for_feasibility(
+            round_trip_cost_rate=round_trip_cost_rate,
+            target_volatility=target_volatility,
+            information_coefficient=session_information_coefficient,
+        ),
         per_period_sharpe=per_period_sharpe,
         grid_maximum_sharpe=float(grid_maximum_sharpe),
         deflated_sharpe_threshold=threshold,
