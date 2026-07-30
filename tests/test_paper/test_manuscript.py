@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import hashlib
 import re
 import shutil
 import subprocess
@@ -115,3 +116,47 @@ def test_an_author_name_is_required() -> None:
 
     with pytest.raises(ValueError, match="author name is required"):
         _authors("", "Some Institution")
+
+
+def test_the_rendered_manuscript_is_committed_and_deterministic(
+    rendered: tuple[int, str],
+) -> None:
+    """TeX stamps the build time, so an unpinned clock makes the copy look modified."""
+    committed = ROOT / "paper.pdf"
+    assert committed.is_file(), "paper.pdf is the artifact a reader opens first"
+    first = hashlib.sha256(committed.read_bytes()).hexdigest()
+    result = subprocess.run(
+        [
+            sys.executable,
+            str(ROOT / "tools" / "build_paper.py"),
+            "--run",
+            str(RUN),
+            "--author",
+            "Determinism Check",
+        ],
+        capture_output=True,
+        text=True,
+        cwd=ROOT,
+    )
+    assert result.returncode == 0, result.stdout + result.stderr
+    assert hashlib.sha256(committed.read_bytes()).hexdigest() != first, (
+        "a different author block must change the document"
+    )
+    second = hashlib.sha256(committed.read_bytes()).hexdigest()
+    result = subprocess.run(
+        [
+            sys.executable,
+            str(ROOT / "tools" / "build_paper.py"),
+            "--run",
+            str(RUN),
+            "--author",
+            "Determinism Check",
+        ],
+        capture_output=True,
+        text=True,
+        cwd=ROOT,
+    )
+    assert result.returncode == 0, result.stdout + result.stderr
+    assert hashlib.sha256(committed.read_bytes()).hexdigest() == second, (
+        "the same inputs must render to the same bytes"
+    )

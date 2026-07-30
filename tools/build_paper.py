@@ -4,9 +4,11 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 import subprocess
 import sys
 from collections.abc import Sequence
+from datetime import datetime
 from pathlib import Path
 
 import yaml
@@ -70,11 +72,22 @@ def main(argv: Sequence[str] | None = None) -> int:
 
     if arguments.skip_typeset:
         return 0
+    # TeX stamps the build time into the PDF, so an unchanged manuscript rebuilds
+    # to different bytes every time and a committed copy looks perpetually
+    # modified. Pinning the clock to the run's creation time makes the rendered
+    # document a deterministic function of the bundle it reports.
+    created = json.loads((run / "run_manifest.json").read_text(encoding="utf-8"))["created_at"]
+    environment = {
+        **os.environ,
+        "SOURCE_DATE_EPOCH": str(int(datetime.fromisoformat(created).timestamp())),
+        "FORCE_SOURCE_DATE": "1",
+    }
     result = subprocess.run(
         ["tectonic", "--keep-logs", "main.tex"],
         cwd=PAPER,
         capture_output=True,
         text=True,
+        env=environment,
     )
     sys.stderr.write(result.stderr[-4000:])
     if result.returncode != 0:
