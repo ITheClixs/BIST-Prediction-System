@@ -19,7 +19,9 @@ from bist_predict.research.inference.forecast_tests import (
     diebold_mariano,
     squared_error_differential,
 )
+from bist_predict.research.inference.joint_search import joint_search_test
 from bist_predict.research.inference.multiplicity import holm_step_down
+from bist_predict.research.inference.nested import clark_west, encompassing_adjustment
 from bist_predict.research.inference.sharpe import sharpe_inference
 from bist_predict.research.inference.snooping import reality_check_and_spa
 
@@ -133,6 +135,43 @@ def _equal_predictive_accuracy(
     }
 
 
+def _predictive_content(
+    predictions: pd.DataFrame,
+    *,
+    benchmark: str,
+    candidates: Sequence[str],
+    alpha: float,
+) -> dict[str, object]:
+    """Return the Clark--West tests that the squared-error comparison cannot make.
+
+    Against a zero-forecast benchmark the two models are nested, and a fitted
+    forecast loses the squared-error comparison whenever its estimation variance
+    exceeds twice its covariance with the target.  That happens under the null
+    itself, so a Diebold--Mariano rejection towards the benchmark carries no
+    information about predictive content.  Clark and West (2007) remove the
+    offending term; the accompanying simulation study reports the size of both.
+    """
+    tests: dict[str, dict[str, float | int | str]] = {}
+    for candidate in candidates:
+        test = clark_west(
+            encompassing_adjustment(predictions, candidate=candidate, benchmark=benchmark),
+            candidate=candidate,
+            benchmark=benchmark,
+        )
+        tests[candidate] = test.to_dict()
+    holm = holm_step_down(
+        {name: float(test["p_value"]) for name, test in tests.items()}, alpha=alpha
+    )
+    return {
+        "benchmark": benchmark,
+        "test": "clark_west_encompassing",
+        "null": "the population forecast is the zero forecast",
+        "session_aggregated": tests,
+        "family_wise_correction": holm.to_dict(),
+        "any_candidate_shows_predictive_content": bool(holm.rejected),
+    }
+
+
 def build_inference_report(
     predictions: pd.DataFrame,
     *,
@@ -149,6 +188,7 @@ def build_inference_report(
     seed: int,
     replications: int = 10_000,
     alpha: float = 0.05,
+    trial_session_returns: pd.DataFrame | None = None,
 ) -> dict[str, object]:
     """Return the complete inferential block persisted into ``metrics.json``."""
     models = sorted(str(name) for name in predictions["model_name"].unique())
@@ -182,6 +222,9 @@ def build_inference_report(
     accuracy = _equal_predictive_accuracy(
         predictions, benchmark=benchmark_model, candidates=candidates, alpha=alpha
     )
+    predictive_content = _predictive_content(
+        predictions, benchmark=benchmark_model, candidates=candidates, alpha=alpha
+    )
     session_aggregated = cast(dict[str, dict[str, float]], accuracy["session_aggregated"])
     session_errors = {
         name: float(test["standard_error"]) for name, test in session_aggregated.items()
@@ -209,15 +252,24 @@ def build_inference_report(
         universe_size=universe_size,
         selected=selected,
     )
-    return {
-        "schema_version": 1,
+    report: dict[str, object] = {
+        "schema_version": 2,
         "alpha": alpha,
         "models": models,
         "benchmark_model": benchmark_model,
         "portfolio_model": portfolio_model,
         "cross_sectional_dependence": dependence.to_dict(),
         "equal_predictive_accuracy": accuracy,
+        "predictive_content": predictive_content,
         "data_snooping": snooping.to_dict(),
         "portfolio_sharpe": sharpe.to_dict(),
         "detectability": detectability.to_dict(),
     }
+    if trial_session_returns is not None:
+        # The deflated Sharpe ratio corrects the grid maximum by an assumption
+        # about how the trials disperse. Resampling the whole grid on one index
+        # draw measures that dispersion instead of assuming it.
+        report["joint_search"] = joint_search_test(
+            trial_session_returns, replications=replications, seed=seed
+        ).to_dict()
+    return report

@@ -1,0 +1,4910 @@
+{
+  "anchor_design": {
+    "degrees_of_freedom": 5.0,
+    "forecast_correlation": 0.947,
+    "forecast_variance_ratio": 0.272,
+    "innovation": "gaussian",
+    "predictable_share": 0.136,
+    "session_count": 120,
+    "target_correlation": 0.5697,
+    "target_volatility": 0.019,
+    "unit_count": 4,
+    "volatility": "constant"
+  },
+  "closed_form_anchor_size": 0.233735611387771,
+  "configuration": {
+    "alpha": 0.05,
+    "anchor_correlation": 0.5697,
+    "anchor_forecast_correlation": 0.947,
+    "anchor_forecast_variance_ratio": 0.272,
+    "anchor_predictable_share": 0.136,
+    "anchor_volatility": 0.019,
+    "bootstrap_replications": 999,
+    "family_replications": 2000,
+    "family_size": 6,
+    "grid_trial_count": 72,
+    "nested_replications": 10000,
+    "power_predictable_share": 0.35,
+    "power_replications": 4000,
+    "search_replications": 1000,
+    "seed": 20260806,
+    "size_replications": 10000
+  },
+  "content_hash": "0237df933855f5ea80e73130774004dfca326f5a0a274acf597d38d96eee6589",
+  "elapsed_seconds": 214.734,
+  "environment": {
+    "numpy": "2.4.4",
+    "python": "3.13.5",
+    "scipy": "1.17.1"
+  },
+  "experiments": {
+    "dependence": [
+      {
+        "alpha": 0.05,
+        "clark_west_session": {
+          "confidence_level": 0.95,
+          "lower": 0.9534652108353046,
+          "rate": 0.9576,
+          "rejections": 9576,
+          "trials": 10000,
+          "upper": 0.9614655223865655
+        },
+        "design": {
+          "degrees_of_freedom": 5.0,
+          "forecast_correlation": 0.947,
+          "forecast_variance_ratio": 0.272,
+          "innovation": "gaussian",
+          "predictable_share": 0.136,
+          "session_count": 120,
+          "target_correlation": 0.5697,
+          "target_volatility": 0.019,
+          "unit_count": 2,
+          "volatility": "constant"
+        },
+        "mean_loss_differential_correlation": 0.5267003299359371,
+        "population_covariance_ratio": 0.272,
+        "population_r_squared": 0.0,
+        "predicted_row_size": 0.11268297717831634,
+        "replications": 10000,
+        "row_rejection": {
+          "confidence_level": 0.95,
+          "lower": 0.10598013010365431,
+          "rate": 0.1121,
+          "rejections": 1121,
+          "trials": 10000,
+          "upper": 0.11844677644587007
+        },
+        "row_superiority": {
+          "confidence_level": 0.95,
+          "lower": 0.05474973248920496,
+          "rate": 0.0593,
+          "rejections": 593,
+          "trials": 10000,
+          "upper": 0.06410896906485461
+        },
+        "session_rejection": {
+          "confidence_level": 0.95,
+          "lower": 0.04188119902654091,
+          "rate": 0.0459,
+          "rejections": 459,
+          "trials": 10000,
+          "upper": 0.05018584671289517
+        },
+        "session_superiority": {
+          "confidence_level": 0.95,
+          "lower": 0.02306380496751898,
+          "rate": 0.0261,
+          "rejections": 261,
+          "trials": 10000,
+          "upper": 0.029416248447519826
+        },
+        "varied": "unit_count"
+      },
+      {
+        "alpha": 0.05,
+        "clark_west_session": {
+          "confidence_level": 0.95,
+          "lower": 0.9717481426140768,
+          "rate": 0.975,
+          "rejections": 9750,
+          "trials": 10000,
+          "upper": 0.9779710326467193
+        },
+        "design": {
+          "degrees_of_freedom": 5.0,
+          "forecast_correlation": 0.947,
+          "forecast_variance_ratio": 0.272,
+          "innovation": "gaussian",
+          "predictable_share": 0.136,
+          "session_count": 120,
+          "target_correlation": 0.5697,
+          "target_volatility": 0.019,
+          "unit_count": 4,
+          "volatility": "constant"
+        },
+        "mean_loss_differential_correlation": 0.5251691285205503,
+        "population_covariance_ratio": 0.272,
+        "population_r_squared": 0.0,
+        "predicted_row_size": 0.2219784839535085,
+        "replications": 10000,
+        "row_rejection": {
+          "confidence_level": 0.95,
+          "lower": 0.22020205518515204,
+          "rate": 0.2284,
+          "rejections": 2284,
+          "trials": 10000,
+          "upper": 0.23675640455656038
+        },
+        "row_superiority": {
+          "confidence_level": 0.95,
+          "lower": 0.11056720469405543,
+          "rate": 0.1168,
+          "rejections": 1168,
+          "trials": 10000,
+          "upper": 0.12325691074095217
+        },
+        "session_rejection": {
+          "confidence_level": 0.95,
+          "lower": 0.048593677400189224,
+          "rate": 0.0529,
+          "rejections": 529,
+          "trials": 10000,
+          "upper": 0.05746898314288319
+        },
+        "session_superiority": {
+          "confidence_level": 0.95,
+          "lower": 0.02391158385451995,
+          "rate": 0.027,
+          "rejections": 270,
+          "trials": 10000,
+          "upper": 0.030367844449932135
+        },
+        "varied": "unit_count"
+      },
+      {
+        "alpha": 0.05,
+        "clark_west_session": {
+          "confidence_level": 0.95,
+          "lower": 0.984040970075435,
+          "rate": 0.9865,
+          "rejections": 9865,
+          "trials": 10000,
+          "upper": 0.9886693025889179
+        },
+        "design": {
+          "degrees_of_freedom": 5.0,
+          "forecast_correlation": 0.947,
+          "forecast_variance_ratio": 0.272,
+          "innovation": "gaussian",
+          "predictable_share": 0.136,
+          "session_count": 120,
+          "target_correlation": 0.5697,
+          "target_volatility": 0.019,
+          "unit_count": 10,
+          "volatility": "constant"
+        },
+        "mean_loss_differential_correlation": 0.5252428874396932,
+        "population_covariance_ratio": 0.272,
+        "population_r_squared": 0.0,
+        "predicted_row_size": 0.4127933577996531,
+        "replications": 10000,
+        "row_rejection": {
+          "confidence_level": 0.95,
+          "lower": 0.408806156349902,
+          "rate": 0.4185,
+          "rejections": 4185,
+          "trials": 10000,
+          "upper": 0.4282413369112508
+        },
+        "row_superiority": {
+          "confidence_level": 0.95,
+          "lower": 0.1990953007978361,
+          "rate": 0.207,
+          "rejections": 2070,
+          "trials": 10000,
+          "upper": 0.21507569345212693
+        },
+        "session_rejection": {
+          "confidence_level": 0.95,
+          "lower": 0.042072645259738486,
+          "rate": 0.0461,
+          "rejections": 461,
+          "trials": 10000,
+          "upper": 0.05039427420529061
+        },
+        "session_superiority": {
+          "confidence_level": 0.95,
+          "lower": 0.022028967353280755,
+          "rate": 0.025,
+          "rejections": 250,
+          "trials": 10000,
+          "upper": 0.028251857385923212
+        },
+        "varied": "unit_count"
+      },
+      {
+        "alpha": 0.05,
+        "clark_west_session": {
+          "confidence_level": 0.95,
+          "lower": 0.9866479198489646,
+          "rate": 0.9889,
+          "rejections": 9889,
+          "trials": 10000,
+          "upper": 0.9908601057202457
+        },
+        "design": {
+          "degrees_of_freedom": 5.0,
+          "forecast_correlation": 0.947,
+          "forecast_variance_ratio": 0.272,
+          "innovation": "gaussian",
+          "predictable_share": 0.136,
+          "session_count": 120,
+          "target_correlation": 0.5697,
+          "target_volatility": 0.019,
+          "unit_count": 30,
+          "volatility": "constant"
+        },
+        "mean_loss_differential_correlation": 0.5265992283056469,
+        "population_covariance_ratio": 0.272,
+        "population_r_squared": 0.0,
+        "predicted_row_size": 0.6270467708564278,
+        "replications": 10000,
+        "row_rejection": {
+          "confidence_level": 0.95,
+          "lower": 0.618541048935541,
+          "rate": 0.6281,
+          "rejections": 6281,
+          "trials": 10000,
+          "upper": 0.6375842916796393
+        },
+        "row_superiority": {
+          "confidence_level": 0.95,
+          "lower": 0.30689253358075064,
+          "rate": 0.316,
+          "rejections": 3160,
+          "trials": 10000,
+          "upper": 0.3252147348491801
+        },
+        "session_rejection": {
+          "confidence_level": 0.95,
+          "lower": 0.04504270255781008,
+          "rate": 0.0492,
+          "rejections": 492,
+          "trials": 10000,
+          "upper": 0.05362226750780611
+        },
+        "session_superiority": {
+          "confidence_level": 0.95,
+          "lower": 0.023534675319237922,
+          "rate": 0.0266,
+          "rejections": 266,
+          "trials": 10000,
+          "upper": 0.02994503018149744
+        },
+        "varied": "unit_count"
+      },
+      {
+        "alpha": 0.05,
+        "clark_west_session": {
+          "confidence_level": 0.95,
+          "lower": 0.9889488974862611,
+          "rate": 0.991,
+          "rejections": 9910,
+          "trials": 10000,
+          "upper": 0.9927569024559572
+        },
+        "design": {
+          "degrees_of_freedom": 5.0,
+          "forecast_correlation": 0.947,
+          "forecast_variance_ratio": 0.272,
+          "innovation": "gaussian",
+          "predictable_share": 0.136,
+          "session_count": 120,
+          "target_correlation": 0.5697,
+          "target_volatility": 0.019,
+          "unit_count": 100,
+          "volatility": "constant"
+        },
+        "mean_loss_differential_correlation": 0.525281543327961,
+        "population_covariance_ratio": 0.272,
+        "population_r_squared": 0.0,
+        "predicted_row_size": 0.7877646518010555,
+        "replications": 10000,
+        "row_rejection": {
+          "confidence_level": 0.95,
+          "lower": 0.7832008217918998,
+          "rate": 0.7913,
+          "rejections": 7913,
+          "trials": 10000,
+          "upper": 0.7992291802881966
+        },
+        "row_superiority": {
+          "confidence_level": 0.95,
+          "lower": 0.3868937404072878,
+          "rate": 0.3965,
+          "rejections": 3965,
+          "trials": 10000,
+          "upper": 0.4061665765819963
+        },
+        "session_rejection": {
+          "confidence_level": 0.95,
+          "lower": 0.04159406983273578,
+          "rate": 0.0456,
+          "rejections": 456,
+          "trials": 10000,
+          "upper": 0.049873165440924974
+        },
+        "session_superiority": {
+          "confidence_level": 0.95,
+          "lower": 0.021934967055197263,
+          "rate": 0.0249,
+          "rejections": 249,
+          "trials": 10000,
+          "upper": 0.02814592823009577
+        },
+        "varied": "unit_count"
+      },
+      {
+        "alpha": 0.05,
+        "clark_west_session": {
+          "confidence_level": 0.95,
+          "lower": 0.9996311800853812,
+          "rate": 1.0,
+          "rejections": 10000,
+          "trials": 10000,
+          "upper": 1.0
+        },
+        "design": {
+          "degrees_of_freedom": 5.0,
+          "forecast_correlation": 0.0,
+          "forecast_variance_ratio": 0.272,
+          "innovation": "gaussian",
+          "predictable_share": 0.136,
+          "session_count": 120,
+          "target_correlation": 0.0,
+          "target_volatility": 0.019,
+          "unit_count": 4,
+          "volatility": "constant"
+        },
+        "mean_loss_differential_correlation": 0.00031850414314570845,
+        "population_covariance_ratio": 0.272,
+        "population_r_squared": 0.0,
+        "predicted_row_size": 0.05010947613529526,
+        "replications": 10000,
+        "row_rejection": {
+          "confidence_level": 0.95,
+          "lower": 0.048881864836892185,
+          "rate": 0.0532,
+          "rejections": 532,
+          "trials": 10000,
+          "upper": 0.05778060917608382
+        },
+        "row_superiority": {
+          "confidence_level": 0.95,
+          "lower": 0.02438297818180491,
+          "rate": 0.0275,
+          "rejections": 275,
+          "trials": 10000,
+          "upper": 0.03089610498642477
+        },
+        "session_rejection": {
+          "confidence_level": 0.95,
+          "lower": 0.0479213935693669,
+          "rate": 0.0522,
+          "rejections": 522,
+          "trials": 10000,
+          "upper": 0.05674170261542476
+        },
+        "session_superiority": {
+          "confidence_level": 0.95,
+          "lower": 0.02391158385451995,
+          "rate": 0.027,
+          "rejections": 270,
+          "trials": 10000,
+          "upper": 0.030367844449932135
+        },
+        "varied": "target_correlation"
+      },
+      {
+        "alpha": 0.05,
+        "clark_west_session": {
+          "confidence_level": 0.95,
+          "lower": 0.9996311800853812,
+          "rate": 1.0,
+          "rejections": 10000,
+          "trials": 10000,
+          "upper": 1.0
+        },
+        "design": {
+          "degrees_of_freedom": 5.0,
+          "forecast_correlation": 0.0,
+          "forecast_variance_ratio": 0.272,
+          "innovation": "gaussian",
+          "predictable_share": 0.136,
+          "session_count": 120,
+          "target_correlation": 0.0,
+          "target_volatility": 0.019,
+          "unit_count": 30,
+          "volatility": "constant"
+        },
+        "mean_loss_differential_correlation": -3.0056265368139845e-05,
+        "population_covariance_ratio": 0.272,
+        "population_r_squared": 0.0,
+        "predicted_row_size": 0.049900172722262257,
+        "replications": 10000,
+        "row_rejection": {
+          "confidence_level": 0.95,
+          "lower": 0.047153336680560834,
+          "rate": 0.0514,
+          "rejections": 514,
+          "trials": 10000,
+          "upper": 0.055910258094401616
+        },
+        "row_superiority": {
+          "confidence_level": 0.95,
+          "lower": 0.02287554105975922,
+          "rate": 0.0259,
+          "rejections": 259,
+          "trials": 10000,
+          "upper": 0.029204651977855652
+        },
+        "session_rejection": {
+          "confidence_level": 0.95,
+          "lower": 0.047057349925014876,
+          "rate": 0.0513,
+          "rejections": 513,
+          "trials": 10000,
+          "upper": 0.055806307228634305
+        },
+        "session_superiority": {
+          "confidence_level": 0.95,
+          "lower": 0.02315795510547664,
+          "rate": 0.0262,
+          "rejections": 262,
+          "trials": 10000,
+          "upper": 0.02952202859740368
+        },
+        "varied": "target_correlation"
+      },
+      {
+        "alpha": 0.05,
+        "clark_west_session": {
+          "confidence_level": 0.95,
+          "lower": 0.9996311800853812,
+          "rate": 1.0,
+          "rejections": 10000,
+          "trials": 10000,
+          "upper": 1.0
+        },
+        "design": {
+          "degrees_of_freedom": 5.0,
+          "forecast_correlation": 0.2,
+          "forecast_variance_ratio": 0.272,
+          "innovation": "gaussian",
+          "predictable_share": 0.136,
+          "session_count": 120,
+          "target_correlation": 0.2,
+          "target_volatility": 0.019,
+          "unit_count": 4,
+          "volatility": "constant"
+        },
+        "mean_loss_differential_correlation": 0.03974468081274582,
+        "population_covariance_ratio": 0.272,
+        "population_r_squared": 0.0,
+        "predicted_row_size": 0.06393605613410579,
+        "replications": 10000,
+        "row_rejection": {
+          "confidence_level": 0.95,
+          "lower": 0.058894555396811835,
+          "rate": 0.0636,
+          "rejections": 636,
+          "trials": 10000,
+          "upper": 0.06856150687710272
+        },
+        "row_superiority": {
+          "confidence_level": 0.95,
+          "lower": 0.02949051774344535,
+          "rate": 0.0329,
+          "rejections": 329,
+          "trials": 10000,
+          "upper": 0.036584918613327355
+        },
+        "session_rejection": {
+          "confidence_level": 0.95,
+          "lower": 0.046097735560040376,
+          "rate": 0.0503,
+          "rejections": 503,
+          "trials": 10000,
+          "upper": 0.05476654607245674
+        },
+        "session_superiority": {
+          "confidence_level": 0.95,
+          "lower": 0.023346291412550745,
+          "rate": 0.0264,
+          "rejections": 264,
+          "trials": 10000,
+          "upper": 0.029733553061171106
+        },
+        "varied": "target_correlation"
+      },
+      {
+        "alpha": 0.05,
+        "clark_west_session": {
+          "confidence_level": 0.95,
+          "lower": 0.9996311800853812,
+          "rate": 1.0,
+          "rejections": 10000,
+          "trials": 10000,
+          "upper": 1.0
+        },
+        "design": {
+          "degrees_of_freedom": 5.0,
+          "forecast_correlation": 0.2,
+          "forecast_variance_ratio": 0.272,
+          "innovation": "gaussian",
+          "predictable_share": 0.136,
+          "session_count": 120,
+          "target_correlation": 0.2,
+          "target_volatility": 0.019,
+          "unit_count": 30,
+          "volatility": "constant"
+        },
+        "mean_loss_differential_correlation": 0.039335371158359,
+        "population_covariance_ratio": 0.272,
+        "population_r_squared": 0.0,
+        "predicted_row_size": 0.18038301501104048,
+        "replications": 10000,
+        "row_rejection": {
+          "confidence_level": 0.95,
+          "lower": 0.17310411589550162,
+          "rate": 0.1806,
+          "rejections": 1806,
+          "trials": 10000,
+          "upper": 0.1882823669404163
+        },
+        "row_superiority": {
+          "confidence_level": 0.95,
+          "lower": 0.0819354073148886,
+          "rate": 0.0874,
+          "rejections": 874,
+          "trials": 10000,
+          "upper": 0.0931062449008167
+        },
+        "session_rejection": {
+          "confidence_level": 0.95,
+          "lower": 0.04638557117254762,
+          "rate": 0.0506,
+          "rejections": 506,
+          "trials": 10000,
+          "upper": 0.05507852298247231
+        },
+        "session_superiority": {
+          "confidence_level": 0.95,
+          "lower": 0.02184097971891537,
+          "rate": 0.0248,
+          "rejections": 248,
+          "trials": 10000,
+          "upper": 0.028039986186476018
+        },
+        "varied": "target_correlation"
+      },
+      {
+        "alpha": 0.05,
+        "clark_west_session": {
+          "confidence_level": 0.95,
+          "lower": 0.9981617358657894,
+          "rate": 0.999,
+          "rejections": 9990,
+          "trials": 10000,
+          "upper": 0.9995203602762289
+        },
+        "design": {
+          "degrees_of_freedom": 5.0,
+          "forecast_correlation": 0.4,
+          "forecast_variance_ratio": 0.272,
+          "innovation": "gaussian",
+          "predictable_share": 0.136,
+          "session_count": 120,
+          "target_correlation": 0.4,
+          "target_volatility": 0.019,
+          "unit_count": 4,
+          "volatility": "constant"
+        },
+        "mean_loss_differential_correlation": 0.15609659644695797,
+        "population_covariance_ratio": 0.272,
+        "population_r_squared": 0.0,
+        "predicted_row_size": 0.10577207269256643,
+        "replications": 10000,
+        "row_rejection": {
+          "confidence_level": 0.95,
+          "lower": 0.10305400116749137,
+          "rate": 0.1091,
+          "rejections": 1091,
+          "trials": 10000,
+          "upper": 0.11537468900346344
+        },
+        "row_superiority": {
+          "confidence_level": 0.95,
+          "lower": 0.04926617539901271,
+          "rate": 0.0536,
+          "rejections": 536,
+          "trials": 10000,
+          "upper": 0.058196050065610884
+        },
+        "session_rejection": {
+          "confidence_level": 0.95,
+          "lower": 0.04494681925724408,
+          "rate": 0.0491,
+          "rejections": 491,
+          "trials": 10000,
+          "upper": 0.05351821347433199
+        },
+        "session_superiority": {
+          "confidence_level": 0.95,
+          "lower": 0.021465161533882043,
+          "rate": 0.0244,
+          "rejections": 244,
+          "trials": 10000,
+          "upper": 0.02761608760695737
+        },
+        "varied": "target_correlation"
+      },
+      {
+        "alpha": 0.05,
+        "clark_west_session": {
+          "confidence_level": 0.95,
+          "lower": 0.9996311800853812,
+          "rate": 1.0,
+          "rejections": 10000,
+          "trials": 10000,
+          "upper": 1.0
+        },
+        "design": {
+          "degrees_of_freedom": 5.0,
+          "forecast_correlation": 0.4,
+          "forecast_variance_ratio": 0.272,
+          "innovation": "gaussian",
+          "predictable_share": 0.136,
+          "session_count": 120,
+          "target_correlation": 0.4,
+          "target_volatility": 0.019,
+          "unit_count": 30,
+          "volatility": "constant"
+        },
+        "mean_loss_differential_correlation": 0.15766261027199827,
+        "population_covariance_ratio": 0.272,
+        "population_r_squared": 0.0,
+        "predicted_row_size": 0.4063701678245938,
+        "replications": 10000,
+        "row_rejection": {
+          "confidence_level": 0.95,
+          "lower": 0.3947599868516934,
+          "rate": 0.4044,
+          "rejections": 4044,
+          "trials": 10000,
+          "upper": 0.41409572498698516
+        },
+        "row_superiority": {
+          "confidence_level": 0.95,
+          "lower": 0.19574490364963876,
+          "rate": 0.2036,
+          "rejections": 2036,
+          "trials": 10000,
+          "upper": 0.21162808360210542
+        },
+        "session_rejection": {
+          "confidence_level": 0.95,
+          "lower": 0.04523448367843149,
+          "rate": 0.0494,
+          "rejections": 494,
+          "trials": 10000,
+          "upper": 0.053830361096438434
+        },
+        "session_superiority": {
+          "confidence_level": 0.95,
+          "lower": 0.02137124017004032,
+          "rate": 0.0243,
+          "rejections": 243,
+          "trials": 10000,
+          "upper": 0.027510079972258798
+        },
+        "varied": "target_correlation"
+      },
+      {
+        "alpha": 0.05,
+        "clark_west_session": {
+          "confidence_level": 0.95,
+          "lower": 0.991722616884278,
+          "rate": 0.9935,
+          "rejections": 9935,
+          "trials": 10000,
+          "upper": 0.9949799597326345
+        },
+        "design": {
+          "degrees_of_freedom": 5.0,
+          "forecast_correlation": 0.5697,
+          "forecast_variance_ratio": 0.272,
+          "innovation": "gaussian",
+          "predictable_share": 0.136,
+          "session_count": 120,
+          "target_correlation": 0.5697,
+          "target_volatility": 0.019,
+          "unit_count": 4,
+          "volatility": "constant"
+        },
+        "mean_loss_differential_correlation": 0.3209384495938302,
+        "population_covariance_ratio": 0.272,
+        "population_r_squared": 0.0,
+        "predicted_row_size": 0.1618220114715856,
+        "replications": 10000,
+        "row_rejection": {
+          "confidence_level": 0.95,
+          "lower": 0.15217738450197302,
+          "rate": 0.1593,
+          "rejections": 1593,
+          "trials": 10000,
+          "upper": 0.16662162255657942
+        },
+        "row_superiority": {
+          "confidence_level": 0.95,
+          "lower": 0.07368947927684619,
+          "rate": 0.0789,
+          "rejections": 789,
+          "trials": 10000,
+          "upper": 0.08435728888147828
+        },
+        "session_rejection": {
+          "confidence_level": 0.95,
+          "lower": 0.043125976116644774,
+          "rate": 0.0472,
+          "rejections": 472,
+          "trials": 10000,
+          "upper": 0.0515402499753186
+        },
+        "session_superiority": {
+          "confidence_level": 0.95,
+          "lower": 0.019402126224705933,
+          "rate": 0.0222,
+          "rejections": 222,
+          "trials": 10000,
+          "upper": 0.025280704439719175
+        },
+        "varied": "target_correlation"
+      },
+      {
+        "alpha": 0.05,
+        "clark_west_session": {
+          "confidence_level": 0.95,
+          "lower": 0.999123525477486,
+          "rate": 0.9997,
+          "rejections": 9997,
+          "trials": 10000,
+          "upper": 0.9999381285142516
+        },
+        "design": {
+          "degrees_of_freedom": 5.0,
+          "forecast_correlation": 0.5697,
+          "forecast_variance_ratio": 0.272,
+          "innovation": "gaussian",
+          "predictable_share": 0.136,
+          "session_count": 120,
+          "target_correlation": 0.5697,
+          "target_volatility": 0.019,
+          "unit_count": 30,
+          "volatility": "constant"
+        },
+        "mean_loss_differential_correlation": 0.3201347250998594,
+        "population_covariance_ratio": 0.272,
+        "population_r_squared": 0.0,
+        "predicted_row_size": 0.5410805285296298,
+        "replications": 10000,
+        "row_rejection": {
+          "confidence_level": 0.95,
+          "lower": 0.5319734988619995,
+          "rate": 0.5418,
+          "rejections": 5418,
+          "trials": 10000,
+          "upper": 0.551602144266661
+        },
+        "row_superiority": {
+          "confidence_level": 0.95,
+          "lower": 0.2641864849996141,
+          "rate": 0.2729,
+          "rejections": 2729,
+          "trials": 10000,
+          "upper": 0.28174595145258785
+        },
+        "session_rejection": {
+          "confidence_level": 0.95,
+          "lower": 0.0439882558241521,
+          "rate": 0.0481,
+          "rejections": 481,
+          "trials": 10000,
+          "upper": 0.052477404338613864
+        },
+        "session_superiority": {
+          "confidence_level": 0.95,
+          "lower": 0.022028967353280755,
+          "rate": 0.025,
+          "rejections": 250,
+          "trials": 10000,
+          "upper": 0.028251857385923212
+        },
+        "varied": "target_correlation"
+      },
+      {
+        "alpha": 0.05,
+        "clark_west_session": {
+          "confidence_level": 0.95,
+          "lower": 0.9577515536690053,
+          "rate": 0.9617,
+          "rejections": 9617,
+          "trials": 10000,
+          "upper": 0.9653765462891745
+        },
+        "design": {
+          "degrees_of_freedom": 5.0,
+          "forecast_correlation": 0.8,
+          "forecast_variance_ratio": 0.272,
+          "innovation": "gaussian",
+          "predictable_share": 0.136,
+          "session_count": 120,
+          "target_correlation": 0.8,
+          "target_volatility": 0.019,
+          "unit_count": 4,
+          "volatility": "constant"
+        },
+        "mean_loss_differential_correlation": 0.6359097955170456,
+        "population_covariance_ratio": 0.272,
+        "population_r_squared": 0.0,
+        "predicted_row_size": 0.25039118323259524,
+        "replications": 10000,
+        "row_rejection": {
+          "confidence_level": 0.95,
+          "lower": 0.24054851156280668,
+          "rate": 0.249,
+          "rejections": 2490,
+          "trials": 10000,
+          "upper": 0.25759789551588075
+        },
+        "row_superiority": {
+          "confidence_level": 0.95,
+          "lower": 0.11652549105132448,
+          "rate": 0.1229,
+          "rejections": 1229,
+          "trials": 10000,
+          "upper": 0.12949500719689455
+        },
+        "session_rejection": {
+          "confidence_level": 0.95,
+          "lower": 0.0439882558241521,
+          "rate": 0.0481,
+          "rejections": 481,
+          "trials": 10000,
+          "upper": 0.052477404338613864
+        },
+        "session_superiority": {
+          "confidence_level": 0.95,
+          "lower": 0.01958938346125213,
+          "rate": 0.0224,
+          "rejections": 224,
+          "trials": 10000,
+          "upper": 0.025493301623546568
+        },
+        "varied": "target_correlation"
+      },
+      {
+        "alpha": 0.05,
+        "clark_west_session": {
+          "confidence_level": 0.95,
+          "lower": 0.971112834172356,
+          "rate": 0.9744,
+          "rejections": 9744,
+          "trials": 10000,
+          "upper": 0.977406762850964
+        },
+        "design": {
+          "degrees_of_freedom": 5.0,
+          "forecast_correlation": 0.8,
+          "forecast_variance_ratio": 0.272,
+          "innovation": "gaussian",
+          "predictable_share": 0.136,
+          "session_count": 120,
+          "target_correlation": 0.8,
+          "target_volatility": 0.019,
+          "unit_count": 30,
+          "volatility": "constant"
+        },
+        "mean_loss_differential_correlation": 0.6360299079175338,
+        "population_covariance_ratio": 0.272,
+        "population_r_squared": 0.0,
+        "predicted_row_size": 0.6567004867438926,
+        "replications": 10000,
+        "row_rejection": {
+          "confidence_level": 0.95,
+          "lower": 0.6466955916599926,
+          "rate": 0.6561,
+          "rejections": 6561,
+          "trials": 10000,
+          "upper": 0.6654134189664795
+        },
+        "row_superiority": {
+          "confidence_level": 0.95,
+          "lower": 0.31324202715325905,
+          "rate": 0.3224,
+          "rejections": 3224,
+          "trials": 10000,
+          "upper": 0.3316615062498401
+        },
+        "session_rejection": {
+          "confidence_level": 0.95,
+          "lower": 0.04370078368784689,
+          "rate": 0.0478,
+          "rejections": 478,
+          "trials": 10000,
+          "upper": 0.05216506498441761
+        },
+        "session_superiority": {
+          "confidence_level": 0.95,
+          "lower": 0.021559096249965715,
+          "rate": 0.0245,
+          "rejections": 245,
+          "trials": 10000,
+          "upper": 0.027722081967230763
+        },
+        "varied": "target_correlation"
+      }
+    ],
+    "family": [
+      {
+        "alpha": 0.05,
+        "design": {
+          "degrees_of_freedom": 5.0,
+          "forecast_correlation": 0.947,
+          "forecast_variance_ratio": 0.272,
+          "innovation": "gaussian",
+          "predictable_share": 0.136,
+          "session_count": 120,
+          "target_correlation": 0.5697,
+          "target_volatility": 0.019,
+          "unit_count": 4,
+          "volatility": "constant"
+        },
+        "family_size": 6,
+        "holm_row": {
+          "confidence_level": 0.95,
+          "lower": 0.20686267908077097,
+          "rate": 0.225,
+          "rejections": 450,
+          "trials": 2000,
+          "upper": 0.24394699055632538
+        },
+        "holm_session": {
+          "confidence_level": 0.95,
+          "lower": 0.03363667911309395,
+          "rate": 0.042,
+          "rejections": 84,
+          "trials": 2000,
+          "upper": 0.05173707971848955
+        },
+        "reality_check": {
+          "confidence_level": 0.95,
+          "lower": 0.048618147991203495,
+          "rate": 0.0585,
+          "rejections": 117,
+          "trials": 2000,
+          "upper": 0.06969935579701363
+        },
+        "replications": 2000,
+        "spa_hansen": {
+          "confidence_level": 0.95,
+          "lower": 0.06522864995669937,
+          "rate": 0.0765,
+          "rejections": 153,
+          "trials": 2000,
+          "upper": 0.08903064834649899
+        },
+        "spa_untruncated": {
+          "confidence_level": 0.95,
+          "lower": 0.06430021661645093,
+          "rate": 0.0755,
+          "rejections": 151,
+          "trials": 2000,
+          "upper": 0.08796226129402203
+        },
+        "uncorrected_any": {
+          "confidence_level": 0.95,
+          "lower": 0.16868530720768807,
+          "rate": 0.1855,
+          "rejections": 371,
+          "trials": 2000,
+          "upper": 0.2032418647301495
+        },
+        "variant": "anchor"
+      },
+      {
+        "alpha": 0.05,
+        "design": {
+          "degrees_of_freedom": 5.0,
+          "forecast_correlation": 0.0,
+          "forecast_variance_ratio": 0.272,
+          "innovation": "gaussian",
+          "predictable_share": 0.136,
+          "session_count": 120,
+          "target_correlation": 0.0,
+          "target_volatility": 0.019,
+          "unit_count": 4,
+          "volatility": "constant"
+        },
+        "family_size": 6,
+        "holm_row": {
+          "confidence_level": 0.95,
+          "lower": 0.03363667911309395,
+          "rate": 0.042,
+          "rejections": 84,
+          "trials": 2000,
+          "upper": 0.05173707971848955
+        },
+        "holm_session": {
+          "confidence_level": 0.95,
+          "lower": 0.03453580435973597,
+          "rate": 0.043,
+          "rejections": 86,
+          "trials": 2000,
+          "upper": 0.052834417829031644
+        },
+        "reality_check": {
+          "confidence_level": 0.95,
+          "lower": 0.04678767628081573,
+          "rate": 0.0565,
+          "rejections": 113,
+          "trials": 2000,
+          "upper": 0.06753645583358897
+        },
+        "replications": 2000,
+        "spa_hansen": {
+          "confidence_level": 0.95,
+          "lower": 0.05920476602270823,
+          "rate": 0.07,
+          "rejections": 140,
+          "trials": 2000,
+          "upper": 0.08207529807675225
+        },
+        "spa_untruncated": {
+          "confidence_level": 0.95,
+          "lower": 0.05920476602270823,
+          "rate": 0.07,
+          "rejections": 140,
+          "trials": 2000,
+          "upper": 0.08207529807675225
+        },
+        "uncorrected_any": {
+          "confidence_level": 0.95,
+          "lower": 0.1807382630782483,
+          "rate": 0.198,
+          "rejections": 396,
+          "trials": 2000,
+          "upper": 0.21615164722459712
+        },
+        "variant": "independent_rows"
+      },
+      {
+        "alpha": 0.05,
+        "design": {
+          "degrees_of_freedom": 5.0,
+          "forecast_correlation": 0.947,
+          "forecast_variance_ratio": 0.272,
+          "innovation": "gaussian",
+          "predictable_share": 0.136,
+          "session_count": 120,
+          "target_correlation": 0.5697,
+          "target_volatility": 0.019,
+          "unit_count": 30,
+          "volatility": "constant"
+        },
+        "family_size": 6,
+        "holm_row": {
+          "confidence_level": 0.95,
+          "lower": 0.5655598134191895,
+          "rate": 0.5875,
+          "rejections": 1175,
+          "trials": 2000,
+          "upper": 0.6091832501315455
+        },
+        "holm_session": {
+          "confidence_level": 0.95,
+          "lower": 0.030500774860506362,
+          "rate": 0.0385,
+          "rejections": 77,
+          "trials": 2000,
+          "upper": 0.04788554482681919
+        },
+        "reality_check": {
+          "confidence_level": 0.95,
+          "lower": 0.04587376649393302,
+          "rate": 0.0555,
+          "rejections": 111,
+          "trials": 2000,
+          "upper": 0.06645369553133039
+        },
+        "replications": 2000,
+        "spa_hansen": {
+          "confidence_level": 0.95,
+          "lower": 0.071277252168473,
+          "rate": 0.083,
+          "rejections": 166,
+          "trials": 2000,
+          "upper": 0.09596149536242964
+        },
+        "spa_untruncated": {
+          "confidence_level": 0.95,
+          "lower": 0.06987937266229992,
+          "rate": 0.0815,
+          "rejections": 163,
+          "trials": 2000,
+          "upper": 0.09436410049080086
+        },
+        "uncorrected_any": {
+          "confidence_level": 0.95,
+          "lower": 0.16772230064838314,
+          "rate": 0.1845,
+          "rejections": 369,
+          "trials": 2000,
+          "upper": 0.2022078558807685
+        },
+        "variant": "thirty_names"
+      },
+      {
+        "alpha": 0.05,
+        "design": {
+          "degrees_of_freedom": 5.0,
+          "forecast_correlation": 0.0,
+          "forecast_variance_ratio": 0.272,
+          "innovation": "gaussian",
+          "predictable_share": 0.136,
+          "session_count": 120,
+          "target_correlation": 0.0,
+          "target_volatility": 0.019,
+          "unit_count": 30,
+          "volatility": "constant"
+        },
+        "family_size": 6,
+        "holm_row": {
+          "confidence_level": 0.95,
+          "lower": 0.027827825049078093,
+          "rate": 0.0355,
+          "rejections": 71,
+          "trials": 2000,
+          "upper": 0.044569525372785294
+        },
+        "holm_session": {
+          "confidence_level": 0.95,
+          "lower": 0.027383801138442444,
+          "rate": 0.035,
+          "rejections": 70,
+          "trials": 2000,
+          "upper": 0.0440154152784863
+        },
+        "reality_check": {
+          "confidence_level": 0.95,
+          "lower": 0.0413184224813346,
+          "rate": 0.0505,
+          "rejections": 101,
+          "trials": 2000,
+          "upper": 0.06102586662800562
+        },
+        "replications": 2000,
+        "spa_hansen": {
+          "confidence_level": 0.95,
+          "lower": 0.053208842231459184,
+          "rate": 0.0635,
+          "rejections": 127,
+          "trials": 2000,
+          "upper": 0.07509225526514263
+        },
+        "spa_untruncated": {
+          "confidence_level": 0.95,
+          "lower": 0.05274888585871708,
+          "rate": 0.063,
+          "rejections": 126,
+          "trials": 2000,
+          "upper": 0.07455384258951644
+        },
+        "uncorrected_any": {
+          "confidence_level": 0.95,
+          "lower": 0.16772230064838314,
+          "rate": 0.1845,
+          "rejections": 369,
+          "trials": 2000,
+          "upper": 0.2022078558807685
+        },
+        "variant": "thirty_names_independent"
+      }
+    ],
+    "nested": [
+      {
+        "alpha": 0.05,
+        "clark_west_row": {
+          "confidence_level": 0.95,
+          "lower": 0.1517848068161144,
+          "rate": 0.1589,
+          "rejections": 1589,
+          "trials": 10000,
+          "upper": 0.16621443573510378
+        },
+        "clark_west_session": {
+          "confidence_level": 0.95,
+          "lower": 0.04657748487803915,
+          "rate": 0.0508,
+          "rejections": 508,
+          "trials": 10000,
+          "upper": 0.05528648435623752
+        },
+        "design": {
+          "degrees_of_freedom": 5.0,
+          "forecast_correlation": 0.947,
+          "forecast_variance_ratio": 0.272,
+          "innovation": "gaussian",
+          "predictable_share": 0.136,
+          "session_count": 120,
+          "target_correlation": 0.5697,
+          "target_volatility": 0.019,
+          "unit_count": 4,
+          "volatility": "constant"
+        },
+        "diebold_mariano_against_candidate": {
+          "confidence_level": 0.95,
+          "lower": 0.9164670323623849,
+          "rate": 0.9219,
+          "rejections": 9219,
+          "trials": 10000,
+          "upper": 0.9270857165009516
+        },
+        "diebold_mariano_for_candidate": {
+          "confidence_level": 0.95,
+          "lower": 0.0,
+          "rate": 0.0,
+          "rejections": 0,
+          "trials": 10000,
+          "upper": 0.0003688199146187622
+        },
+        "replications": 10000,
+        "variance_ratio": 0.272,
+        "variant": "anchor"
+      },
+      {
+        "alpha": 0.05,
+        "clark_west_row": {
+          "confidence_level": 0.95,
+          "lower": 0.15453318483511266,
+          "rate": 0.1617,
+          "rejections": 1617,
+          "trials": 10000,
+          "upper": 0.16906440951879653
+        },
+        "clark_west_session": {
+          "confidence_level": 0.95,
+          "lower": 0.04907401149250293,
+          "rate": 0.0534,
+          "rejections": 534,
+          "trials": 10000,
+          "upper": 0.057988338223836554
+        },
+        "design": {
+          "degrees_of_freedom": 5.0,
+          "forecast_correlation": 0.947,
+          "forecast_variance_ratio": 0.272,
+          "innovation": "gaussian",
+          "predictable_share": 0.136,
+          "session_count": 120,
+          "target_correlation": 0.5697,
+          "target_volatility": 0.019,
+          "unit_count": 4,
+          "volatility": "constant"
+        },
+        "diebold_mariano_against_candidate": {
+          "confidence_level": 0.95,
+          "lower": 0.30004922403727524,
+          "rate": 0.3091,
+          "rejections": 3091,
+          "trials": 10000,
+          "upper": 0.3182620717871596
+        },
+        "diebold_mariano_for_candidate": {
+          "confidence_level": 0.95,
+          "lower": 0.00010899694802680208,
+          "rate": 0.0004,
+          "rejections": 4,
+          "trials": 10000,
+          "upper": 0.0010238392865656119
+        },
+        "replications": 10000,
+        "variance_ratio": 0.05,
+        "variant": "quiet_forecast"
+      },
+      {
+        "alpha": 0.05,
+        "clark_west_row": {
+          "confidence_level": 0.95,
+          "lower": 0.15050904040218305,
+          "rate": 0.1576,
+          "rejections": 1576,
+          "trials": 10000,
+          "upper": 0.16489096758463956
+        },
+        "clark_west_session": {
+          "confidence_level": 0.95,
+          "lower": 0.047057349925014876,
+          "rate": 0.0513,
+          "rejections": 513,
+          "trials": 10000,
+          "upper": 0.055806307228634305
+        },
+        "design": {
+          "degrees_of_freedom": 5.0,
+          "forecast_correlation": 0.947,
+          "forecast_variance_ratio": 0.272,
+          "innovation": "gaussian",
+          "predictable_share": 0.136,
+          "session_count": 120,
+          "target_correlation": 0.5697,
+          "target_volatility": 0.019,
+          "unit_count": 4,
+          "volatility": "constant"
+        },
+        "diebold_mariano_against_candidate": {
+          "confidence_level": 0.95,
+          "lower": 0.997904780720629,
+          "rate": 0.9988,
+          "rejections": 9988,
+          "trials": 10000,
+          "upper": 0.9993797936227036
+        },
+        "diebold_mariano_for_candidate": {
+          "confidence_level": 0.95,
+          "lower": 0.0,
+          "rate": 0.0,
+          "rejections": 0,
+          "trials": 10000,
+          "upper": 0.0003688199146187622
+        },
+        "replications": 10000,
+        "variance_ratio": 0.6,
+        "variant": "loud_forecast"
+      },
+      {
+        "alpha": 0.05,
+        "clark_west_row": {
+          "confidence_level": 0.95,
+          "lower": 0.04571402052971176,
+          "rate": 0.0499,
+          "rejections": 499,
+          "trials": 10000,
+          "upper": 0.054350511255296524
+        },
+        "clark_west_session": {
+          "confidence_level": 0.95,
+          "lower": 0.048881864836892185,
+          "rate": 0.0532,
+          "rejections": 532,
+          "trials": 10000,
+          "upper": 0.05778060917608382
+        },
+        "design": {
+          "degrees_of_freedom": 5.0,
+          "forecast_correlation": 0.0,
+          "forecast_variance_ratio": 0.272,
+          "innovation": "gaussian",
+          "predictable_share": 0.136,
+          "session_count": 120,
+          "target_correlation": 0.0,
+          "target_volatility": 0.019,
+          "unit_count": 4,
+          "volatility": "constant"
+        },
+        "diebold_mariano_against_candidate": {
+          "confidence_level": 0.95,
+          "lower": 0.9996311800853812,
+          "rate": 1.0,
+          "rejections": 10000,
+          "trials": 10000,
+          "upper": 1.0
+        },
+        "diebold_mariano_for_candidate": {
+          "confidence_level": 0.95,
+          "lower": 0.0,
+          "rate": 0.0,
+          "rejections": 0,
+          "trials": 10000,
+          "upper": 0.0003688199146187622
+        },
+        "replications": 10000,
+        "variance_ratio": 0.272,
+        "variant": "independent_rows"
+      },
+      {
+        "alpha": 0.05,
+        "clark_west_row": {
+          "confidence_level": 0.95,
+          "lower": 0.34024895425531454,
+          "rate": 0.3496,
+          "rejections": 3496,
+          "trials": 10000,
+          "upper": 0.359038710262528
+        },
+        "clark_west_session": {
+          "confidence_level": 0.95,
+          "lower": 0.052054436029445296,
+          "rate": 0.0565,
+          "rejections": 565,
+          "trials": 10000,
+          "upper": 0.061205992588832275
+        },
+        "design": {
+          "degrees_of_freedom": 5.0,
+          "forecast_correlation": 0.947,
+          "forecast_variance_ratio": 0.272,
+          "innovation": "gaussian",
+          "predictable_share": 0.136,
+          "session_count": 120,
+          "target_correlation": 0.5697,
+          "target_volatility": 0.019,
+          "unit_count": 30,
+          "volatility": "constant"
+        },
+        "diebold_mariano_against_candidate": {
+          "confidence_level": 0.95,
+          "lower": 0.950231072391975,
+          "rate": 0.9545,
+          "rejections": 9545,
+          "trials": 10000,
+          "upper": 0.9585016291232377
+        },
+        "diebold_mariano_for_candidate": {
+          "confidence_level": 0.95,
+          "lower": 0.0,
+          "rate": 0.0,
+          "rejections": 0,
+          "trials": 10000,
+          "upper": 0.0003688199146187622
+        },
+        "replications": 10000,
+        "variance_ratio": 0.272,
+        "variant": "thirty_names"
+      },
+      {
+        "alpha": 0.05,
+        "clark_west_row": {
+          "confidence_level": 0.95,
+          "lower": 0.1479580228546267,
+          "rate": 0.155,
+          "rejections": 1550,
+          "trials": 10000,
+          "upper": 0.16224351639972748
+        },
+        "clark_west_session": {
+          "confidence_level": 0.95,
+          "lower": 0.0478253707415353,
+          "rate": 0.0521,
+          "rejections": 521,
+          "trials": 10000,
+          "upper": 0.05663778772485617
+        },
+        "design": {
+          "degrees_of_freedom": 5.0,
+          "forecast_correlation": 0.947,
+          "forecast_variance_ratio": 0.272,
+          "innovation": "gaussian",
+          "predictable_share": 0.136,
+          "session_count": 500,
+          "target_correlation": 0.5697,
+          "target_volatility": 0.019,
+          "unit_count": 4,
+          "volatility": "constant"
+        },
+        "diebold_mariano_against_candidate": {
+          "confidence_level": 0.95,
+          "lower": 0.9996311800853812,
+          "rate": 1.0,
+          "rejections": 10000,
+          "trials": 10000,
+          "upper": 1.0
+        },
+        "diebold_mariano_for_candidate": {
+          "confidence_level": 0.95,
+          "lower": 0.0,
+          "rate": 0.0,
+          "rejections": 0,
+          "trials": 10000,
+          "upper": 0.0003688199146187622
+        },
+        "replications": 10000,
+        "variance_ratio": 0.272,
+        "variant": "five_hundred_sessions"
+      }
+    ],
+    "power": {
+      "covariance_grid": [
+        0.0,
+        0.02,
+        0.05,
+        0.1,
+        0.2,
+        0.272,
+        0.35,
+        0.42,
+        0.5
+      ],
+      "curves": [
+        {
+          "alpha": 0.05,
+          "clark_west_session": {
+            "confidence_level": 0.95,
+            "lower": 0.048371884796672066,
+            "rate": 0.05525,
+            "rejections": 221,
+            "trials": 4000,
+            "upper": 0.06278642478637958
+          },
+          "design": {
+            "degrees_of_freedom": 5.0,
+            "forecast_correlation": 0.947,
+            "forecast_variance_ratio": 0.272,
+            "innovation": "gaussian",
+            "predictable_share": 0.35,
+            "session_count": 120,
+            "target_correlation": 0.5697,
+            "target_volatility": 0.019,
+            "unit_count": 4,
+            "volatility": "constant"
+          },
+          "mean_loss_differential_correlation": 0.5750905991979463,
+          "population_covariance_ratio": 0.0,
+          "population_r_squared": -0.272,
+          "predicted_row_size": 0.23512794399791603,
+          "replications": 4000,
+          "row_rejection": {
+            "confidence_level": 0.95,
+            "lower": 0.9829867937249771,
+            "rate": 0.987,
+            "rejections": 3948,
+            "trials": 4000,
+            "upper": 0.9902761507050934
+          },
+          "row_superiority": {
+            "confidence_level": 0.95,
+            "lower": 0.0,
+            "rate": 0.0,
+            "rejections": 0,
+            "trials": 4000,
+            "upper": 0.0009217947494830555
+          },
+          "session_count": 120,
+          "session_rejection": {
+            "confidence_level": 0.95,
+            "lower": 0.911942799132525,
+            "rate": 0.92075,
+            "rejections": 3683,
+            "trials": 4000,
+            "upper": 0.9289365716382226
+          },
+          "session_superiority": {
+            "confidence_level": 0.95,
+            "lower": 0.0,
+            "rate": 0.0,
+            "rejections": 0,
+            "trials": 4000,
+            "upper": 0.0009217947494830555
+          }
+        },
+        {
+          "alpha": 0.05,
+          "clark_west_session": {
+            "confidence_level": 0.95,
+            "lower": 0.07820659528252188,
+            "rate": 0.08675,
+            "rejections": 347,
+            "trials": 4000,
+            "upper": 0.09590250212460942
+          },
+          "design": {
+            "degrees_of_freedom": 5.0,
+            "forecast_correlation": 0.947,
+            "forecast_variance_ratio": 0.272,
+            "innovation": "gaussian",
+            "predictable_share": 0.35,
+            "session_count": 120,
+            "target_correlation": 0.5697,
+            "target_volatility": 0.019,
+            "unit_count": 4,
+            "volatility": "constant"
+          },
+          "mean_loss_differential_correlation": 0.5726969761395475,
+          "population_covariance_ratio": 0.020000000000000018,
+          "population_r_squared": -0.252,
+          "predicted_row_size": 0.23451050859998068,
+          "replications": 4000,
+          "row_rejection": {
+            "confidence_level": 0.95,
+            "lower": 0.9740657862809268,
+            "rate": 0.979,
+            "rejections": 3916,
+            "trials": 4000,
+            "upper": 0.9832158521444283
+          },
+          "row_superiority": {
+            "confidence_level": 0.95,
+            "lower": 0.0,
+            "rate": 0.0,
+            "rejections": 0,
+            "trials": 4000,
+            "upper": 0.0009217947494830555
+          },
+          "session_count": 120,
+          "session_rejection": {
+            "confidence_level": 0.95,
+            "lower": 0.8721154221964817,
+            "rate": 0.8825,
+            "rejections": 3530,
+            "trials": 4000,
+            "upper": 0.8923221073328098
+          },
+          "session_superiority": {
+            "confidence_level": 0.95,
+            "lower": 0.0,
+            "rate": 0.0,
+            "rejections": 0,
+            "trials": 4000,
+            "upper": 0.0009217947494830555
+          }
+        },
+        {
+          "alpha": 0.05,
+          "clark_west_session": {
+            "confidence_level": 0.95,
+            "lower": 0.15774946457582223,
+            "rate": 0.16925,
+            "rejections": 677,
+            "trials": 4000,
+            "upper": 0.18123579900558542
+          },
+          "design": {
+            "degrees_of_freedom": 5.0,
+            "forecast_correlation": 0.947,
+            "forecast_variance_ratio": 0.272,
+            "innovation": "gaussian",
+            "predictable_share": 0.35,
+            "session_count": 120,
+            "target_correlation": 0.5697,
+            "target_volatility": 0.019,
+            "unit_count": 4,
+            "volatility": "constant"
+          },
+          "mean_loss_differential_correlation": 0.5686676189312807,
+          "population_covariance_ratio": 0.04999999999999999,
+          "population_r_squared": -0.22200000000000003,
+          "predicted_row_size": 0.2334682078813639,
+          "replications": 4000,
+          "row_rejection": {
+            "confidence_level": 0.95,
+            "lower": 0.9417222887872949,
+            "rate": 0.949,
+            "rejections": 3796,
+            "trials": 4000,
+            "upper": 0.9556125378475997
+          },
+          "row_superiority": {
+            "confidence_level": 0.95,
+            "lower": 0.0,
+            "rate": 0.0,
+            "rejections": 0,
+            "trials": 4000,
+            "upper": 0.0009217947494830555
+          },
+          "session_count": 120,
+          "session_rejection": {
+            "confidence_level": 0.95,
+            "lower": 0.7801074385906306,
+            "rate": 0.793,
+            "rejections": 3172,
+            "trials": 4000,
+            "upper": 0.805463128496457
+          },
+          "session_superiority": {
+            "confidence_level": 0.95,
+            "lower": 0.0,
+            "rate": 0.0,
+            "rejections": 0,
+            "trials": 4000,
+            "upper": 0.0009217947494830555
+          }
+        },
+        {
+          "alpha": 0.05,
+          "clark_west_session": {
+            "confidence_level": 0.95,
+            "lower": 0.3451066931245915,
+            "rate": 0.36,
+            "rejections": 1440,
+            "trials": 4000,
+            "upper": 0.37509808386460464
+          },
+          "design": {
+            "degrees_of_freedom": 5.0,
+            "forecast_correlation": 0.947,
+            "forecast_variance_ratio": 0.272,
+            "innovation": "gaussian",
+            "predictable_share": 0.35,
+            "session_count": 120,
+            "target_correlation": 0.5697,
+            "target_volatility": 0.019,
+            "unit_count": 4,
+            "volatility": "constant"
+          },
+          "mean_loss_differential_correlation": 0.5595327729402566,
+          "population_covariance_ratio": 0.1,
+          "population_r_squared": -0.17200000000000001,
+          "predicted_row_size": 0.23109156387975693,
+          "replications": 4000,
+          "row_rejection": {
+            "confidence_level": 0.95,
+            "lower": 0.8442196790393711,
+            "rate": 0.8555,
+            "rejections": 3422,
+            "trials": 4000,
+            "upper": 0.8662582633724487
+          },
+          "row_superiority": {
+            "confidence_level": 0.95,
+            "lower": 6.3294319651334515e-06,
+            "rate": 0.00025,
+            "rejections": 1,
+            "trials": 4000,
+            "upper": 0.0013921151219662678
+          },
+          "session_count": 120,
+          "session_rejection": {
+            "confidence_level": 0.95,
+            "lower": 0.5795975167160894,
+            "rate": 0.595,
+            "rejections": 2380,
+            "trials": 4000,
+            "upper": 0.6102635611508196
+          },
+          "session_superiority": {
+            "confidence_level": 0.95,
+            "lower": 0.0,
+            "rate": 0.0,
+            "rejections": 0,
+            "trials": 4000,
+            "upper": 0.0009217947494830555
+          }
+        },
+        {
+          "alpha": 0.05,
+          "clark_west_session": {
+            "confidence_level": 0.95,
+            "lower": 0.830579761216606,
+            "rate": 0.84225,
+            "rejections": 3369,
+            "trials": 4000,
+            "upper": 0.853417902494176
+          },
+          "design": {
+            "degrees_of_freedom": 5.0,
+            "forecast_correlation": 0.947,
+            "forecast_variance_ratio": 0.272,
+            "innovation": "gaussian",
+            "predictable_share": 0.35,
+            "session_count": 120,
+            "target_correlation": 0.5697,
+            "target_volatility": 0.019,
+            "unit_count": 4,
+            "volatility": "constant"
+          },
+          "mean_loss_differential_correlation": 0.540302423358221,
+          "population_covariance_ratio": 0.2,
+          "population_r_squared": -0.07200000000000001,
+          "predicted_row_size": 0.2260256641764593,
+          "replications": 4000,
+          "row_rejection": {
+            "confidence_level": 0.95,
+            "lower": 0.3976847274358047,
+            "rate": 0.413,
+            "rejections": 1652,
+            "trials": 4000,
+            "upper": 0.4284424919028286
+          },
+          "row_superiority": {
+            "confidence_level": 0.95,
+            "lower": 0.015443693335441253,
+            "rate": 0.0195,
+            "rejections": 78,
+            "trials": 4000,
+            "upper": 0.024277841082055808
+          },
+          "session_count": 120,
+          "session_rejection": {
+            "confidence_level": 0.95,
+            "lower": 0.1371306271584351,
+            "rate": 0.148,
+            "rejections": 592,
+            "trials": 4000,
+            "upper": 0.15938621514735285
+          },
+          "session_superiority": {
+            "confidence_level": 0.95,
+            "lower": 0.0010293433132986408,
+            "rate": 0.00225,
+            "rejections": 9,
+            "trials": 4000,
+            "upper": 0.004266885064660175
+          }
+        },
+        {
+          "alpha": 0.05,
+          "clark_west_session": {
+            "confidence_level": 0.95,
+            "lower": 0.969129547710223,
+            "rate": 0.9745,
+            "rejections": 3898,
+            "trials": 4000,
+            "upper": 0.9791610764872968
+          },
+          "design": {
+            "degrees_of_freedom": 5.0,
+            "forecast_correlation": 0.947,
+            "forecast_variance_ratio": 0.272,
+            "innovation": "gaussian",
+            "predictable_share": 0.35,
+            "session_count": 120,
+            "target_correlation": 0.5697,
+            "target_volatility": 0.019,
+            "unit_count": 4,
+            "volatility": "constant"
+          },
+          "mean_loss_differential_correlation": 0.5245406422313535,
+          "population_covariance_ratio": 0.272,
+          "population_r_squared": 0.0,
+          "predicted_row_size": 0.22180923801176666,
+          "replications": 4000,
+          "row_rejection": {
+            "confidence_level": 0.95,
+            "lower": 0.21409672185798892,
+            "rate": 0.227,
+            "rejections": 908,
+            "trials": 4000,
+            "upper": 0.24030322906141896
+          },
+          "row_superiority": {
+            "confidence_level": 0.95,
+            "lower": 0.10070626099193639,
+            "rate": 0.11025,
+            "rejections": 441,
+            "trials": 4000,
+            "upper": 0.12036713048102056
+          },
+          "session_count": 120,
+          "session_rejection": {
+            "confidence_level": 0.95,
+            "lower": 0.04672974127214332,
+            "rate": 0.0535,
+            "rejections": 214,
+            "trials": 4000,
+            "upper": 0.06093138489999545
+          },
+          "session_superiority": {
+            "confidence_level": 0.95,
+            "lower": 0.02242727474056585,
+            "rate": 0.02725,
+            "rejections": 109,
+            "trials": 4000,
+            "upper": 0.03277877063284631
+          }
+        },
+        {
+          "alpha": 0.05,
+          "clark_west_session": {
+            "confidence_level": 0.95,
+            "lower": 0.9986078848780338,
+            "rate": 0.99975,
+            "rejections": 3999,
+            "trials": 4000,
+            "upper": 0.9999936705680349
+          },
+          "design": {
+            "degrees_of_freedom": 5.0,
+            "forecast_correlation": 0.947,
+            "forecast_variance_ratio": 0.272,
+            "innovation": "gaussian",
+            "predictable_share": 0.35,
+            "session_count": 120,
+            "target_correlation": 0.5697,
+            "target_volatility": 0.019,
+            "unit_count": 4,
+            "volatility": "constant"
+          },
+          "mean_loss_differential_correlation": 0.5140099067226657,
+          "population_covariance_ratio": 0.35,
+          "population_r_squared": 0.07799999999999996,
+          "predicted_row_size": 0.2189594560393956,
+          "replications": 4000,
+          "row_rejection": {
+            "confidence_level": 0.95,
+            "lower": 0.4504456009867577,
+            "rate": 0.466,
+            "rejections": 1864,
+            "trials": 4000,
+            "upper": 0.4816041100452562
+          },
+          "row_superiority": {
+            "confidence_level": 0.95,
+            "lower": 0.4397297618081344,
+            "rate": 0.45525,
+            "rejections": 1821,
+            "trials": 4000,
+            "upper": 0.47083566785617337
+          },
+          "session_count": 120,
+          "session_rejection": {
+            "confidence_level": 0.95,
+            "lower": 0.18379852341395372,
+            "rate": 0.196,
+            "rejections": 784,
+            "trials": 4000,
+            "upper": 0.2086471499831047
+          },
+          "session_superiority": {
+            "confidence_level": 0.95,
+            "lower": 0.18379852341395372,
+            "rate": 0.196,
+            "rejections": 784,
+            "trials": 4000,
+            "upper": 0.2086471499831047
+          }
+        },
+        {
+          "alpha": 0.05,
+          "clark_west_session": {
+            "confidence_level": 0.95,
+            "lower": 0.9990782052505169,
+            "rate": 1.0,
+            "rejections": 4000,
+            "trials": 4000,
+            "upper": 1.0
+          },
+          "design": {
+            "degrees_of_freedom": 5.0,
+            "forecast_correlation": 0.947,
+            "forecast_variance_ratio": 0.272,
+            "innovation": "gaussian",
+            "predictable_share": 0.35,
+            "session_count": 120,
+            "target_correlation": 0.5697,
+            "target_volatility": 0.019,
+            "unit_count": 4,
+            "volatility": "constant"
+          },
+          "mean_loss_differential_correlation": 0.5005769775669832,
+          "population_covariance_ratio": 0.42,
+          "population_r_squared": 0.14799999999999996,
+          "predicted_row_size": 0.21528582187839518,
+          "replications": 4000,
+          "row_rejection": {
+            "confidence_level": 0.95,
+            "lower": 0.7987727240504987,
+            "rate": 0.81125,
+            "rejections": 3245,
+            "trials": 4000,
+            "upper": 0.8232708870752905
+          },
+          "row_superiority": {
+            "confidence_level": 0.95,
+            "lower": 0.798516755057982,
+            "rate": 0.811,
+            "rejections": 3244,
+            "trials": 4000,
+            "upper": 0.8230272257315698
+          },
+          "session_count": 120,
+          "session_rejection": {
+            "confidence_level": 0.95,
+            "lower": 0.5447036897283322,
+            "rate": 0.56025,
+            "rejections": 2241,
+            "trials": 4000,
+            "upper": 0.5757082147580147
+          },
+          "session_superiority": {
+            "confidence_level": 0.95,
+            "lower": 0.5447036897283322,
+            "rate": 0.56025,
+            "rejections": 2241,
+            "trials": 4000,
+            "upper": 0.5757082147580147
+          }
+        },
+        {
+          "alpha": 0.05,
+          "clark_west_session": {
+            "confidence_level": 0.95,
+            "lower": 0.9990782052505169,
+            "rate": 1.0,
+            "rejections": 4000,
+            "trials": 4000,
+            "upper": 1.0
+          },
+          "design": {
+            "degrees_of_freedom": 5.0,
+            "forecast_correlation": 0.947,
+            "forecast_variance_ratio": 0.272,
+            "innovation": "gaussian",
+            "predictable_share": 0.35,
+            "session_count": 120,
+            "target_correlation": 0.5697,
+            "target_volatility": 0.019,
+            "unit_count": 4,
+            "volatility": "constant"
+          },
+          "mean_loss_differential_correlation": 0.4886785047960876,
+          "population_covariance_ratio": 0.5,
+          "population_r_squared": 0.22799999999999998,
+          "predicted_row_size": 0.21199544382927915,
+          "replications": 4000,
+          "row_rejection": {
+            "confidence_level": 0.95,
+            "lower": 0.9815764382005954,
+            "rate": 0.98575,
+            "rejections": 3943,
+            "trials": 4000,
+            "upper": 0.9891897990343865
+          },
+          "row_superiority": {
+            "confidence_level": 0.95,
+            "lower": 0.9815764382005954,
+            "rate": 0.98575,
+            "rejections": 3943,
+            "trials": 4000,
+            "upper": 0.9891897990343865
+          },
+          "session_count": 120,
+          "session_rejection": {
+            "confidence_level": 0.95,
+            "lower": 0.9122046735052523,
+            "rate": 0.921,
+            "rejections": 3684,
+            "trials": 4000,
+            "upper": 0.9291743113741915
+          },
+          "session_superiority": {
+            "confidence_level": 0.95,
+            "lower": 0.9122046735052523,
+            "rate": 0.921,
+            "rejections": 3684,
+            "trials": 4000,
+            "upper": 0.9291743113741915
+          }
+        },
+        {
+          "alpha": 0.05,
+          "clark_west_session": {
+            "confidence_level": 0.95,
+            "lower": 0.0427505571977223,
+            "rate": 0.04925,
+            "rejections": 197,
+            "trials": 4000,
+            "upper": 0.05641746727502458
+          },
+          "design": {
+            "degrees_of_freedom": 5.0,
+            "forecast_correlation": 0.947,
+            "forecast_variance_ratio": 0.272,
+            "innovation": "gaussian",
+            "predictable_share": 0.35,
+            "session_count": 250,
+            "target_correlation": 0.5697,
+            "target_volatility": 0.019,
+            "unit_count": 4,
+            "volatility": "constant"
+          },
+          "mean_loss_differential_correlation": 0.5792593695031137,
+          "population_covariance_ratio": 0.0,
+          "population_r_squared": -0.272,
+          "predicted_row_size": 0.23620019526206626,
+          "replications": 4000,
+          "row_rejection": {
+            "confidence_level": 0.95,
+            "lower": 0.9990782052505169,
+            "rate": 1.0,
+            "rejections": 4000,
+            "trials": 4000,
+            "upper": 1.0
+          },
+          "row_superiority": {
+            "confidence_level": 0.95,
+            "lower": 0.0,
+            "rate": 0.0,
+            "rejections": 0,
+            "trials": 4000,
+            "upper": 0.0009217947494830555
+          },
+          "session_count": 250,
+          "session_rejection": {
+            "confidence_level": 0.95,
+            "lower": 0.9963976758866178,
+            "rate": 0.99825,
+            "rejections": 3993,
+            "trials": 4000,
+            "upper": 0.9992961288624155
+          },
+          "session_superiority": {
+            "confidence_level": 0.95,
+            "lower": 0.0,
+            "rate": 0.0,
+            "rejections": 0,
+            "trials": 4000,
+            "upper": 0.0009217947494830555
+          }
+        },
+        {
+          "alpha": 0.05,
+          "clark_west_session": {
+            "confidence_level": 0.95,
+            "lower": 0.10022593482382285,
+            "rate": 0.10975,
+            "rejections": 439,
+            "trials": 4000,
+            "upper": 0.11984821118195382
+          },
+          "design": {
+            "degrees_of_freedom": 5.0,
+            "forecast_correlation": 0.947,
+            "forecast_variance_ratio": 0.272,
+            "innovation": "gaussian",
+            "predictable_share": 0.35,
+            "session_count": 250,
+            "target_correlation": 0.5697,
+            "target_volatility": 0.019,
+            "unit_count": 4,
+            "volatility": "constant"
+          },
+          "mean_loss_differential_correlation": 0.575719113316409,
+          "population_covariance_ratio": 0.020000000000000018,
+          "population_r_squared": -0.252,
+          "predicted_row_size": 0.2352898549474386,
+          "replications": 4000,
+          "row_rejection": {
+            "confidence_level": 0.95,
+            "lower": 0.9986078848780338,
+            "rate": 0.99975,
+            "rejections": 3999,
+            "trials": 4000,
+            "upper": 0.9999936705680349
+          },
+          "row_superiority": {
+            "confidence_level": 0.95,
+            "lower": 0.0,
+            "rate": 0.0,
+            "rejections": 0,
+            "trials": 4000,
+            "upper": 0.0009217947494830555
+          },
+          "session_count": 250,
+          "session_rejection": {
+            "confidence_level": 0.95,
+            "lower": 0.9919859564455789,
+            "rate": 0.99475,
+            "rejections": 3979,
+            "trials": 4000,
+            "upper": 0.9967473178108509
+          },
+          "session_superiority": {
+            "confidence_level": 0.95,
+            "lower": 0.0,
+            "rate": 0.0,
+            "rejections": 0,
+            "trials": 4000,
+            "upper": 0.0009217947494830555
+          }
+        },
+        {
+          "alpha": 0.05,
+          "clark_west_session": {
+            "confidence_level": 0.95,
+            "lower": 0.22707861215960407,
+            "rate": 0.24025,
+            "rejections": 961,
+            "trials": 4000,
+            "upper": 0.25380183449441235
+          },
+          "design": {
+            "degrees_of_freedom": 5.0,
+            "forecast_correlation": 0.947,
+            "forecast_variance_ratio": 0.272,
+            "innovation": "gaussian",
+            "predictable_share": 0.35,
+            "session_count": 250,
+            "target_correlation": 0.5697,
+            "target_volatility": 0.019,
+            "unit_count": 4,
+            "volatility": "constant"
+          },
+          "mean_loss_differential_correlation": 0.5696519077537642,
+          "population_covariance_ratio": 0.04999999999999999,
+          "population_r_squared": -0.22200000000000003,
+          "predicted_row_size": 0.23372316008239846,
+          "replications": 4000,
+          "row_rejection": {
+            "confidence_level": 0.95,
+            "lower": 0.9963976758866178,
+            "rate": 0.99825,
+            "rejections": 3993,
+            "trials": 4000,
+            "upper": 0.9992961288624155
+          },
+          "row_superiority": {
+            "confidence_level": 0.95,
+            "lower": 0.0,
+            "rate": 0.0,
+            "rejections": 0,
+            "trials": 4000,
+            "upper": 0.0009217947494830555
+          },
+          "session_count": 250,
+          "session_rejection": {
+            "confidence_level": 0.95,
+            "lower": 0.9784976233089973,
+            "rate": 0.983,
+            "rejections": 3932,
+            "trials": 4000,
+            "upper": 0.9867752788833266
+          },
+          "session_superiority": {
+            "confidence_level": 0.95,
+            "lower": 0.0,
+            "rate": 0.0,
+            "rejections": 0,
+            "trials": 4000,
+            "upper": 0.0009217947494830555
+          }
+        },
+        {
+          "alpha": 0.05,
+          "clark_west_session": {
+            "confidence_level": 0.95,
+            "lower": 0.5798488342717242,
+            "rate": 0.59525,
+            "rejections": 2381,
+            "trials": 4000,
+            "upper": 0.6105118778637193
+          },
+          "design": {
+            "degrees_of_freedom": 5.0,
+            "forecast_correlation": 0.947,
+            "forecast_variance_ratio": 0.272,
+            "innovation": "gaussian",
+            "predictable_share": 0.35,
+            "session_count": 250,
+            "target_correlation": 0.5697,
+            "target_volatility": 0.019,
+            "unit_count": 4,
+            "volatility": "constant"
+          },
+          "mean_loss_differential_correlation": 0.5597151192623131,
+          "population_covariance_ratio": 0.1,
+          "population_r_squared": -0.17200000000000001,
+          "predicted_row_size": 0.23113919193942345,
+          "replications": 4000,
+          "row_rejection": {
+            "confidence_level": 0.95,
+            "lower": 0.9688565776780015,
+            "rate": 0.97425,
+            "rejections": 3897,
+            "trials": 4000,
+            "upper": 0.9789345270621285
+          },
+          "row_superiority": {
+            "confidence_level": 0.95,
+            "lower": 0.0,
+            "rate": 0.0,
+            "rejections": 0,
+            "trials": 4000,
+            "upper": 0.0009217947494830555
+          },
+          "session_count": 250,
+          "session_rejection": {
+            "confidence_level": 0.95,
+            "lower": 0.8754837474766691,
+            "rate": 0.88575,
+            "rejections": 3543,
+            "trials": 4000,
+            "upper": 0.8954488908464826
+          },
+          "session_superiority": {
+            "confidence_level": 0.95,
+            "lower": 0.0,
+            "rate": 0.0,
+            "rejections": 0,
+            "trials": 4000,
+            "upper": 0.0009217947494830555
+          }
+        },
+        {
+          "alpha": 0.05,
+          "clark_west_session": {
+            "confidence_level": 0.95,
+            "lower": 0.9801732185747213,
+            "rate": 0.9845,
+            "rejections": 3938,
+            "trials": 4000,
+            "upper": 0.9880961337921876
+          },
+          "design": {
+            "degrees_of_freedom": 5.0,
+            "forecast_correlation": 0.947,
+            "forecast_variance_ratio": 0.272,
+            "innovation": "gaussian",
+            "predictable_share": 0.35,
+            "session_count": 250,
+            "target_correlation": 0.5697,
+            "target_volatility": 0.019,
+            "unit_count": 4,
+            "volatility": "constant"
+          },
+          "mean_loss_differential_correlation": 0.5411305094150565,
+          "population_covariance_ratio": 0.2,
+          "population_r_squared": -0.07200000000000001,
+          "predicted_row_size": 0.2262455753080268,
+          "replications": 4000,
+          "row_rejection": {
+            "confidence_level": 0.95,
+            "lower": 0.5542353204815654,
+            "rate": 0.56975,
+            "rejections": 2279,
+            "trials": 4000,
+            "upper": 0.5851626907137533
+          },
+          "row_superiority": {
+            "confidence_level": 0.95,
+            "lower": 0.0032526821891490656,
+            "rate": 0.00525,
+            "rejections": 21,
+            "trials": 4000,
+            "upper": 0.008014043554421186
+          },
+          "session_count": 250,
+          "session_rejection": {
+            "confidence_level": 0.95,
+            "lower": 0.25186522248220483,
+            "rate": 0.2655,
+            "rejections": 1062,
+            "trials": 4000,
+            "upper": 0.2794781046234588
+          },
+          "session_superiority": {
+            "confidence_level": 0.95,
+            "lower": 6.055805642051456e-05,
+            "rate": 0.0005,
+            "rejections": 2,
+            "trials": 4000,
+            "upper": 0.0018049927162640356
+          }
+        },
+        {
+          "alpha": 0.05,
+          "clark_west_session": {
+            "confidence_level": 0.95,
+            "lower": 0.998195007283736,
+            "rate": 0.9995,
+            "rejections": 3998,
+            "trials": 4000,
+            "upper": 0.9999394419435795
+          },
+          "design": {
+            "degrees_of_freedom": 5.0,
+            "forecast_correlation": 0.947,
+            "forecast_variance_ratio": 0.272,
+            "innovation": "gaussian",
+            "predictable_share": 0.35,
+            "session_count": 250,
+            "target_correlation": 0.5697,
+            "target_volatility": 0.019,
+            "unit_count": 4,
+            "volatility": "constant"
+          },
+          "mean_loss_differential_correlation": 0.5282228683270905,
+          "population_covariance_ratio": 0.272,
+          "population_r_squared": 0.0,
+          "predicted_row_size": 0.22279950095114376,
+          "replications": 4000,
+          "row_rejection": {
+            "confidence_level": 0.95,
+            "lower": 0.2116493497790879,
+            "rate": 0.2245,
+            "rejections": 898,
+            "trials": 4000,
+            "upper": 0.23775428348771843
+          },
+          "row_superiority": {
+            "confidence_level": 0.95,
+            "lower": 0.10407028884600363,
+            "rate": 0.11375,
+            "rejections": 455,
+            "trials": 4000,
+            "upper": 0.12399782594487258
+          },
+          "session_count": 250,
+          "session_rejection": {
+            "confidence_level": 0.95,
+            "lower": 0.04462149034631443,
+            "rate": 0.05125,
+            "rejections": 205,
+            "trials": 4000,
+            "upper": 0.05854327697643348
+          },
+          "session_superiority": {
+            "confidence_level": 0.95,
+            "lower": 0.02310971429328762,
+            "rate": 0.028,
+            "rejections": 112,
+            "trials": 4000,
+            "upper": 0.033594926002959456
+          }
+        },
+        {
+          "alpha": 0.05,
+          "clark_west_session": {
+            "confidence_level": 0.95,
+            "lower": 0.9990782052505169,
+            "rate": 1.0,
+            "rejections": 4000,
+            "trials": 4000,
+            "upper": 1.0
+          },
+          "design": {
+            "degrees_of_freedom": 5.0,
+            "forecast_correlation": 0.947,
+            "forecast_variance_ratio": 0.272,
+            "innovation": "gaussian",
+            "predictable_share": 0.35,
+            "session_count": 250,
+            "target_correlation": 0.5697,
+            "target_volatility": 0.019,
+            "unit_count": 4,
+            "volatility": "constant"
+          },
+          "mean_loss_differential_correlation": 0.5141785071703768,
+          "population_covariance_ratio": 0.35,
+          "population_r_squared": 0.07799999999999996,
+          "predicted_row_size": 0.2190052899539977,
+          "replications": 4000,
+          "row_rejection": {
+            "confidence_level": 0.95,
+            "lower": 0.626666549931199,
+            "rate": 0.64175,
+            "rejections": 2567,
+            "trials": 4000,
+            "upper": 0.6566261109400914
+          },
+          "row_superiority": {
+            "confidence_level": 0.95,
+            "lower": 0.6228854542275599,
+            "rate": 0.638,
+            "rejections": 2552,
+            "trials": 4000,
+            "upper": 0.6529126968243099
+          },
+          "session_count": 250,
+          "session_rejection": {
+            "confidence_level": 0.95,
+            "lower": 0.3314976373811673,
+            "rate": 0.34625,
+            "rejections": 1385,
+            "trials": 4000,
+            "upper": 0.3612272734514176
+          },
+          "session_superiority": {
+            "confidence_level": 0.95,
+            "lower": 0.3310030165654311,
+            "rate": 0.34575,
+            "rejections": 1383,
+            "trials": 4000,
+            "upper": 0.3607226265306
+          }
+        },
+        {
+          "alpha": 0.05,
+          "clark_west_session": {
+            "confidence_level": 0.95,
+            "lower": 0.9990782052505169,
+            "rate": 1.0,
+            "rejections": 4000,
+            "trials": 4000,
+            "upper": 1.0
+          },
+          "design": {
+            "degrees_of_freedom": 5.0,
+            "forecast_correlation": 0.947,
+            "forecast_variance_ratio": 0.272,
+            "innovation": "gaussian",
+            "predictable_share": 0.35,
+            "session_count": 250,
+            "target_correlation": 0.5697,
+            "target_volatility": 0.019,
+            "unit_count": 4,
+            "volatility": "constant"
+          },
+          "mean_loss_differential_correlation": 0.5011977665681883,
+          "population_covariance_ratio": 0.42,
+          "population_r_squared": 0.14799999999999996,
+          "predicted_row_size": 0.2154565520006152,
+          "replications": 4000,
+          "row_rejection": {
+            "confidence_level": 0.95,
+            "lower": 0.9590989958085208,
+            "rate": 0.96525,
+            "rejections": 3861,
+            "trials": 4000,
+            "upper": 0.9707085443637903
+          },
+          "row_superiority": {
+            "confidence_level": 0.95,
+            "lower": 0.9590989958085208,
+            "rate": 0.96525,
+            "rejections": 3861,
+            "trials": 4000,
+            "upper": 0.9707085443637903
+          },
+          "session_count": 250,
+          "session_rejection": {
+            "confidence_level": 0.95,
+            "lower": 0.8514380724654056,
+            "rate": 0.8625,
+            "rejections": 3450,
+            "trials": 4000,
+            "upper": 0.8730294251887465
+          },
+          "session_superiority": {
+            "confidence_level": 0.95,
+            "lower": 0.8514380724654056,
+            "rate": 0.8625,
+            "rejections": 3450,
+            "trials": 4000,
+            "upper": 0.8730294251887465
+          }
+        },
+        {
+          "alpha": 0.05,
+          "clark_west_session": {
+            "confidence_level": 0.95,
+            "lower": 0.9990782052505169,
+            "rate": 1.0,
+            "rejections": 4000,
+            "trials": 4000,
+            "upper": 1.0
+          },
+          "design": {
+            "degrees_of_freedom": 5.0,
+            "forecast_correlation": 0.947,
+            "forecast_variance_ratio": 0.272,
+            "innovation": "gaussian",
+            "predictable_share": 0.35,
+            "session_count": 250,
+            "target_correlation": 0.5697,
+            "target_volatility": 0.019,
+            "unit_count": 4,
+            "volatility": "constant"
+          },
+          "mean_loss_differential_correlation": 0.4906207114089671,
+          "population_covariance_ratio": 0.5,
+          "population_r_squared": 0.22799999999999998,
+          "predicted_row_size": 0.21253488673412813,
+          "replications": 4000,
+          "row_rejection": {
+            "confidence_level": 0.95,
+            "lower": 0.9990782052505169,
+            "rate": 1.0,
+            "rejections": 4000,
+            "trials": 4000,
+            "upper": 1.0
+          },
+          "row_superiority": {
+            "confidence_level": 0.95,
+            "lower": 0.9990782052505169,
+            "rate": 1.0,
+            "rejections": 4000,
+            "trials": 4000,
+            "upper": 1.0
+          },
+          "session_count": 250,
+          "session_rejection": {
+            "confidence_level": 0.95,
+            "lower": 0.9950848299063345,
+            "rate": 0.99725,
+            "rejections": 3989,
+            "trials": 4000,
+            "upper": 0.9986264353498916
+          },
+          "session_superiority": {
+            "confidence_level": 0.95,
+            "lower": 0.9950848299063345,
+            "rate": 0.99725,
+            "rejections": 3989,
+            "trials": 4000,
+            "upper": 0.9986264353498916
+          }
+        },
+        {
+          "alpha": 0.05,
+          "clark_west_session": {
+            "confidence_level": 0.95,
+            "lower": 0.04088268639669029,
+            "rate": 0.04725,
+            "rejections": 189,
+            "trials": 4000,
+            "upper": 0.05428861666555174
+          },
+          "design": {
+            "degrees_of_freedom": 5.0,
+            "forecast_correlation": 0.947,
+            "forecast_variance_ratio": 0.272,
+            "innovation": "gaussian",
+            "predictable_share": 0.35,
+            "session_count": 500,
+            "target_correlation": 0.5697,
+            "target_volatility": 0.019,
+            "unit_count": 4,
+            "volatility": "constant"
+          },
+          "mean_loss_differential_correlation": 0.579941486219288,
+          "population_covariance_ratio": 0.0,
+          "population_r_squared": -0.272,
+          "predicted_row_size": 0.2363752707428487,
+          "replications": 4000,
+          "row_rejection": {
+            "confidence_level": 0.95,
+            "lower": 0.9990782052505169,
+            "rate": 1.0,
+            "rejections": 4000,
+            "trials": 4000,
+            "upper": 1.0
+          },
+          "row_superiority": {
+            "confidence_level": 0.95,
+            "lower": 0.0,
+            "rate": 0.0,
+            "rejections": 0,
+            "trials": 4000,
+            "upper": 0.0009217947494830555
+          },
+          "session_count": 500,
+          "session_rejection": {
+            "confidence_level": 0.95,
+            "lower": 0.9990782052505169,
+            "rate": 1.0,
+            "rejections": 4000,
+            "trials": 4000,
+            "upper": 1.0
+          },
+          "session_superiority": {
+            "confidence_level": 0.95,
+            "lower": 0.0,
+            "rate": 0.0,
+            "rejections": 0,
+            "trials": 4000,
+            "upper": 0.0009217947494830555
+          }
+        },
+        {
+          "alpha": 0.05,
+          "clark_west_session": {
+            "confidence_level": 0.95,
+            "lower": 0.12310547650212622,
+            "rate": 0.1335,
+            "rejections": 534,
+            "trials": 4000,
+            "upper": 0.14443300352662375
+          },
+          "design": {
+            "degrees_of_freedom": 5.0,
+            "forecast_correlation": 0.947,
+            "forecast_variance_ratio": 0.272,
+            "innovation": "gaussian",
+            "predictable_share": 0.35,
+            "session_count": 500,
+            "target_correlation": 0.5697,
+            "target_volatility": 0.019,
+            "unit_count": 4,
+            "volatility": "constant"
+          },
+          "mean_loss_differential_correlation": 0.5767070433742202,
+          "population_covariance_ratio": 0.020000000000000018,
+          "population_r_squared": -0.252,
+          "predicted_row_size": 0.23554417473625866,
+          "replications": 4000,
+          "row_rejection": {
+            "confidence_level": 0.95,
+            "lower": 0.9990782052505169,
+            "rate": 1.0,
+            "rejections": 4000,
+            "trials": 4000,
+            "upper": 1.0
+          },
+          "row_superiority": {
+            "confidence_level": 0.95,
+            "lower": 0.0,
+            "rate": 0.0,
+            "rejections": 0,
+            "trials": 4000,
+            "upper": 0.0009217947494830555
+          },
+          "session_count": 500,
+          "session_rejection": {
+            "confidence_level": 0.95,
+            "lower": 0.9990782052505169,
+            "rate": 1.0,
+            "rejections": 4000,
+            "trials": 4000,
+            "upper": 1.0
+          },
+          "session_superiority": {
+            "confidence_level": 0.95,
+            "lower": 0.0,
+            "rate": 0.0,
+            "rejections": 0,
+            "trials": 4000,
+            "upper": 0.0009217947494830555
+          }
+        },
+        {
+          "alpha": 0.05,
+          "clark_west_session": {
+            "confidence_level": 0.95,
+            "lower": 0.3679003768961384,
+            "rate": 0.383,
+            "rejections": 1532,
+            "trials": 4000,
+            "upper": 0.3982707346307888
+          },
+          "design": {
+            "degrees_of_freedom": 5.0,
+            "forecast_correlation": 0.947,
+            "forecast_variance_ratio": 0.272,
+            "innovation": "gaussian",
+            "predictable_share": 0.35,
+            "session_count": 500,
+            "target_correlation": 0.5697,
+            "target_volatility": 0.019,
+            "unit_count": 4,
+            "volatility": "constant"
+          },
+          "mean_loss_differential_correlation": 0.5715389595917052,
+          "population_covariance_ratio": 0.04999999999999999,
+          "population_r_squared": -0.22200000000000003,
+          "predicted_row_size": 0.23421133328896415,
+          "replications": 4000,
+          "row_rejection": {
+            "confidence_level": 0.95,
+            "lower": 0.9990782052505169,
+            "rate": 1.0,
+            "rejections": 4000,
+            "trials": 4000,
+            "upper": 1.0
+          },
+          "row_superiority": {
+            "confidence_level": 0.95,
+            "lower": 0.0,
+            "rate": 0.0,
+            "rejections": 0,
+            "trials": 4000,
+            "upper": 0.0009217947494830555
+          },
+          "session_count": 500,
+          "session_rejection": {
+            "confidence_level": 0.95,
+            "lower": 0.9990782052505169,
+            "rate": 1.0,
+            "rejections": 4000,
+            "trials": 4000,
+            "upper": 1.0
+          },
+          "session_superiority": {
+            "confidence_level": 0.95,
+            "lower": 0.0,
+            "rate": 0.0,
+            "rejections": 0,
+            "trials": 4000,
+            "upper": 0.0009217947494830555
+          }
+        },
+        {
+          "alpha": 0.05,
+          "clark_west_session": {
+            "confidence_level": 0.95,
+            "lower": 0.8272385183058,
+            "rate": 0.839,
+            "rejections": 3356,
+            "trials": 4000,
+            "upper": 0.8502639740832626
+          },
+          "design": {
+            "degrees_of_freedom": 5.0,
+            "forecast_correlation": 0.947,
+            "forecast_variance_ratio": 0.272,
+            "innovation": "gaussian",
+            "predictable_share": 0.35,
+            "session_count": 500,
+            "target_correlation": 0.5697,
+            "target_volatility": 0.019,
+            "unit_count": 4,
+            "volatility": "constant"
+          },
+          "mean_loss_differential_correlation": 0.562315019511917,
+          "population_covariance_ratio": 0.1,
+          "population_r_squared": -0.17200000000000001,
+          "predicted_row_size": 0.23181744683653172,
+          "replications": 4000,
+          "row_rejection": {
+            "confidence_level": 0.95,
+            "lower": 0.9990782052505169,
+            "rate": 1.0,
+            "rejections": 4000,
+            "trials": 4000,
+            "upper": 1.0
+          },
+          "row_superiority": {
+            "confidence_level": 0.95,
+            "lower": 0.0,
+            "rate": 0.0,
+            "rejections": 0,
+            "trials": 4000,
+            "upper": 0.0009217947494830555
+          },
+          "session_count": 500,
+          "session_rejection": {
+            "confidence_level": 0.95,
+            "lower": 0.9919859564455789,
+            "rate": 0.99475,
+            "rejections": 3979,
+            "trials": 4000,
+            "upper": 0.9967473178108509
+          },
+          "session_superiority": {
+            "confidence_level": 0.95,
+            "lower": 0.0,
+            "rate": 0.0,
+            "rejections": 0,
+            "trials": 4000,
+            "upper": 0.0009217947494830555
+          }
+        },
+        {
+          "alpha": 0.05,
+          "clark_west_session": {
+            "confidence_level": 0.95,
+            "lower": 0.9990782052505169,
+            "rate": 1.0,
+            "rejections": 4000,
+            "trials": 4000,
+            "upper": 1.0
+          },
+          "design": {
+            "degrees_of_freedom": 5.0,
+            "forecast_correlation": 0.947,
+            "forecast_variance_ratio": 0.272,
+            "innovation": "gaussian",
+            "predictable_share": 0.35,
+            "session_count": 500,
+            "target_correlation": 0.5697,
+            "target_volatility": 0.019,
+            "unit_count": 4,
+            "volatility": "constant"
+          },
+          "mean_loss_differential_correlation": 0.5438083781374566,
+          "population_covariance_ratio": 0.2,
+          "population_r_squared": -0.07200000000000001,
+          "predicted_row_size": 0.2269556313887945,
+          "replications": 4000,
+          "row_rejection": {
+            "confidence_level": 0.95,
+            "lower": 0.7540913956959697,
+            "rate": 0.7675,
+            "rejections": 3070,
+            "trials": 4000,
+            "upper": 0.7805167519074659
+          },
+          "row_superiority": {
+            "confidence_level": 0.95,
+            "lower": 0.0008638411024434885,
+            "rate": 0.002,
+            "rejections": 8,
+            "trials": 4000,
+            "upper": 0.003936973885950824
+          },
+          "session_count": 500,
+          "session_rejection": {
+            "confidence_level": 0.95,
+            "lower": 0.4723981350222702,
+            "rate": 0.488,
+            "rejections": 1952,
+            "trials": 4000,
+            "upper": 0.503619409673723
+          },
+          "session_superiority": {
+            "confidence_level": 0.95,
+            "lower": 6.3294319651334515e-06,
+            "rate": 0.00025,
+            "rejections": 1,
+            "trials": 4000,
+            "upper": 0.0013921151219662678
+          }
+        },
+        {
+          "alpha": 0.05,
+          "clark_west_session": {
+            "confidence_level": 0.95,
+            "lower": 0.9990782052505169,
+            "rate": 1.0,
+            "rejections": 4000,
+            "trials": 4000,
+            "upper": 1.0
+          },
+          "design": {
+            "degrees_of_freedom": 5.0,
+            "forecast_correlation": 0.947,
+            "forecast_variance_ratio": 0.272,
+            "innovation": "gaussian",
+            "predictable_share": 0.35,
+            "session_count": 500,
+            "target_correlation": 0.5697,
+            "target_volatility": 0.019,
+            "unit_count": 4,
+            "volatility": "constant"
+          },
+          "mean_loss_differential_correlation": 0.529174226387509,
+          "population_covariance_ratio": 0.272,
+          "population_r_squared": 0.0,
+          "predicted_row_size": 0.22305482984625102,
+          "replications": 4000,
+          "row_rejection": {
+            "confidence_level": 0.95,
+            "lower": 0.20724576478464085,
+            "rate": 0.22,
+            "rejections": 880,
+            "trials": 4000,
+            "upper": 0.23316449869085765
+          },
+          "row_superiority": {
+            "confidence_level": 0.95,
+            "lower": 0.09422733670643764,
+            "rate": 0.1035,
+            "rejections": 414,
+            "trials": 4000,
+            "upper": 0.11335625739420588
+          },
+          "session_count": 500,
+          "session_rejection": {
+            "confidence_level": 0.95,
+            "lower": 0.03994995689370135,
+            "rate": 0.04625,
+            "rejections": 185,
+            "trials": 4000,
+            "upper": 0.05322299421031498
+          },
+          "session_superiority": {
+            "confidence_level": 0.95,
+            "lower": 0.01835547248580907,
+            "rate": 0.02275,
+            "rejections": 91,
+            "trials": 4000,
+            "upper": 0.027859310847594698
+          }
+        },
+        {
+          "alpha": 0.05,
+          "clark_west_session": {
+            "confidence_level": 0.95,
+            "lower": 0.9990782052505169,
+            "rate": 1.0,
+            "rejections": 4000,
+            "trials": 4000,
+            "upper": 1.0
+          },
+          "design": {
+            "degrees_of_freedom": 5.0,
+            "forecast_correlation": 0.947,
+            "forecast_variance_ratio": 0.272,
+            "innovation": "gaussian",
+            "predictable_share": 0.35,
+            "session_count": 500,
+            "target_correlation": 0.5697,
+            "target_volatility": 0.019,
+            "unit_count": 4,
+            "volatility": "constant"
+          },
+          "mean_loss_differential_correlation": 0.5150645374110866,
+          "population_covariance_ratio": 0.35,
+          "population_r_squared": 0.07799999999999996,
+          "predicted_row_size": 0.21924604510676116,
+          "replications": 4000,
+          "row_rejection": {
+            "confidence_level": 0.95,
+            "lower": 0.8221013433984206,
+            "rate": 0.834,
+            "rejections": 3336,
+            "trials": 4000,
+            "upper": 0.8454085718123159
+          },
+          "row_superiority": {
+            "confidence_level": 0.95,
+            "lower": 0.821844584313222,
+            "rate": 0.83375,
+            "rejections": 3335,
+            "trials": 4000,
+            "upper": 0.8451657018584291
+          },
+          "session_count": 500,
+          "session_rejection": {
+            "confidence_level": 0.95,
+            "lower": 0.5758282435281189,
+            "rate": 0.59125,
+            "rejections": 2365,
+            "trials": 4000,
+            "upper": 0.606538320169073
+          },
+          "session_superiority": {
+            "confidence_level": 0.95,
+            "lower": 0.5758282435281189,
+            "rate": 0.59125,
+            "rejections": 2365,
+            "trials": 4000,
+            "upper": 0.606538320169073
+          }
+        },
+        {
+          "alpha": 0.05,
+          "clark_west_session": {
+            "confidence_level": 0.95,
+            "lower": 0.9990782052505169,
+            "rate": 1.0,
+            "rejections": 4000,
+            "trials": 4000,
+            "upper": 1.0
+          },
+          "design": {
+            "degrees_of_freedom": 5.0,
+            "forecast_correlation": 0.947,
+            "forecast_variance_ratio": 0.272,
+            "innovation": "gaussian",
+            "predictable_share": 0.35,
+            "session_count": 500,
+            "target_correlation": 0.5697,
+            "target_volatility": 0.019,
+            "unit_count": 4,
+            "volatility": "constant"
+          },
+          "mean_loss_differential_correlation": 0.5035224484887784,
+          "population_covariance_ratio": 0.42,
+          "population_r_squared": 0.14799999999999996,
+          "predicted_row_size": 0.2160950625657434,
+          "replications": 4000,
+          "row_rejection": {
+            "confidence_level": 0.95,
+            "lower": 0.9978097613371248,
+            "rate": 0.99925,
+            "rejections": 3997,
+            "trials": 4000,
+            "upper": 0.999845305255342
+          },
+          "row_superiority": {
+            "confidence_level": 0.95,
+            "lower": 0.9978097613371248,
+            "rate": 0.99925,
+            "rejections": 3997,
+            "trials": 4000,
+            "upper": 0.999845305255342
+          },
+          "session_count": 500,
+          "session_rejection": {
+            "confidence_level": 0.95,
+            "lower": 0.987272428453408,
+            "rate": 0.99075,
+            "rejections": 3963,
+            "trials": 4000,
+            "upper": 0.9934790208634402
+          },
+          "session_superiority": {
+            "confidence_level": 0.95,
+            "lower": 0.987272428453408,
+            "rate": 0.99075,
+            "rejections": 3963,
+            "trials": 4000,
+            "upper": 0.9934790208634402
+          }
+        },
+        {
+          "alpha": 0.05,
+          "clark_west_session": {
+            "confidence_level": 0.95,
+            "lower": 0.9990782052505169,
+            "rate": 1.0,
+            "rejections": 4000,
+            "trials": 4000,
+            "upper": 1.0
+          },
+          "design": {
+            "degrees_of_freedom": 5.0,
+            "forecast_correlation": 0.947,
+            "forecast_variance_ratio": 0.272,
+            "innovation": "gaussian",
+            "predictable_share": 0.35,
+            "session_count": 500,
+            "target_correlation": 0.5697,
+            "target_volatility": 0.019,
+            "unit_count": 4,
+            "volatility": "constant"
+          },
+          "mean_loss_differential_correlation": 0.49058287316882604,
+          "population_covariance_ratio": 0.5,
+          "population_r_squared": 0.22799999999999998,
+          "predicted_row_size": 0.2125243860374637,
+          "replications": 4000,
+          "row_rejection": {
+            "confidence_level": 0.95,
+            "lower": 0.9990782052505169,
+            "rate": 1.0,
+            "rejections": 4000,
+            "trials": 4000,
+            "upper": 1.0
+          },
+          "row_superiority": {
+            "confidence_level": 0.95,
+            "lower": 0.9990782052505169,
+            "rate": 1.0,
+            "rejections": 4000,
+            "trials": 4000,
+            "upper": 1.0
+          },
+          "session_count": 500,
+          "session_rejection": {
+            "confidence_level": 0.95,
+            "lower": 0.9990782052505169,
+            "rate": 1.0,
+            "rejections": 4000,
+            "trials": 4000,
+            "upper": 1.0
+          },
+          "session_superiority": {
+            "confidence_level": 0.95,
+            "lower": 0.9990782052505169,
+            "rate": 1.0,
+            "rejections": 4000,
+            "trials": 4000,
+            "upper": 1.0
+          }
+        },
+        {
+          "alpha": 0.05,
+          "clark_west_session": {
+            "confidence_level": 0.95,
+            "lower": 0.04228329544191999,
+            "rate": 0.04875,
+            "rejections": 195,
+            "trials": 4000,
+            "upper": 0.055885546583773746
+          },
+          "design": {
+            "degrees_of_freedom": 5.0,
+            "forecast_correlation": 0.947,
+            "forecast_variance_ratio": 0.272,
+            "innovation": "gaussian",
+            "predictable_share": 0.35,
+            "session_count": 1000,
+            "target_correlation": 0.5697,
+            "target_volatility": 0.019,
+            "unit_count": 4,
+            "volatility": "constant"
+          },
+          "mean_loss_differential_correlation": 0.5814653796886964,
+          "population_covariance_ratio": 0.0,
+          "population_r_squared": -0.272,
+          "predicted_row_size": 0.23676602364859545,
+          "replications": 4000,
+          "row_rejection": {
+            "confidence_level": 0.95,
+            "lower": 0.9990782052505169,
+            "rate": 1.0,
+            "rejections": 4000,
+            "trials": 4000,
+            "upper": 1.0
+          },
+          "row_superiority": {
+            "confidence_level": 0.95,
+            "lower": 0.0,
+            "rate": 0.0,
+            "rejections": 0,
+            "trials": 4000,
+            "upper": 0.0009217947494830555
+          },
+          "session_count": 1000,
+          "session_rejection": {
+            "confidence_level": 0.95,
+            "lower": 0.9990782052505169,
+            "rate": 1.0,
+            "rejections": 4000,
+            "trials": 4000,
+            "upper": 1.0
+          },
+          "session_superiority": {
+            "confidence_level": 0.95,
+            "lower": 0.0,
+            "rate": 0.0,
+            "rejections": 0,
+            "trials": 4000,
+            "upper": 0.0009217947494830555
+          }
+        },
+        {
+          "alpha": 0.05,
+          "clark_west_session": {
+            "confidence_level": 0.95,
+            "lower": 0.18428631207401733,
+            "rate": 0.1965,
+            "rejections": 786,
+            "trials": 4000,
+            "upper": 0.2091586226772464
+          },
+          "design": {
+            "degrees_of_freedom": 5.0,
+            "forecast_correlation": 0.947,
+            "forecast_variance_ratio": 0.272,
+            "innovation": "gaussian",
+            "predictable_share": 0.35,
+            "session_count": 1000,
+            "target_correlation": 0.5697,
+            "target_volatility": 0.019,
+            "unit_count": 4,
+            "volatility": "constant"
+          },
+          "mean_loss_differential_correlation": 0.5779434536172868,
+          "population_covariance_ratio": 0.020000000000000018,
+          "population_r_squared": -0.252,
+          "predicted_row_size": 0.23586215036299019,
+          "replications": 4000,
+          "row_rejection": {
+            "confidence_level": 0.95,
+            "lower": 0.9990782052505169,
+            "rate": 1.0,
+            "rejections": 4000,
+            "trials": 4000,
+            "upper": 1.0
+          },
+          "row_superiority": {
+            "confidence_level": 0.95,
+            "lower": 0.0,
+            "rate": 0.0,
+            "rejections": 0,
+            "trials": 4000,
+            "upper": 0.0009217947494830555
+          },
+          "session_count": 1000,
+          "session_rejection": {
+            "confidence_level": 0.95,
+            "lower": 0.9990782052505169,
+            "rate": 1.0,
+            "rejections": 4000,
+            "trials": 4000,
+            "upper": 1.0
+          },
+          "session_superiority": {
+            "confidence_level": 0.95,
+            "lower": 0.0,
+            "rate": 0.0,
+            "rejections": 0,
+            "trials": 4000,
+            "upper": 0.0009217947494830555
+          }
+        },
+        {
+          "alpha": 0.05,
+          "clark_west_session": {
+            "confidence_level": 0.95,
+            "lower": 0.5738183394105327,
+            "rate": 0.58925,
+            "rejections": 2357,
+            "trials": 4000,
+            "upper": 0.6045511499568986
+          },
+          "design": {
+            "degrees_of_freedom": 5.0,
+            "forecast_correlation": 0.947,
+            "forecast_variance_ratio": 0.272,
+            "innovation": "gaussian",
+            "predictable_share": 0.35,
+            "session_count": 1000,
+            "target_correlation": 0.5697,
+            "target_volatility": 0.019,
+            "unit_count": 4,
+            "volatility": "constant"
+          },
+          "mean_loss_differential_correlation": 0.572187423391882,
+          "population_covariance_ratio": 0.04999999999999999,
+          "population_r_squared": -0.22200000000000003,
+          "predicted_row_size": 0.23437890226041758,
+          "replications": 4000,
+          "row_rejection": {
+            "confidence_level": 0.95,
+            "lower": 0.9990782052505169,
+            "rate": 1.0,
+            "rejections": 4000,
+            "trials": 4000,
+            "upper": 1.0
+          },
+          "row_superiority": {
+            "confidence_level": 0.95,
+            "lower": 0.0,
+            "rate": 0.0,
+            "rejections": 0,
+            "trials": 4000,
+            "upper": 0.0009217947494830555
+          },
+          "session_count": 1000,
+          "session_rejection": {
+            "confidence_level": 0.95,
+            "lower": 0.9990782052505169,
+            "rate": 1.0,
+            "rejections": 4000,
+            "trials": 4000,
+            "upper": 1.0
+          },
+          "session_superiority": {
+            "confidence_level": 0.95,
+            "lower": 0.0,
+            "rate": 0.0,
+            "rejections": 0,
+            "trials": 4000,
+            "upper": 0.0009217947494830555
+          }
+        },
+        {
+          "alpha": 0.05,
+          "clark_west_session": {
+            "confidence_level": 0.95,
+            "lower": 0.9762756918168178,
+            "rate": 0.981,
+            "rejections": 3924,
+            "trials": 4000,
+            "upper": 0.9850016909925176
+          },
+          "design": {
+            "degrees_of_freedom": 5.0,
+            "forecast_correlation": 0.947,
+            "forecast_variance_ratio": 0.272,
+            "innovation": "gaussian",
+            "predictable_share": 0.35,
+            "session_count": 1000,
+            "target_correlation": 0.5697,
+            "target_volatility": 0.019,
+            "unit_count": 4,
+            "volatility": "constant"
+          },
+          "mean_loss_differential_correlation": 0.5628320209742662,
+          "population_covariance_ratio": 0.1,
+          "population_r_squared": -0.17200000000000001,
+          "predicted_row_size": 0.23195213659024827,
+          "replications": 4000,
+          "row_rejection": {
+            "confidence_level": 0.95,
+            "lower": 0.9990782052505169,
+            "rate": 1.0,
+            "rejections": 4000,
+            "trials": 4000,
+            "upper": 1.0
+          },
+          "row_superiority": {
+            "confidence_level": 0.95,
+            "lower": 0.0,
+            "rate": 0.0,
+            "rejections": 0,
+            "trials": 4000,
+            "upper": 0.0009217947494830555
+          },
+          "session_count": 1000,
+          "session_rejection": {
+            "confidence_level": 0.95,
+            "lower": 0.9990782052505169,
+            "rate": 1.0,
+            "rejections": 4000,
+            "trials": 4000,
+            "upper": 1.0
+          },
+          "session_superiority": {
+            "confidence_level": 0.95,
+            "lower": 0.0,
+            "rate": 0.0,
+            "rejections": 0,
+            "trials": 4000,
+            "upper": 0.0009217947494830555
+          }
+        },
+        {
+          "alpha": 0.05,
+          "clark_west_session": {
+            "confidence_level": 0.95,
+            "lower": 0.9990782052505169,
+            "rate": 1.0,
+            "rejections": 4000,
+            "trials": 4000,
+            "upper": 1.0
+          },
+          "design": {
+            "degrees_of_freedom": 5.0,
+            "forecast_correlation": 0.947,
+            "forecast_variance_ratio": 0.272,
+            "innovation": "gaussian",
+            "predictable_share": 0.35,
+            "session_count": 1000,
+            "target_correlation": 0.5697,
+            "target_volatility": 0.019,
+            "unit_count": 4,
+            "volatility": "constant"
+          },
+          "mean_loss_differential_correlation": 0.543431005814111,
+          "population_covariance_ratio": 0.2,
+          "population_r_squared": -0.07200000000000001,
+          "predicted_row_size": 0.22685566943940005,
+          "replications": 4000,
+          "row_rejection": {
+            "confidence_level": 0.95,
+            "lower": 0.9274393420002643,
+            "rate": 0.9355,
+            "rejections": 3742,
+            "trials": 4000,
+            "upper": 0.9429170507075378
+          },
+          "row_superiority": {
+            "confidence_level": 0.95,
+            "lower": 6.3294319651334515e-06,
+            "rate": 0.00025,
+            "rejections": 1,
+            "trials": 4000,
+            "upper": 0.0013921151219662678
+          },
+          "session_count": 1000,
+          "session_rejection": {
+            "confidence_level": 0.95,
+            "lower": 0.7762770356338629,
+            "rate": 0.78925,
+            "rejections": 3157,
+            "trials": 4000,
+            "upper": 0.8017990635934966
+          },
+          "session_superiority": {
+            "confidence_level": 0.95,
+            "lower": 0.0,
+            "rate": 0.0,
+            "rejections": 0,
+            "trials": 4000,
+            "upper": 0.0009217947494830555
+          }
+        },
+        {
+          "alpha": 0.05,
+          "clark_west_session": {
+            "confidence_level": 0.95,
+            "lower": 0.9990782052505169,
+            "rate": 1.0,
+            "rejections": 4000,
+            "trials": 4000,
+            "upper": 1.0
+          },
+          "design": {
+            "degrees_of_freedom": 5.0,
+            "forecast_correlation": 0.947,
+            "forecast_variance_ratio": 0.272,
+            "innovation": "gaussian",
+            "predictable_share": 0.35,
+            "session_count": 1000,
+            "target_correlation": 0.5697,
+            "target_volatility": 0.019,
+            "unit_count": 4,
+            "volatility": "constant"
+          },
+          "mean_loss_differential_correlation": 0.5300960416280366,
+          "population_covariance_ratio": 0.272,
+          "population_r_squared": 0.0,
+          "predicted_row_size": 0.22330202646243835,
+          "replications": 4000,
+          "row_rejection": {
+            "confidence_level": 0.95,
+            "lower": 0.20602293626604062,
+            "rate": 0.21875,
+            "rejections": 875,
+            "trials": 4000,
+            "upper": 0.23188916940129164
+          },
+          "row_superiority": {
+            "confidence_level": 0.95,
+            "lower": 0.10382990136379008,
+            "rate": 0.1135,
+            "rejections": 454,
+            "trials": 4000,
+            "upper": 0.12373859004797036
+          },
+          "session_count": 1000,
+          "session_rejection": {
+            "confidence_level": 0.95,
+            "lower": 0.043451807680963496,
+            "rate": 0.05,
+            "rejections": 200,
+            "trials": 4000,
+            "upper": 0.05721499296172573
+          },
+          "session_superiority": {
+            "confidence_level": 0.95,
+            "lower": 0.02151893633370027,
+            "rate": 0.02625,
+            "rejections": 105,
+            "trials": 4000,
+            "upper": 0.0316890027570297
+          }
+        },
+        {
+          "alpha": 0.05,
+          "clark_west_session": {
+            "confidence_level": 0.95,
+            "lower": 0.9990782052505169,
+            "rate": 1.0,
+            "rejections": 4000,
+            "trials": 4000,
+            "upper": 1.0
+          },
+          "design": {
+            "degrees_of_freedom": 5.0,
+            "forecast_correlation": 0.947,
+            "forecast_variance_ratio": 0.272,
+            "innovation": "gaussian",
+            "predictable_share": 0.35,
+            "session_count": 1000,
+            "target_correlation": 0.5697,
+            "target_volatility": 0.019,
+            "unit_count": 4,
+            "volatility": "constant"
+          },
+          "mean_loss_differential_correlation": 0.5153988295694681,
+          "population_covariance_ratio": 0.35,
+          "population_r_squared": 0.07799999999999996,
+          "predicted_row_size": 0.21933683142895466,
+          "replications": 4000,
+          "row_rejection": {
+            "confidence_level": 0.95,
+            "lower": 0.962608487950758,
+            "rate": 0.9685,
+            "rejections": 3874,
+            "trials": 4000,
+            "upper": 0.9736932804223031
+          },
+          "row_superiority": {
+            "confidence_level": 0.95,
+            "lower": 0.962608487950758,
+            "rate": 0.9685,
+            "rejections": 3874,
+            "trials": 4000,
+            "upper": 0.9736932804223031
+          },
+          "session_count": 1000,
+          "session_rejection": {
+            "confidence_level": 0.95,
+            "lower": 0.8633173002001381,
+            "rate": 0.874,
+            "rejections": 3496,
+            "trials": 4000,
+            "upper": 0.884132991319372
+          },
+          "session_superiority": {
+            "confidence_level": 0.95,
+            "lower": 0.8633173002001381,
+            "rate": 0.874,
+            "rejections": 3496,
+            "trials": 4000,
+            "upper": 0.884132991319372
+          }
+        },
+        {
+          "alpha": 0.05,
+          "clark_west_session": {
+            "confidence_level": 0.95,
+            "lower": 0.9990782052505169,
+            "rate": 1.0,
+            "rejections": 4000,
+            "trials": 4000,
+            "upper": 1.0
+          },
+          "design": {
+            "degrees_of_freedom": 5.0,
+            "forecast_correlation": 0.947,
+            "forecast_variance_ratio": 0.272,
+            "innovation": "gaussian",
+            "predictable_share": 0.35,
+            "session_count": 1000,
+            "target_correlation": 0.5697,
+            "target_volatility": 0.019,
+            "unit_count": 4,
+            "volatility": "constant"
+          },
+          "mean_loss_differential_correlation": 0.5045359338722077,
+          "population_covariance_ratio": 0.42,
+          "population_r_squared": 0.14799999999999996,
+          "predicted_row_size": 0.21637302454474194,
+          "replications": 4000,
+          "row_rejection": {
+            "confidence_level": 0.95,
+            "lower": 0.9990782052505169,
+            "rate": 1.0,
+            "rejections": 4000,
+            "trials": 4000,
+            "upper": 1.0
+          },
+          "row_superiority": {
+            "confidence_level": 0.95,
+            "lower": 0.9990782052505169,
+            "rate": 1.0,
+            "rejections": 4000,
+            "trials": 4000,
+            "upper": 1.0
+          },
+          "session_count": 1000,
+          "session_rejection": {
+            "confidence_level": 0.95,
+            "lower": 0.9990782052505169,
+            "rate": 1.0,
+            "rejections": 4000,
+            "trials": 4000,
+            "upper": 1.0
+          },
+          "session_superiority": {
+            "confidence_level": 0.95,
+            "lower": 0.9990782052505169,
+            "rate": 1.0,
+            "rejections": 4000,
+            "trials": 4000,
+            "upper": 1.0
+          }
+        },
+        {
+          "alpha": 0.05,
+          "clark_west_session": {
+            "confidence_level": 0.95,
+            "lower": 0.9990782052505169,
+            "rate": 1.0,
+            "rejections": 4000,
+            "trials": 4000,
+            "upper": 1.0
+          },
+          "design": {
+            "degrees_of_freedom": 5.0,
+            "forecast_correlation": 0.947,
+            "forecast_variance_ratio": 0.272,
+            "innovation": "gaussian",
+            "predictable_share": 0.35,
+            "session_count": 1000,
+            "target_correlation": 0.5697,
+            "target_volatility": 0.019,
+            "unit_count": 4,
+            "volatility": "constant"
+          },
+          "mean_loss_differential_correlation": 0.49289951683277705,
+          "population_covariance_ratio": 0.5,
+          "population_r_squared": 0.22799999999999998,
+          "predicted_row_size": 0.2131666481197515,
+          "replications": 4000,
+          "row_rejection": {
+            "confidence_level": 0.95,
+            "lower": 0.9990782052505169,
+            "rate": 1.0,
+            "rejections": 4000,
+            "trials": 4000,
+            "upper": 1.0
+          },
+          "row_superiority": {
+            "confidence_level": 0.95,
+            "lower": 0.9990782052505169,
+            "rate": 1.0,
+            "rejections": 4000,
+            "trials": 4000,
+            "upper": 1.0
+          },
+          "session_count": 1000,
+          "session_rejection": {
+            "confidence_level": 0.95,
+            "lower": 0.9990782052505169,
+            "rate": 1.0,
+            "rejections": 4000,
+            "trials": 4000,
+            "upper": 1.0
+          },
+          "session_superiority": {
+            "confidence_level": 0.95,
+            "lower": 0.9990782052505169,
+            "rate": 1.0,
+            "rejections": 4000,
+            "trials": 4000,
+            "upper": 1.0
+          }
+        },
+        {
+          "alpha": 0.05,
+          "clark_west_session": {
+            "confidence_level": 0.95,
+            "lower": 0.04088268639669029,
+            "rate": 0.04725,
+            "rejections": 189,
+            "trials": 4000,
+            "upper": 0.05428861666555174
+          },
+          "design": {
+            "degrees_of_freedom": 5.0,
+            "forecast_correlation": 0.947,
+            "forecast_variance_ratio": 0.272,
+            "innovation": "gaussian",
+            "predictable_share": 0.35,
+            "session_count": 2000,
+            "target_correlation": 0.5697,
+            "target_volatility": 0.019,
+            "unit_count": 4,
+            "volatility": "constant"
+          },
+          "mean_loss_differential_correlation": 0.5821095135390482,
+          "population_covariance_ratio": 0.0,
+          "population_r_squared": -0.272,
+          "predicted_row_size": 0.23693103427784612,
+          "replications": 4000,
+          "row_rejection": {
+            "confidence_level": 0.95,
+            "lower": 0.9990782052505169,
+            "rate": 1.0,
+            "rejections": 4000,
+            "trials": 4000,
+            "upper": 1.0
+          },
+          "row_superiority": {
+            "confidence_level": 0.95,
+            "lower": 0.0,
+            "rate": 0.0,
+            "rejections": 0,
+            "trials": 4000,
+            "upper": 0.0009217947494830555
+          },
+          "session_count": 2000,
+          "session_rejection": {
+            "confidence_level": 0.95,
+            "lower": 0.9990782052505169,
+            "rate": 1.0,
+            "rejections": 4000,
+            "trials": 4000,
+            "upper": 1.0
+          },
+          "session_superiority": {
+            "confidence_level": 0.95,
+            "lower": 0.0,
+            "rate": 0.0,
+            "rejections": 0,
+            "trials": 4000,
+            "upper": 0.0009217947494830555
+          }
+        },
+        {
+          "alpha": 0.05,
+          "clark_west_session": {
+            "confidence_level": 0.95,
+            "lower": 0.2769555379437005,
+            "rate": 0.291,
+            "rejections": 1164,
+            "trials": 4000,
+            "upper": 0.3053503542828789
+          },
+          "design": {
+            "degrees_of_freedom": 5.0,
+            "forecast_correlation": 0.947,
+            "forecast_variance_ratio": 0.272,
+            "innovation": "gaussian",
+            "predictable_share": 0.35,
+            "session_count": 2000,
+            "target_correlation": 0.5697,
+            "target_volatility": 0.019,
+            "unit_count": 4,
+            "volatility": "constant"
+          },
+          "mean_loss_differential_correlation": 0.5783422649966614,
+          "population_covariance_ratio": 0.020000000000000018,
+          "population_r_squared": -0.252,
+          "predicted_row_size": 0.23596464190550048,
+          "replications": 4000,
+          "row_rejection": {
+            "confidence_level": 0.95,
+            "lower": 0.9990782052505169,
+            "rate": 1.0,
+            "rejections": 4000,
+            "trials": 4000,
+            "upper": 1.0
+          },
+          "row_superiority": {
+            "confidence_level": 0.95,
+            "lower": 0.0,
+            "rate": 0.0,
+            "rejections": 0,
+            "trials": 4000,
+            "upper": 0.0009217947494830555
+          },
+          "session_count": 2000,
+          "session_rejection": {
+            "confidence_level": 0.95,
+            "lower": 0.9990782052505169,
+            "rate": 1.0,
+            "rejections": 4000,
+            "trials": 4000,
+            "upper": 1.0
+          },
+          "session_superiority": {
+            "confidence_level": 0.95,
+            "lower": 0.0,
+            "rate": 0.0,
+            "rejections": 0,
+            "trials": 4000,
+            "upper": 0.0009217947494830555
+          }
+        },
+        {
+          "alpha": 0.05,
+          "clark_west_session": {
+            "confidence_level": 0.95,
+            "lower": 0.8382968308932578,
+            "rate": 0.84975,
+            "rejections": 3399,
+            "trials": 4000,
+            "upper": 0.8606896771602549
+          },
+          "design": {
+            "degrees_of_freedom": 5.0,
+            "forecast_correlation": 0.947,
+            "forecast_variance_ratio": 0.272,
+            "innovation": "gaussian",
+            "predictable_share": 0.35,
+            "session_count": 2000,
+            "target_correlation": 0.5697,
+            "target_volatility": 0.019,
+            "unit_count": 4,
+            "volatility": "constant"
+          },
+          "mean_loss_differential_correlation": 0.5726947458188029,
+          "population_covariance_ratio": 0.04999999999999999,
+          "population_r_squared": -0.22200000000000003,
+          "predicted_row_size": 0.23450993268481213,
+          "replications": 4000,
+          "row_rejection": {
+            "confidence_level": 0.95,
+            "lower": 0.9990782052505169,
+            "rate": 1.0,
+            "rejections": 4000,
+            "trials": 4000,
+            "upper": 1.0
+          },
+          "row_superiority": {
+            "confidence_level": 0.95,
+            "lower": 0.0,
+            "rate": 0.0,
+            "rejections": 0,
+            "trials": 4000,
+            "upper": 0.0009217947494830555
+          },
+          "session_count": 2000,
+          "session_rejection": {
+            "confidence_level": 0.95,
+            "lower": 0.9990782052505169,
+            "rate": 1.0,
+            "rejections": 4000,
+            "trials": 4000,
+            "upper": 1.0
+          },
+          "session_superiority": {
+            "confidence_level": 0.95,
+            "lower": 0.0,
+            "rate": 0.0,
+            "rejections": 0,
+            "trials": 4000,
+            "upper": 0.0009217947494830555
+          }
+        },
+        {
+          "alpha": 0.05,
+          "clark_west_session": {
+            "confidence_level": 0.95,
+            "lower": 0.9986078848780338,
+            "rate": 0.99975,
+            "rejections": 3999,
+            "trials": 4000,
+            "upper": 0.9999936705680349
+          },
+          "design": {
+            "degrees_of_freedom": 5.0,
+            "forecast_correlation": 0.947,
+            "forecast_variance_ratio": 0.272,
+            "innovation": "gaussian",
+            "predictable_share": 0.35,
+            "session_count": 2000,
+            "target_correlation": 0.5697,
+            "target_volatility": 0.019,
+            "unit_count": 4,
+            "volatility": "constant"
+          },
+          "mean_loss_differential_correlation": 0.5629643875073279,
+          "population_covariance_ratio": 0.1,
+          "population_r_squared": -0.17200000000000001,
+          "predicted_row_size": 0.23198661104203766,
+          "replications": 4000,
+          "row_rejection": {
+            "confidence_level": 0.95,
+            "lower": 0.9990782052505169,
+            "rate": 1.0,
+            "rejections": 4000,
+            "trials": 4000,
+            "upper": 1.0
+          },
+          "row_superiority": {
+            "confidence_level": 0.95,
+            "lower": 0.0,
+            "rate": 0.0,
+            "rejections": 0,
+            "trials": 4000,
+            "upper": 0.0009217947494830555
+          },
+          "session_count": 2000,
+          "session_rejection": {
+            "confidence_level": 0.95,
+            "lower": 0.9990782052505169,
+            "rate": 1.0,
+            "rejections": 4000,
+            "trials": 4000,
+            "upper": 1.0
+          },
+          "session_superiority": {
+            "confidence_level": 0.95,
+            "lower": 0.0,
+            "rate": 0.0,
+            "rejections": 0,
+            "trials": 4000,
+            "upper": 0.0009217947494830555
+          }
+        },
+        {
+          "alpha": 0.05,
+          "clark_west_session": {
+            "confidence_level": 0.95,
+            "lower": 0.9990782052505169,
+            "rate": 1.0,
+            "rejections": 4000,
+            "trials": 4000,
+            "upper": 1.0
+          },
+          "design": {
+            "degrees_of_freedom": 5.0,
+            "forecast_correlation": 0.947,
+            "forecast_variance_ratio": 0.272,
+            "innovation": "gaussian",
+            "predictable_share": 0.35,
+            "session_count": 2000,
+            "target_correlation": 0.5697,
+            "target_volatility": 0.019,
+            "unit_count": 4,
+            "volatility": "constant"
+          },
+          "mean_loss_differential_correlation": 0.5442824572975528,
+          "population_covariance_ratio": 0.2,
+          "population_r_squared": -0.07200000000000001,
+          "predicted_row_size": 0.22708116303215042,
+          "replications": 4000,
+          "row_rejection": {
+            "confidence_level": 0.95,
+            "lower": 0.992592183003926,
+            "rate": 0.99525,
+            "rejections": 3981,
+            "trials": 4000,
+            "upper": 0.9971378401939412
+          },
+          "row_superiority": {
+            "confidence_level": 0.95,
+            "lower": 0.0,
+            "rate": 0.0,
+            "rejections": 0,
+            "trials": 4000,
+            "upper": 0.0009217947494830555
+          },
+          "session_count": 2000,
+          "session_rejection": {
+            "confidence_level": 0.95,
+            "lower": 0.9650469311990248,
+            "rate": 0.97075,
+            "rejections": 3883,
+            "trials": 4000,
+            "upper": 0.9757507437891582
+          },
+          "session_superiority": {
+            "confidence_level": 0.95,
+            "lower": 0.0,
+            "rate": 0.0,
+            "rejections": 0,
+            "trials": 4000,
+            "upper": 0.0009217947494830555
+          }
+        },
+        {
+          "alpha": 0.05,
+          "clark_west_session": {
+            "confidence_level": 0.95,
+            "lower": 0.9990782052505169,
+            "rate": 1.0,
+            "rejections": 4000,
+            "trials": 4000,
+            "upper": 1.0
+          },
+          "design": {
+            "degrees_of_freedom": 5.0,
+            "forecast_correlation": 0.947,
+            "forecast_variance_ratio": 0.272,
+            "innovation": "gaussian",
+            "predictable_share": 0.35,
+            "session_count": 2000,
+            "target_correlation": 0.5697,
+            "target_volatility": 0.019,
+            "unit_count": 4,
+            "volatility": "constant"
+          },
+          "mean_loss_differential_correlation": 0.5307090673470314,
+          "population_covariance_ratio": 0.272,
+          "population_r_squared": 0.0,
+          "predicted_row_size": 0.22346630640660836,
+          "replications": 4000,
+          "row_rejection": {
+            "confidence_level": 0.95,
+            "lower": 0.22193270135067375,
+            "rate": 0.235,
+            "rejections": 940,
+            "trials": 4000,
+            "upper": 0.2484554710532008
+          },
+          "row_superiority": {
+            "confidence_level": 0.95,
+            "lower": 0.11008478338901682,
+            "rate": 0.12,
+            "rejections": 480,
+            "trials": 4000,
+            "upper": 0.13047392917004652
+          },
+          "session_count": 2000,
+          "session_rejection": {
+            "confidence_level": 0.95,
+            "lower": 0.043919542612246024,
+            "rate": 0.0505,
+            "rejections": 202,
+            "trials": 4000,
+            "upper": 0.05774644376245009
+          },
+          "session_superiority": {
+            "confidence_level": 0.95,
+            "lower": 0.019031143291015688,
+            "rate": 0.0235,
+            "rejections": 94,
+            "trials": 4000,
+            "upper": 0.028682141434362308
+          }
+        },
+        {
+          "alpha": 0.05,
+          "clark_west_session": {
+            "confidence_level": 0.95,
+            "lower": 0.9990782052505169,
+            "rate": 1.0,
+            "rejections": 4000,
+            "trials": 4000,
+            "upper": 1.0
+          },
+          "design": {
+            "degrees_of_freedom": 5.0,
+            "forecast_correlation": 0.947,
+            "forecast_variance_ratio": 0.272,
+            "innovation": "gaussian",
+            "predictable_share": 0.35,
+            "session_count": 2000,
+            "target_correlation": 0.5697,
+            "target_volatility": 0.019,
+            "unit_count": 4,
+            "volatility": "constant"
+          },
+          "mean_loss_differential_correlation": 0.5163968608454097,
+          "population_covariance_ratio": 0.35,
+          "population_r_squared": 0.07799999999999996,
+          "predicted_row_size": 0.21960771597232265,
+          "replications": 4000,
+          "row_rejection": {
+            "confidence_level": 0.95,
+            "lower": 0.9978097613371248,
+            "rate": 0.99925,
+            "rejections": 3997,
+            "trials": 4000,
+            "upper": 0.999845305255342
+          },
+          "row_superiority": {
+            "confidence_level": 0.95,
+            "lower": 0.9978097613371248,
+            "rate": 0.99925,
+            "rejections": 3997,
+            "trials": 4000,
+            "upper": 0.999845305255342
+          },
+          "session_count": 2000,
+          "session_rejection": {
+            "confidence_level": 0.95,
+            "lower": 0.9898988278080095,
+            "rate": 0.993,
+            "rejections": 3972,
+            "trials": 4000,
+            "upper": 0.9953436578355762
+          },
+          "session_superiority": {
+            "confidence_level": 0.95,
+            "lower": 0.9898988278080095,
+            "rate": 0.993,
+            "rejections": 3972,
+            "trials": 4000,
+            "upper": 0.9953436578355762
+          }
+        },
+        {
+          "alpha": 0.05,
+          "clark_west_session": {
+            "confidence_level": 0.95,
+            "lower": 0.9990782052505169,
+            "rate": 1.0,
+            "rejections": 4000,
+            "trials": 4000,
+            "upper": 1.0
+          },
+          "design": {
+            "degrees_of_freedom": 5.0,
+            "forecast_correlation": 0.947,
+            "forecast_variance_ratio": 0.272,
+            "innovation": "gaussian",
+            "predictable_share": 0.35,
+            "session_count": 2000,
+            "target_correlation": 0.5697,
+            "target_volatility": 0.019,
+            "unit_count": 4,
+            "volatility": "constant"
+          },
+          "mean_loss_differential_correlation": 0.5047204988005383,
+          "population_covariance_ratio": 0.42,
+          "population_r_squared": 0.14799999999999996,
+          "predicted_row_size": 0.2164236173301669,
+          "replications": 4000,
+          "row_rejection": {
+            "confidence_level": 0.95,
+            "lower": 0.9990782052505169,
+            "rate": 1.0,
+            "rejections": 4000,
+            "trials": 4000,
+            "upper": 1.0
+          },
+          "row_superiority": {
+            "confidence_level": 0.95,
+            "lower": 0.9990782052505169,
+            "rate": 1.0,
+            "rejections": 4000,
+            "trials": 4000,
+            "upper": 1.0
+          },
+          "session_count": 2000,
+          "session_rejection": {
+            "confidence_level": 0.95,
+            "lower": 0.9990782052505169,
+            "rate": 1.0,
+            "rejections": 4000,
+            "trials": 4000,
+            "upper": 1.0
+          },
+          "session_superiority": {
+            "confidence_level": 0.95,
+            "lower": 0.9990782052505169,
+            "rate": 1.0,
+            "rejections": 4000,
+            "trials": 4000,
+            "upper": 1.0
+          }
+        },
+        {
+          "alpha": 0.05,
+          "clark_west_session": {
+            "confidence_level": 0.95,
+            "lower": 0.9990782052505169,
+            "rate": 1.0,
+            "rejections": 4000,
+            "trials": 4000,
+            "upper": 1.0
+          },
+          "design": {
+            "degrees_of_freedom": 5.0,
+            "forecast_correlation": 0.947,
+            "forecast_variance_ratio": 0.272,
+            "innovation": "gaussian",
+            "predictable_share": 0.35,
+            "session_count": 2000,
+            "target_correlation": 0.5697,
+            "target_volatility": 0.019,
+            "unit_count": 4,
+            "volatility": "constant"
+          },
+          "mean_loss_differential_correlation": 0.4927773857938504,
+          "population_covariance_ratio": 0.5,
+          "population_r_squared": 0.22799999999999998,
+          "predicted_row_size": 0.2131328213253143,
+          "replications": 4000,
+          "row_rejection": {
+            "confidence_level": 0.95,
+            "lower": 0.9990782052505169,
+            "rate": 1.0,
+            "rejections": 4000,
+            "trials": 4000,
+            "upper": 1.0
+          },
+          "row_superiority": {
+            "confidence_level": 0.95,
+            "lower": 0.9990782052505169,
+            "rate": 1.0,
+            "rejections": 4000,
+            "trials": 4000,
+            "upper": 1.0
+          },
+          "session_count": 2000,
+          "session_rejection": {
+            "confidence_level": 0.95,
+            "lower": 0.9990782052505169,
+            "rate": 1.0,
+            "rejections": 4000,
+            "trials": 4000,
+            "upper": 1.0
+          },
+          "session_superiority": {
+            "confidence_level": 0.95,
+            "lower": 0.9990782052505169,
+            "rate": 1.0,
+            "rejections": 4000,
+            "trials": 4000,
+            "upper": 1.0
+          }
+        }
+      ],
+      "forecast_variance_ratio": 0.272,
+      "minimum_detectable": [
+        {
+          "clark_west_covariance_ratio": 0.19123898392949717,
+          "diebold_mariano_r_squared": 0.20116701316701313,
+          "power": 0.8,
+          "session_count": 120
+        },
+        {
+          "clark_west_covariance_ratio": 0.1526011560693642,
+          "diebold_mariano_r_squared": 0.13953362360909527,
+          "power": 0.8,
+          "session_count": 250
+        },
+        {
+          "clark_west_covariance_ratio": 0.09572368421052632,
+          "diebold_mariano_r_squared": 0.11457697121401748,
+          "power": 0.8,
+          "session_count": 500
+        },
+        {
+          "clark_west_covariance_ratio": 0.0768985322271857,
+          "diebold_mariano_r_squared": 0.07119138897080504,
+          "power": 0.8,
+          "session_count": 1000
+        },
+        {
+          "clark_west_covariance_ratio": 0.047328859060402684,
+          "diebold_mariano_r_squared": 0.06247240845796799,
+          "power": 0.8,
+          "session_count": 2000
+        }
+      ],
+      "predictable_share": 0.35
+    },
+    "robustness": [
+      {
+        "alpha": 0.05,
+        "clark_west_session": {
+          "confidence_level": 0.95,
+          "lower": 0.9703722032200953,
+          "rate": 0.9737,
+          "rejections": 9737,
+          "trials": 10000,
+          "upper": 0.976747882723926
+        },
+        "design": {
+          "degrees_of_freedom": 5.0,
+          "forecast_correlation": 0.947,
+          "forecast_variance_ratio": 0.272,
+          "innovation": "gaussian",
+          "predictable_share": 0.136,
+          "session_count": 120,
+          "target_correlation": 0.5697,
+          "target_volatility": 0.019,
+          "unit_count": 4,
+          "volatility": "constant"
+        },
+        "mean_loss_differential_correlation": 0.5251935373015593,
+        "population_covariance_ratio": 0.272,
+        "population_r_squared": 0.0,
+        "predicted_row_size": 0.221985055142926,
+        "replications": 10000,
+        "row_rejection": {
+          "confidence_level": 0.95,
+          "lower": 0.21201201367216133,
+          "rate": 0.2201,
+          "rejections": 2201,
+          "trials": 10000,
+          "upper": 0.2283513057289524
+        },
+        "row_superiority": {
+          "confidence_level": 0.95,
+          "lower": 0.10188395420282144,
+          "rate": 0.1079,
+          "rejections": 1079,
+          "trials": 10000,
+          "upper": 0.11414544989622993
+        },
+        "session_rejection": {
+          "confidence_level": 0.95,
+          "lower": 0.04763333849599514,
+          "rate": 0.0519,
+          "rejections": 519,
+          "trials": 10000,
+          "upper": 0.05642994456945638
+        },
+        "session_superiority": {
+          "confidence_level": 0.95,
+          "lower": 0.022687326099779803,
+          "rate": 0.0257,
+          "rejections": 257,
+          "trials": 10000,
+          "upper": 0.028993006828988106
+        },
+        "variant": "gaussian_constant"
+      },
+      {
+        "alpha": 0.05,
+        "clark_west_session": {
+          "confidence_level": 0.95,
+          "lower": 0.9566004885352362,
+          "rate": 0.9606,
+          "rejections": 9606,
+          "trials": 10000,
+          "upper": 0.9643283216907427
+        },
+        "design": {
+          "degrees_of_freedom": 5.0,
+          "forecast_correlation": 0.947,
+          "forecast_variance_ratio": 0.272,
+          "innovation": "student_t",
+          "predictable_share": 0.136,
+          "session_count": 120,
+          "target_correlation": 0.5697,
+          "target_volatility": 0.019,
+          "unit_count": 4,
+          "volatility": "constant"
+        },
+        "mean_loss_differential_correlation": 0.5329561494775475,
+        "population_covariance_ratio": 0.272,
+        "population_r_squared": 0.0,
+        "predicted_row_size": 0.2240677283917919,
+        "replications": 10000,
+        "row_rejection": {
+          "confidence_level": 0.95,
+          "lower": 0.21990594904135316,
+          "rate": 0.2281,
+          "rejections": 2281,
+          "trials": 10000,
+          "upper": 0.2364526863130138
+        },
+        "row_superiority": {
+          "confidence_level": 0.95,
+          "lower": 0.11125066979549336,
+          "rate": 0.1175,
+          "rejections": 1175,
+          "trials": 10000,
+          "upper": 0.12397303025860956
+        },
+        "session_rejection": {
+          "confidence_level": 0.95,
+          "lower": 0.04379660270547772,
+          "rate": 0.0479,
+          "rejections": 479,
+          "trials": 10000,
+          "upper": 0.05226918311562507
+        },
+        "session_superiority": {
+          "confidence_level": 0.95,
+          "lower": 0.02391158385451995,
+          "rate": 0.027,
+          "rejections": 270,
+          "trials": 10000,
+          "upper": 0.030367844449932135
+        },
+        "variant": "student_t5"
+      },
+      {
+        "alpha": 0.05,
+        "clark_west_session": {
+          "confidence_level": 0.95,
+          "lower": 0.9563912911660689,
+          "rate": 0.9604,
+          "rejections": 9604,
+          "trials": 10000,
+          "upper": 0.9641376478841661
+        },
+        "design": {
+          "degrees_of_freedom": 5.0,
+          "forecast_correlation": 0.947,
+          "forecast_variance_ratio": 0.272,
+          "innovation": "gaussian",
+          "predictable_share": 0.136,
+          "session_count": 120,
+          "target_correlation": 0.5697,
+          "target_volatility": 0.019,
+          "unit_count": 4,
+          "volatility": "garch"
+        },
+        "mean_loss_differential_correlation": 0.5241801280700881,
+        "population_covariance_ratio": 0.272,
+        "population_r_squared": 0.0,
+        "predicted_row_size": 0.22171211246929323,
+        "replications": 10000,
+        "row_rejection": {
+          "confidence_level": 0.95,
+          "lower": 0.2116174312377216,
+          "rate": 0.2197,
+          "rejections": 2197,
+          "trials": 10000,
+          "upper": 0.22794612242028453
+        },
+        "row_superiority": {
+          "confidence_level": 0.95,
+          "lower": 0.10237144525489603,
+          "rate": 0.1084,
+          "rejections": 1084,
+          "trials": 10000,
+          "upper": 0.11465766133988163
+        },
+        "session_rejection": {
+          "confidence_level": 0.95,
+          "lower": 0.043221764619582145,
+          "rate": 0.0473,
+          "rejections": 473,
+          "trials": 10000,
+          "upper": 0.051644398531479965
+        },
+        "session_superiority": {
+          "confidence_level": 0.95,
+          "lower": 0.021183437821889785,
+          "rate": 0.0241,
+          "rejections": 241,
+          "trials": 10000,
+          "upper": 0.027298024559967896
+        },
+        "variant": "garch"
+      },
+      {
+        "alpha": 0.05,
+        "clark_west_session": {
+          "confidence_level": 0.95,
+          "lower": 0.8908764303643759,
+          "rate": 0.897,
+          "rejections": 8970,
+          "trials": 10000,
+          "upper": 0.9028912472815337
+        },
+        "design": {
+          "degrees_of_freedom": 5.0,
+          "forecast_correlation": 0.947,
+          "forecast_variance_ratio": 0.272,
+          "innovation": "gaussian",
+          "predictable_share": 0.136,
+          "session_count": 120,
+          "target_correlation": 0.5697,
+          "target_volatility": 0.019,
+          "unit_count": 4,
+          "volatility": "regime"
+        },
+        "mean_loss_differential_correlation": 0.5213413176656463,
+        "population_covariance_ratio": 0.272,
+        "population_r_squared": 0.0,
+        "predicted_row_size": 0.2209462373068216,
+        "replications": 10000,
+        "row_rejection": {
+          "confidence_level": 0.95,
+          "lower": 0.21220930902414492,
+          "rate": 0.2203,
+          "rejections": 2203,
+          "trials": 10000,
+          "upper": 0.2285538932505311
+        },
+        "row_superiority": {
+          "confidence_level": 0.95,
+          "lower": 0.10324903172541222,
+          "rate": 0.1093,
+          "rejections": 1093,
+          "trials": 10000,
+          "upper": 0.11557953948472753
+        },
+        "session_rejection": {
+          "confidence_level": 0.95,
+          "lower": 0.0380569544481094,
+          "rate": 0.0419,
+          "rejections": 419,
+          "trials": 10000,
+          "upper": 0.04601263149861905
+        },
+        "session_superiority": {
+          "confidence_level": 0.95,
+          "lower": 0.01912135564004441,
+          "rate": 0.0219,
+          "rejections": 219,
+          "trials": 10000,
+          "upper": 0.024961694133888684
+        },
+        "variant": "regime_switching"
+      },
+      {
+        "alpha": 0.05,
+        "clark_west_session": {
+          "confidence_level": 0.95,
+          "lower": 0.9383791107285492,
+          "rate": 0.9431,
+          "rejections": 9431,
+          "trials": 10000,
+          "upper": 0.9475607078246481
+        },
+        "design": {
+          "degrees_of_freedom": 5.0,
+          "forecast_correlation": 0.947,
+          "forecast_variance_ratio": 0.272,
+          "innovation": "student_t",
+          "predictable_share": 0.136,
+          "session_count": 120,
+          "target_correlation": 0.5697,
+          "target_volatility": 0.019,
+          "unit_count": 4,
+          "volatility": "garch"
+        },
+        "mean_loss_differential_correlation": 0.5330239295717575,
+        "population_covariance_ratio": 0.272,
+        "population_r_squared": 0.0,
+        "predicted_row_size": 0.2240858510085596,
+        "replications": 10000,
+        "row_rejection": {
+          "confidence_level": 0.95,
+          "lower": 0.22523676487495703,
+          "rate": 0.2335,
+          "rejections": 2335,
+          "trials": 10000,
+          "upper": 0.24191870986251923
+        },
+        "row_superiority": {
+          "confidence_level": 0.95,
+          "lower": 0.10783407470662085,
+          "rate": 0.114,
+          "rejections": 1140,
+          "trials": 10000,
+          "upper": 0.12039170306261485
+        },
+        "session_rejection": {
+          "confidence_level": 0.95,
+          "lower": 0.04092429147388987,
+          "rate": 0.0449,
+          "rejections": 449,
+          "trials": 10000,
+          "upper": 0.04914338663104973
+        },
+        "session_superiority": {
+          "confidence_level": 0.95,
+          "lower": 0.021653044238614295,
+          "rate": 0.0246,
+          "rejections": 246,
+          "trials": 10000,
+          "upper": 0.027828063131972808
+        },
+        "variant": "heavy_tailed_garch"
+      },
+      {
+        "alpha": 0.05,
+        "clark_west_session": {
+          "confidence_level": 0.95,
+          "lower": 0.8143594600132125,
+          "rate": 0.822,
+          "rejections": 8220,
+          "trials": 10000,
+          "upper": 0.8294525298811184
+        },
+        "design": {
+          "degrees_of_freedom": 5.0,
+          "forecast_correlation": 0.947,
+          "forecast_variance_ratio": 0.272,
+          "innovation": "gaussian",
+          "predictable_share": 0.136,
+          "session_count": 60,
+          "target_correlation": 0.5697,
+          "target_volatility": 0.019,
+          "unit_count": 4,
+          "volatility": "constant"
+        },
+        "mean_loss_differential_correlation": 0.5216059963920183,
+        "population_covariance_ratio": 0.272,
+        "population_r_squared": 0.0,
+        "predicted_row_size": 0.22101772505387995,
+        "replications": 10000,
+        "row_rejection": {
+          "confidence_level": 0.95,
+          "lower": 0.22563171574817348,
+          "rate": 0.2339,
+          "rejections": 2339,
+          "trials": 10000,
+          "upper": 0.24232352490343956
+        },
+        "row_superiority": {
+          "confidence_level": 0.95,
+          "lower": 0.11242249124140291,
+          "rate": 0.1187,
+          "rejections": 1187,
+          "trials": 10000,
+          "upper": 0.12520049691357912
+        },
+        "session_rejection": {
+          "confidence_level": 0.95,
+          "lower": 0.043892426755890834,
+          "rate": 0.048,
+          "rejections": 480,
+          "trials": 10000,
+          "upper": 0.05237329622873762
+        },
+        "session_superiority": {
+          "confidence_level": 0.95,
+          "lower": 0.02296966692959865,
+          "rate": 0.026,
+          "rejections": 260,
+          "trials": 10000,
+          "upper": 0.02931045626347555
+        },
+        "variant": "sixty_sessions"
+      },
+      {
+        "alpha": 0.05,
+        "clark_west_session": {
+          "confidence_level": 0.95,
+          "lower": 0.9996311800853812,
+          "rate": 1.0,
+          "rejections": 10000,
+          "trials": 10000,
+          "upper": 1.0
+        },
+        "design": {
+          "degrees_of_freedom": 5.0,
+          "forecast_correlation": 0.947,
+          "forecast_variance_ratio": 0.272,
+          "innovation": "gaussian",
+          "predictable_share": 0.136,
+          "session_count": 500,
+          "target_correlation": 0.5697,
+          "target_volatility": 0.019,
+          "unit_count": 4,
+          "volatility": "constant"
+        },
+        "mean_loss_differential_correlation": 0.5293699167500888,
+        "population_covariance_ratio": 0.272,
+        "population_r_squared": 0.0,
+        "predicted_row_size": 0.22310732347288376,
+        "replications": 10000,
+        "row_rejection": {
+          "confidence_level": 0.95,
+          "lower": 0.22316344307601382,
+          "rate": 0.2314,
+          "rejections": 2314,
+          "trials": 10000,
+          "upper": 0.2397932606880211
+        },
+        "row_superiority": {
+          "confidence_level": 0.95,
+          "lower": 0.10676067041221958,
+          "rate": 0.1129,
+          "rejections": 1129,
+          "trials": 10000,
+          "upper": 0.1192657607835878
+        },
+        "session_rejection": {
+          "confidence_level": 0.95,
+          "lower": 0.047537329102713334,
+          "rate": 0.0518,
+          "rejections": 518,
+          "trials": 10000,
+          "upper": 0.05632601628031238
+        },
+        "session_superiority": {
+          "confidence_level": 0.95,
+          "lower": 0.02296966692959865,
+          "rate": 0.026,
+          "rejections": 260,
+          "trials": 10000,
+          "upper": 0.02931045626347555
+        },
+        "variant": "five_hundred_sessions"
+      },
+      {
+        "alpha": 0.05,
+        "clark_west_session": {
+          "confidence_level": 0.95,
+          "lower": 0.9974029972339952,
+          "rate": 0.9984,
+          "rejections": 9984,
+          "trials": 10000,
+          "upper": 0.9990851938768457
+        },
+        "design": {
+          "degrees_of_freedom": 5.0,
+          "forecast_correlation": 0.4,
+          "forecast_variance_ratio": 0.272,
+          "innovation": "gaussian",
+          "predictable_share": 0.136,
+          "session_count": 120,
+          "target_correlation": 0.5697,
+          "target_volatility": 0.019,
+          "unit_count": 4,
+          "volatility": "constant"
+        },
+        "mean_loss_differential_correlation": 0.22586753143668667,
+        "population_covariance_ratio": 0.272,
+        "population_r_squared": 0.0,
+        "predicted_row_size": 0.13022248165227207,
+        "replications": 10000,
+        "row_rejection": {
+          "confidence_level": 0.95,
+          "lower": 0.12258673498928686,
+          "rate": 0.1291,
+          "rejections": 1291,
+          "trials": 10000,
+          "upper": 0.13583009226009804
+        },
+        "row_superiority": {
+          "confidence_level": 0.95,
+          "lower": 0.062176305399655456,
+          "rate": 0.067,
+          "rejections": 670,
+          "trials": 10000,
+          "upper": 0.07207767968868221
+        },
+        "session_rejection": {
+          "confidence_level": 0.95,
+          "lower": 0.04504270255781008,
+          "rate": 0.0492,
+          "rejections": 492,
+          "trials": 10000,
+          "upper": 0.05362226750780611
+        },
+        "session_superiority": {
+          "confidence_level": 0.95,
+          "lower": 0.022687326099779803,
+          "rate": 0.0257,
+          "rejections": 257,
+          "trials": 10000,
+          "upper": 0.028993006828988106
+        },
+        "variant": "idiosyncratic_forecast"
+      }
+    ],
+    "search": [
+      {
+        "alpha": 0.05,
+        "false_strategy_expectation": {
+          "confidence_level": 0.95,
+          "lower": 0.4257906203218765,
+          "rate": 0.457,
+          "rejections": 457,
+          "trials": 1000,
+          "upper": 0.4884632244183033
+        },
+        "joint_bootstrap_quantile": {
+          "confidence_level": 0.95,
+          "lower": 0.04257554968661717,
+          "rate": 0.056,
+          "rejections": 56,
+          "trials": 1000,
+          "upper": 0.07210774628325274
+        },
+        "mean_independent_equivalent_trials": 67.09979992731239,
+        "replications": 1000,
+        "session_count": 120,
+        "trial_correlation": 0.0,
+        "trial_count": 72
+      },
+      {
+        "alpha": 0.05,
+        "false_strategy_expectation": {
+          "confidence_level": 0.95,
+          "lower": 0.4685491729717918,
+          "rate": 0.5,
+          "rejections": 500,
+          "trials": 1000,
+          "upper": 0.5314508270282081
+        },
+        "joint_bootstrap_quantile": {
+          "confidence_level": 0.95,
+          "lower": 0.03214949701087144,
+          "rate": 0.044,
+          "rejections": 44,
+          "trials": 1000,
+          "upper": 0.058620419206330904
+        },
+        "mean_independent_equivalent_trials": 12.947588132464718,
+        "replications": 1000,
+        "session_count": 120,
+        "trial_correlation": 0.5,
+        "trial_count": 72
+      },
+      {
+        "alpha": 0.05,
+        "false_strategy_expectation": {
+          "confidence_level": 0.95,
+          "lower": 0.45261222785456257,
+          "rate": 0.484,
+          "rejections": 484,
+          "trials": 1000,
+          "upper": 0.5154822197792376
+        },
+        "joint_bootstrap_quantile": {
+          "confidence_level": 0.95,
+          "lower": 0.03387149854767792,
+          "rate": 0.046,
+          "rejections": 46,
+          "trials": 1000,
+          "upper": 0.06088355271374265
+        },
+        "mean_independent_equivalent_trials": 2.6555490944140354,
+        "replications": 1000,
+        "session_count": 120,
+        "trial_correlation": 0.9,
+        "trial_count": 72
+      },
+      {
+        "alpha": 0.05,
+        "false_strategy_expectation": {
+          "confidence_level": 0.95,
+          "lower": 0.4585848707141177,
+          "rate": 0.49,
+          "rejections": 490,
+          "trials": 1000,
+          "upper": 0.5214741586781123
+        },
+        "joint_bootstrap_quantile": {
+          "confidence_level": 0.95,
+          "lower": 0.03387149854767792,
+          "rate": 0.046,
+          "rejections": 46,
+          "trials": 1000,
+          "upper": 0.06088355271374265
+        },
+        "mean_independent_equivalent_trials": 1.6707183527385956,
+        "replications": 1000,
+        "session_count": 120,
+        "trial_correlation": 0.98,
+        "trial_count": 72
+      }
+    ]
+  },
+  "schema_version": 2
+}

@@ -759,7 +759,7 @@ def run_accepted_benchmark(
         }
 
     grid_axes = parse_sensitivity_grid(config.sensitivity_grid)
-    sensitivity_trials = run_configuration_sensitivity(
+    sensitivity_grid = run_configuration_sensitivity(
         configuration_grid(
             min_train_dates=grid_axes["min_train_dates"],
             validation_dates=grid_axes["validation_dates"],
@@ -783,6 +783,7 @@ def run_accepted_benchmark(
         f"_emb{config.embargo_dates}"
         f"_k{config.top_k}"
     )
+    sensitivity_trials = sensitivity_grid.trials
     reported_trial = next(
         (trial for trial in sensitivity_trials if trial.trial_id == reported_trial_id), None
     )
@@ -808,6 +809,7 @@ def run_accepted_benchmark(
         selected=min(config.top_k, len(tickers)),
         seed=config.seed,
         replications=config.bootstrap_iterations,
+        trial_session_returns=sensitivity_grid.aligned_returns(),
     )
 
     data_manifest = {
