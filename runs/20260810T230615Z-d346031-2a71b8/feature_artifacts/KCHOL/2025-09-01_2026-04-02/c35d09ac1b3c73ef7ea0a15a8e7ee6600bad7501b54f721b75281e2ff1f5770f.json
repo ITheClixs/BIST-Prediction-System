@@ -1,11 +1,11 @@
 {
   "lineage": {
-    "calculation_timestamp": "2026-08-09T23:35:45.409889+00:00",
+    "calculation_timestamp": "2026-08-10T23:06:15.956037+00:00",
     "code_version": "accepted-baseline-v2",
     "end_date": "2026-04-02",
     "feature_manifest_hash": "b0349ccf178ddaf18885ffadcf3685d71f845458b211792d82ccbc866c84cf71",
-    "git_commit": "716d379a204e338f4460159ffc940f073fe08a4e",
-    "input_data_manifest_hash": "089204454bc842c9972d7b29e732d2e7334e70b72679959a25cf6696e7705e30",
+    "git_commit": "d346031b41907f15eb205114917781ff42786c87",
+    "input_data_manifest_hash": "25a6b7e4aec4c73e149c031fd35b4b39b83200218ed63e8cfef51b6eac3f624a",
     "start_date": "2025-09-01",
     "ticker": "KCHOL"
   },

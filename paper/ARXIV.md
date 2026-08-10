@@ -3,8 +3,13 @@
 The submission package is built from committed sources, not assembled by hand:
 
 ```bash
-make figures RUN_ID=$(shell grep COMMITTED_RUN_ID Makefile | head -1 | awk '{print $$3}')
-make paper AUTHOR="Mehmet Demir Güven" AFFILIATION="Department of Computer Science, ETH Zürich" ADDRESS="8092 Zürich, Switzerland"
+RUN_ID=$(awk '/^COMMITTED_RUN_ID/ {print $3}' Makefile)
+
+make figures RUN_ID="$RUN_ID"
+make paper   RUN_ID="$RUN_ID" \
+  AUTHOR="Mehmet Demir Güven" \
+  AFFILIATION="Department of Computer Science, ETH Zürich" \
+  ADDRESS="8092 Zürich, Switzerland"
 make arxiv
 ```
 

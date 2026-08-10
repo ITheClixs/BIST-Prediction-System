@@ -1,10 +1,10 @@
 {
-  "created_at": "2026-08-09T23:35:45.409889+00:00",
+  "created_at": "2026-08-10T23:06:15.956037+00:00",
   "dataset_id": "fixed_bist_large_cap_prototype-150d24cf4251",
   "end": "2026-04-03",
   "missing_sessions": [],
   "quality_summary": {
-    "calendar_sha256": "165b784ba79dc0861c66036b248a536ad833fa0fdd7430192f3175c4afccb3ea",
+    "calendar_sha256": "dc0a743089366268e6d9c950271c3dde97a37f118032b54946f902e9946309fa",
     "calendar_source": "https://www.borsaistanbul.com/en/official-holidays",
     "calendar_validation": {
       "duplicate_sessions": [],

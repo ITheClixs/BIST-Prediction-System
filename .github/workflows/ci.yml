@@ -58,7 +58,7 @@ jobs:
       - run: uv sync --locked --all-groups
       - run: make research-invariants
       - name: Document claims match the committed artifacts
-        run: make doc-checks RUN_ID=20260809T233545Z-716d379-2a71b8
+        run: make doc-checks RUN_ID=20260810T230615Z-d346031-2a71b8
       - name: Guarded defects are actually detected
         run: make mutation-check
       - name: Create and replay bounded benchmark

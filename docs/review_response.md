@@ -120,23 +120,56 @@ carries a remark stating that it matches expected maxima and not the distributio
 of the maximum, and that it should not be read as a distributional equivalence.
 The criticism is fair as a warning; it does not describe an unqualified claim.
 
+## Closed since this review
+
+Three of the seven open items were repairable by work rather than by edits, and
+have been. All three changed a published number.
+
+- **Simulation-calibrated inference.** Done, and it falsified a headline claim.
+  `src/bist_predict/research/simulation/` generates panels whose predictable
+  share is fixed by construction and matched to the measured panel, and runs the
+  production estimators on them. Six experiments at up to 10,000 replications
+  each measure the size of the whole stack. Three components fail badly: the
+  row-level equal-accuracy test has size 0.2284 at four names and 0.7913 at a
+  hundred against a nominal 0.05, and follows the closed form
+  2*Phi(-z/sqrt(1+(k-1)*rho)) to within 0.0064; Holm's family-wise error reaches
+  0.5875; and against a zero benchmark a pure-noise fitted forecast is declared
+  significantly worse in 92.19% of replications. Session aggregation, Clark–West
+  and the joint bootstrap hold their level everywhere tested.
+
+- **Nested-model tests.** Done. `inference/nested.py` implements Clark–West with
+  the zero-benchmark restriction verified rather than documented, and it is
+  reported beside every Diebold–Mariano test. It changed the conclusion: the
+  claim that four of six models are "significantly worse than the null" is
+  retracted as a nesting artefact, and no model shows predictive content under
+  the test that is correctly sized for the comparison.
+
+- **Joint resampling of the search.** Done. `inference/joint_search.py`
+  recentres all 72 configurations to zero expected return and resamples them on
+  a single stationary-bootstrap index draw over the 87 sessions every
+  configuration evaluated. It returns an exact p-value of 0.7715 rather than a
+  comparison against an expectation, and measures the grid at a mean pairwise
+  correlation of 0.8395, worth 3.77 independent trials against the closed form's
+  7.01. The simulation confirms the construction recovers a nominal 72 when the
+  trials genuinely are independent.
+
+The review's warning about the effective trial count now has a second, weaker
+reading available: the closed form errs towards claiming more independence than
+the grid has, which is the conservative direction, and both numbers are
+reported.
+
 ## Open, and not addressed here
 
 These are real and are not repaired by any edit to the text.
 
 - **Scale.** Four stocks and 120 evaluated sessions do not support a benchmark
   claim. A point-in-time investable universe over multiple years is required.
-- **Simulation-calibrated inference.** No end-to-end null and alternative
-  simulation exists. Type-I error, power and family-wise error for the whole
-  stack — DM, Holm, Reality Check, SPA, PSR/DSR — are unmeasured under this
-  design's dependence and tail behaviour.
-- **Joint resampling of the search.** Configurations are compared across
-  different evaluation windows. The correct object is the empirical distribution
-  of the maximum statistic under synchronized resampling on common dates.
-- **Nested-model tests.** Squared-error comparison of a fitted model against a
-  zero forecast conflates estimation noise with absence of information; a
-  Clark–West-style test answers the predictive-content question the current
-  design does not.
+  This is the binding limitation and the calibration does not touch it.
+- **The calibration's own idealisations.** Its panels are equicorrelated rather
+  than factor-structured, its forecast families differ only in noise, and its
+  search experiment imposes exchangeable dependence between trials. Each
+  omission runs towards understating the measured error, so the rates are lower
+  bounds rather than point estimates for any particular real design.
 - **Cost calibration.** The schedule is a declared scenario. It is not calibrated
   to BIST quotes, depth, auction mechanics or broker fees, and no claim about
   what a desk would pay is defensible without them.

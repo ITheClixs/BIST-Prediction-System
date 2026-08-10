@@ -29,17 +29,24 @@ __all__ = [
 _NOMINAL = 0.05
 
 
-def _nominal_line(axis: Any, label: str = "nominal 5%") -> None:
-    """Draw the level every rate on the panel is claiming to have."""
+def _nominal_line(axis: Any, label: str = "nominal 5%", *, side: str = "right") -> None:
+    """Draw the level every rate on the panel is claiming to have.
+
+    ``side`` moves the label to whichever end of the line is empty. On a
+    grouped bar chart the rightmost group reaches the nominal level, and a
+    label anchored there sits on top of a bar it is supposed to annotate.
+    """
     axis.axhline(_NOMINAL, color=COLOURS["null"], linewidth=1.4, linestyle="--", zorder=2)
+    anchored = {"right": (0.995, "right"), "left": (0.005, "left")}
+    position, alignment = anchored[side]
     axis.text(
-        0.995,
+        position,
         _NOMINAL,
         label,
         transform=axis.get_yaxis_transform(),
         fontsize=7.0,
         color=COLOURS["null"],
-        ha="right",
+        ha=alignment,
         va="bottom",
     )
 
@@ -300,7 +307,8 @@ def plot_family_wise_error(study: Mapping[str, Any], directory: Path) -> dict[st
                 zorder=3,
                 label=label,
             )
-        _nominal_line(axis)
+        # The rightmost group reaches the nominal level, so the label goes left.
+        _nominal_line(axis, side="left")
         axis.set_xticks(positions)
         axis.set_xticklabels(names, fontsize=7.5)
         axis.set_ylabel("family-wise error rate")

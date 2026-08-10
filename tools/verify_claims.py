@@ -167,15 +167,16 @@ def _detectable(sessions: int, value: str) -> Callable[[Mapping[str, Any]], floa
 
 
 def _largest_closed_form_error(metrics: Mapping[str, Any]) -> float:
-    """Return the worst gap between the predicted and measured row-level size."""
-    cells = [
-        cell
-        for cell in _dig(metrics, "calibration.experiments.dependence")
-        if cell["varied"] == "unit_count"
-    ]
+    """Return the worst gap between the predicted and measured row-level size.
+
+    The manuscript claims this bound "anywhere in the sweep", so every
+    dependence cell counts, not only the ones that vary the cross-section's
+    width. Restricting it to the width sweep would let a bad cell in the
+    correlation sweep pass unnoticed while the sentence still read as checked.
+    """
     return max(
         abs(float(cell["row_rejection"]["rate"]) - float(cell["predicted_row_size"]))
-        for cell in cells
+        for cell in _dig(metrics, "calibration.experiments.dependence")
     )
 
 

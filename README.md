@@ -4,7 +4,7 @@
 
 **Keywords:** simulation calibration, test size, forecast comparison, cross-sectional dependence, nested models, Clark-West, data snooping, superior predictive ability, deflated Sharpe ratio, effective sample size, statistical power, transaction costs, reproducible research.
 
-> **Review response.** [`docs/review_response.md`](docs/review_response.md) records an external review of the manuscript, the three claims it falsified, what was corrected, which objections did not hold, and what remains open. The scale limitation is real: this is a prototype and a methods note, not a benchmark.
+> **Review response.** [`docs/review_response.md`](docs/review_response.md) records an external review of the manuscript, the three claims it falsified, what was corrected, which objections did not hold, and what remains open. Three of its seven open items are now closed — simulation-calibrated inference, nested-model tests, and joint resampling of the search — and closing them retracted a published claim. The scale limitation is not closed and is the binding one: this is a prototype and a methods note, not a benchmark.
 
 > **Manuscript.** [`paper.pdf`](paper.pdf) is the full-length preprint: the same results with the proofs, the appendices and the executed fold table. It is regenerated from the committed run bundle by `make paper`.
 
@@ -35,7 +35,7 @@ Section 5 measures it, by generating panels whose truth is fixed by construction
 | False Strategy Theorem threshold, any trial correlation | — | **cleared ~half the time** |
 | *Session aggregation + Clark-West + joint bootstrap* | 0.05 | **0.0385 – 0.0565** |
 
-This repository is built the other way around from the usual study. The question is not *can a model be found that beats the benchmark*, but *if such a model existed, would this apparatus detect it, would it say so honestly, and does it*. Five commitments follow.
+This repository is built the other way around from the usual study. The question is not *can a model be found that beats the benchmark*, but *if such a model existed, would this apparatus detect it, would it say so honestly, and does it*. Six commitments follow.
 
 **The target is executable.** The label is the return the simulated portfolio can actually earn under its own stated timing: signal after the close of session $t$, execution at the observed open of session $t+1$, exit at that session's official close. Nothing is predicted that could not have been traded.
 
@@ -497,8 +497,8 @@ The block below is generated from the immutable run artifacts by `bist_predict.r
 
 | Field | Value |
 |---|---|
-| Run | `20260809T233545Z-716d379-2a71b8` |
-| Git commit | `716d379a204e` (dirty working tree recorded) |
+| Run | `20260810T230615Z-d346031-2a71b8` |
+| Git commit | `d346031b4190` (clean working tree recorded) |
 | Dataset | `fixed_bist_large_cap_prototype-150d24cf4251` |
 | Scope | `fixed_bist_large_cap_prototype` |
 | Tickers | GARAN, ISCTR, KCHOL, THYAO |
@@ -745,18 +745,18 @@ Regenerate the figures, the generated document blocks, and the claim check:
 
 ```bash
 make calibrate
-make figures        RUN_ID=20260809T233545Z-716d379-2a71b8
-make readme-results RUN_ID=20260809T233545Z-716d379-2a71b8
-make verify-claims  RUN_ID=20260809T233545Z-716d379-2a71b8
+make figures        RUN_ID=20260810T230615Z-d346031-2a71b8
+make readme-results RUN_ID=20260810T230615Z-d346031-2a71b8
+make verify-claims  RUN_ID=20260810T230615Z-d346031-2a71b8
 ```
 
 Build a new run from explicit, provenance-bearing inputs:
 
 ```bash
 make benchmark \
-  INPUT=runs/20260809T233545Z-716d379-2a71b8/input_prices.parquet \
-  ACTIONS=runs/20260809T233545Z-716d379-2a71b8/corporate_actions.parquet \
-  ACTION_COVERAGE=runs/20260809T233545Z-716d379-2a71b8/corporate_action_coverage.parquet
+  INPUT=runs/20260810T230615Z-d346031-2a71b8/input_prices.parquet \
+  ACTIONS=runs/20260810T230615Z-d346031-2a71b8/corporate_actions.parquet \
+  ACTION_COVERAGE=runs/20260810T230615Z-d346031-2a71b8/corporate_action_coverage.parquet
 ```
 
 The optional Rust indicator library builds from inside its own crate directory, because `maturin` resolves the Python project from the working directory rather than from the manifest path:
