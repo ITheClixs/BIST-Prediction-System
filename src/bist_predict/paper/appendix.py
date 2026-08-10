@@ -171,35 +171,46 @@ def feature_manifest_appendix() -> str:
     )
 
 
+def _breakable(value: str) -> str:
+    r"""Return a typewriter value TeX is allowed to break inside.
+
+    Configuration values such as the sensitivity grid are long runs of
+    punctuation-separated tokens with no spaces, and a column that cannot break
+    them overflows the text block. Break opportunities are offered after the
+    separators, which is where a reader would break the string anyway.
+    """
+    escaped = escape_latex(value)
+    for separator in ("|", ",", "="):
+        escaped = escaped.replace(separator, separator + r"\allowbreak{}")
+    return escaped
+
+
 def execution_appendix(config: Mapping[str, Any]) -> str:
     """Render the declared configuration of the committed run, grouped by role."""
     remaining = {str(key): value for key, value in config.items()}
     rows: list[str] = []
+
+    def entry(key: str, value: Any) -> str:
+        rendered = f"{value:g}" if isinstance(value, float) else str(value)
+        return rf"\quad \texttt{{{escape_latex(key)}}} & \texttt{{{_breakable(rendered)}}}"
+
     for group, keys in _CONFIG_GROUPS:
         present = [key for key in keys if key in remaining]
         if not present:
             continue
         rows.append(rf"\multicolumn{{2}}{{l}}{{\emph{{{group}}}}}")
         for key in present:
-            value = remaining.pop(key)
-            rendered = f"{value:g}" if isinstance(value, float) else str(value)
-            rows.append(
-                rf"\quad \texttt{{{escape_latex(key)}}} & \texttt{{{escape_latex(rendered)}}}"
-            )
+            rows.append(entry(key, remaining.pop(key)))
     if remaining:
         rows.append(r"\multicolumn{2}{l}{\emph{Other}}")
         for key in sorted(remaining):
-            value = remaining[key]
-            rendered = f"{value:g}" if isinstance(value, float) else str(value)
-            rows.append(
-                rf"\quad \texttt{{{escape_latex(key)}}} & \texttt{{{escape_latex(rendered)}}}"
-            )
+            rows.append(entry(key, remaining[key]))
     return _longtable(
         "The committed run configuration, verbatim from the bundle. These values enter the "
         "configuration hash, so a change to any of them produces a different run identity rather "
         "than a silently different result.",
         "configuration",
-        "lr",
+        "lp{0.55\\textwidth}",
         "Parameter & Value",
         rows,
     )

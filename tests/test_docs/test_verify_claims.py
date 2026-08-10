@@ -15,26 +15,41 @@ RUN = accepted_run_directory()
 pytestmark = pytest.mark.skipif(not RUN.is_dir(), reason="committed accepted run is unavailable")
 
 
-def _run(document: Path) -> subprocess.CompletedProcess[str]:
-    return subprocess.run(
-        [
-            sys.executable,
-            str(ROOT / "tools" / "verify_claims.py"),
-            "--run",
-            str(RUN),
-            "--document",
-            str(document),
-        ],
-        capture_output=True,
-        text=True,
-        cwd=ROOT,
-    )
+MANUSCRIPT = ROOT / "paper" / "main.tex"
 
 
-def test_the_committed_readme_passes_every_claim() -> None:
-    result = _run(ROOT / "README.md")
+def _run(*documents: Path) -> subprocess.CompletedProcess[str]:
+    arguments = [sys.executable, str(ROOT / "tools" / "verify_claims.py"), "--run", str(RUN)]
+    for document in documents:
+        arguments += ["--document", str(document)]
+    return subprocess.run(arguments, capture_output=True, text=True, cwd=ROOT)
+
+
+def test_the_committed_documents_pass_every_claim() -> None:
+    """Both documents are checked together, as `make verify-claims` checks them.
+
+    A claim stated in the manuscript but not in the README is still a claim the
+    project makes, and it is still resolved against the artifact that decides
+    it. Checking either document alone would report the other's claims as
+    missing rather than as unverified.
+    """
+    result = _run(ROOT / "README.md", MANUSCRIPT)
     assert result.returncode == 0, result.stdout + result.stderr
     assert "checks passed" in result.stdout
+
+
+def test_a_drifting_manuscript_number_is_rejected(tmp_path: Path) -> None:
+    """The manuscript's calibration figures are checked, not only the README's."""
+    text = MANUSCRIPT.read_text(encoding="utf-8")
+    anchor = "significantly worse than the benchmark in $92.19\\%$"
+    assert anchor in text, "anchor no longer present in the manuscript"
+    document = tmp_path / "main.tex"
+    document.write_text(
+        text.replace(anchor, "significantly worse than the benchmark in $12.34\\%$"),
+        encoding="utf-8",
+    )
+    result = _run(ROOT / "README.md", document)
+    assert result.returncode == 1, result.stdout
 
 
 @pytest.mark.parametrize(
@@ -48,12 +63,18 @@ def test_the_committed_readme_passes_every_claim() -> None:
     ],
 )
 def test_a_drifting_number_is_rejected(tmp_path: Path, original: str, corrupted: str) -> None:
-    """Changing one figure in the prose must turn the check red."""
+    """Changing one figure in the prose must turn the check red.
+
+    The manuscript is passed alongside the corrupted README so that the drift
+    is the only reason the check can fail. Checking the README alone would fail
+    on the manuscript's own claims being absent, and the test would pass
+    whatever the corruption did.
+    """
     text = (ROOT / "README.md").read_text(encoding="utf-8")
     assert original in text, f"anchor no longer present: {original}"
     document = tmp_path / "README.md"
     document.write_text(text.replace(original, corrupted), encoding="utf-8")
-    result = _run(document)
+    result = _run(document, MANUSCRIPT)
     assert result.returncode == 1, result.stdout
 
 
@@ -62,7 +83,7 @@ def test_deleting_a_claim_sentence_is_also_rejected(tmp_path: Path) -> None:
     text = (ROOT / "README.md").read_text(encoding="utf-8")
     document = tmp_path / "README.md"
     document.write_text(text.replace("deflated Sharpe ratio of", "value of"), encoding="utf-8")
-    result = _run(document)
+    result = _run(document, MANUSCRIPT)
     assert result.returncode == 1
     assert "anchor text absent" in result.stdout
 
@@ -71,6 +92,6 @@ def test_a_stale_generated_block_is_rejected(tmp_path: Path) -> None:
     text = (ROOT / "README.md").read_text(encoding="utf-8")
     document = tmp_path / "README.md"
     document.write_text(text.replace("| Sharpe |", "| Sharpe (stale) |"), encoding="utf-8")
-    result = _run(document)
+    result = _run(document, MANUSCRIPT)
     assert result.returncode == 1
     assert "STALE" in result.stdout

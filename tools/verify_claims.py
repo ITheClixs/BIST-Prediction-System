@@ -109,6 +109,76 @@ def _better_than_null(metrics: Mapping[str, Any]) -> float:
     )
 
 
+def _cell(
+    experiment: str, selector: str, value: str, *, key: str = "variant"
+) -> Callable[[Mapping[str, Any]], float]:
+    """Resolve one field of one labelled cell of the calibration study.
+
+    The study stores each experiment as a list of cells identified by a label
+    rather than by position, so a claim that named a position would silently
+    follow the wrong cell if the sweep were reordered.
+    """
+
+    def resolve(metrics: Mapping[str, Any]) -> float:
+        cells = _dig(metrics, f"calibration.experiments.{experiment}")
+        for cell in cells:
+            if str(cell[key]) == selector:
+                return float(_dig(cell, value))
+        raise KeyError(f"no cell with {key}={selector!r} in experiment {experiment!r}")
+
+    return resolve
+
+
+def _unit_cell(units: int, value: str) -> Callable[[Mapping[str, Any]], float]:
+    """Resolve a field of the dependence sweep cell with a given cross-section."""
+
+    def resolve(metrics: Mapping[str, Any]) -> float:
+        cells = _dig(metrics, "calibration.experiments.dependence")
+        for cell in cells:
+            if cell["varied"] == "unit_count" and int(cell["design"]["unit_count"]) == units:
+                return float(_dig(cell, value))
+        raise KeyError(f"no dependence cell with {units} units")
+
+    return resolve
+
+
+def _search_cell(correlation: float, value: str) -> Callable[[Mapping[str, Any]], float]:
+    """Resolve a field of the search cell at a given trial correlation."""
+
+    def resolve(metrics: Mapping[str, Any]) -> float:
+        for cell in _dig(metrics, "calibration.experiments.search"):
+            if abs(float(cell["trial_correlation"]) - correlation) < 1e-9:
+                return float(_dig(cell, value))
+        raise KeyError(f"no search cell at trial correlation {correlation}")
+
+    return resolve
+
+
+def _detectable(sessions: int, value: str) -> Callable[[Mapping[str, Any]], float]:
+    """Resolve a minimum detectable effect at a given record length."""
+
+    def resolve(metrics: Mapping[str, Any]) -> float:
+        for record in _dig(metrics, "calibration.experiments.power.minimum_detectable"):
+            if int(record["session_count"]) == sessions:
+                return float(record[value])
+        raise KeyError(f"no minimum detectable effect at {sessions} sessions")
+
+    return resolve
+
+
+def _largest_closed_form_error(metrics: Mapping[str, Any]) -> float:
+    """Return the worst gap between the predicted and measured row-level size."""
+    cells = [
+        cell
+        for cell in _dig(metrics, "calibration.experiments.dependence")
+        if cell["varied"] == "unit_count"
+    ]
+    return max(
+        abs(float(cell["row_rejection"]["rate"]) - float(cell["predicted_row_size"]))
+        for cell in cells
+    )
+
+
 CLAIMS: tuple[Claim, ...] = (
     Claim(
         "out-of-sample rows",
@@ -312,11 +382,202 @@ CLAIMS: tuple[Claim, ...] = (
         _field("inference.detectability.independent_trial_threshold"),
         tolerance=5e-5,
     ),
+    # --- Clark-West and the joint search, from the run bundle -----------------
+    Claim(
+        "joint search p-value",
+        r"exact (?:joint )?bootstrap p-value is \$?(?P<value>\d+(?:\.\d+)?)",
+        _field("inference.joint_search.p_value"),
+        tolerance=5e-5,
+    ),
+    Claim(
+        "correlation between configurations",
+        r"mean pairwise correlation between configurations is \$?(?P<value>\d+(?:\.\d+)?)",
+        _field("inference.joint_search.mean_pairwise_correlation"),
+        tolerance=5e-5,
+    ),
+    Claim(
+        "independent-equivalent trials from the bootstrap",
+        r"behaves like \$?(?P<value>\d+(?:\.\d+)?)\$? independent trials",
+        _field("inference.joint_search.independent_equivalent_trials"),
+        tolerance=5e-3,
+    ),
+    Claim(
+        "sessions common to every configuration",
+        r"on the (?P<value>\d+) sessions every configuration evaluated",
+        _field("inference.joint_search.session_count"),
+        tolerance=0.5,
+    ),
+    Claim(
+        "expected maximum under the joint null",
+        r"against an expected\s+maximum of \$?(?P<value>\d+(?:\.\d+)?)",
+        _field("inference.joint_search.null_expected_maximum"),
+        tolerance=5e-5,
+    ),
+    # --- The calibration study ------------------------------------------------
+    Claim(
+        "measured row-level size at four names",
+        r"row-level test rejects a true null \$?(?P<value>\d+(?:\.\d+)?)",
+        _unit_cell(4, "row_rejection.rate"),
+        scale=100.0,
+        tolerance=5e-3,
+    ),
+    Claim(
+        "predicted row-level size at four names",
+        r"time on four names against a predicted \$?(?P<value>\d+(?:\.\d+)?)",
+        _unit_cell(4, "predicted_row_size"),
+        scale=100.0,
+        tolerance=5e-3,
+    ),
+    Claim(
+        "measured row-level size at thirty names",
+        r"\$(?P<value>\d+(?:\.\d+)?)%\$ on thirty against a predicted",
+        _unit_cell(30, "row_rejection.rate"),
+        scale=100.0,
+        tolerance=5e-3,
+    ),
+    Claim(
+        "measured row-level size at a hundred names",
+        r"and \$(?P<value>\d+(?:\.\d+)?)%\$ on a hundred against a predicted",
+        _unit_cell(100, "row_rejection.rate"),
+        scale=100.0,
+        tolerance=5e-3,
+    ),
+    Claim(
+        "largest closed-form discrepancy",
+        r"largest discrepancy anywhere in the sweep is \$?(?P<value>\d+(?:\.\d+)?)",
+        _largest_closed_form_error,
+        tolerance=5e-5,
+    ),
+    Claim(
+        "measured session-level size at four names",
+        r"the session-level test \$(?P<value>\d+(?:\.\d+)?)%",
+        _unit_cell(4, "session_rejection.rate"),
+        scale=100.0,
+        tolerance=5e-3,
+    ),
+    Claim(
+        "nested-null rejection rate against the candidate",
+        r"significantly worse than the benchmark in \$(?P<value>\d+(?:\.\d+)?)%",
+        _cell("nested", "anchor", "diebold_mariano_against_candidate.rate"),
+        scale=100.0,
+        tolerance=5e-3,
+    ),
+    Claim(
+        "nested-null rate at a loud forecast",
+        r"variance ratio of \$0\.60\$ it reaches \$(?P<value>\d+(?:\.\d+)?)%",
+        _cell("nested", "loud_forecast", "diebold_mariano_against_candidate.rate"),
+        scale=100.0,
+        tolerance=5e-3,
+    ),
+    Claim(
+        "nested-null rate at a quiet forecast",
+        r"ratio of \$0\.05\$, falls to \$(?P<value>\d+(?:\.\d+)?)%",
+        _cell("nested", "quiet_forecast", "diebold_mariano_against_candidate.rate"),
+        scale=100.0,
+        tolerance=5e-3,
+    ),
+    Claim(
+        "Clark-West row-level size at thirty names",
+        r"at thirty names it reaches \$?(?P<value>\d+(?:\.\d+)?)\$?",
+        _cell("nested", "thirty_names", "clark_west_row.rate"),
+        tolerance=5e-5,
+    ),
+    Claim(
+        "Holm family-wise error at row level, four names",
+        r"family-wise error is \$(?P<value>\d+(?:\.\d+)?)\$ at four names",
+        _cell("family", "anchor", "holm_row.rate"),
+        tolerance=5e-5,
+    ),
+    Claim(
+        "Holm family-wise error at row level, thirty names",
+        r"and \$(?P<value>\d+(?:\.\d+)?)\$ at thirty, while the identical",
+        _cell("family", "thirty_names", "holm_row.rate"),
+        tolerance=5e-5,
+    ),
+    Claim(
+        "Holm family-wise error at session level, four names",
+        r"session-aggregated statistics gives \$(?P<value>\d+(?:\.\d+)?)\$",
+        _cell("family", "anchor", "holm_session.rate"),
+        tolerance=5e-5,
+    ),
+    Claim(
+        "Holm family-wise error at session level, thirty names",
+        r"statistics gives \$\d+(?:\.\d+)?\$ and \$(?P<value>\d+(?:\.\d+)?)\$",
+        _cell("family", "thirty_names", "holm_session.rate"),
+        tolerance=5e-5,
+    ),
+    Claim(
+        "false strategy expectation cleared at the highest trial correlation",
+        r"clears the expected maximum in \$\d+(?:\.\d+)?\\?%\$ to \$(?P<value>\d+(?:\.\d+)?)%\$",
+        _search_cell(0.5, "false_strategy_expectation.rate"),
+        scale=100.0,
+        tolerance=5e-3,
+    ),
+    Claim(
+        "SPA size, untruncated variant",
+        r"puts the variant at \$?(?P<value>\d+(?:\.\d+)?)\$?",
+        _cell("family", "anchor", "spa_untruncated.rate"),
+        tolerance=5e-5,
+    ),
+    Claim(
+        "SPA size, Hansen definition",
+        r"own\s+definition at \$?(?P<value>\d+(?:\.\d+)?)\$?",
+        _cell("family", "anchor", "spa_hansen.rate"),
+        tolerance=5e-5,
+    ),
+    Claim(
+        "independent-equivalent trials recovered when trials are independent",
+        r"it recovers \$?(?P<value>\d+(?:\.\d+)?)\$? of a nominal",
+        _search_cell(0.0, "mean_independent_equivalent_trials"),
+        tolerance=5e-3,
+    ),
+    Claim(
+        "joint bootstrap size at the highest trial correlation",
+        r"and \$?(?P<value>\d+(?:\.\d+)?)\$? at the four correlation levels",
+        _search_cell(0.98, "joint_bootstrap_quantile.rate"),
+        tolerance=5e-5,
+    ),
+    Claim(
+        "minimum detectable R-squared by simulation at 120 sessions",
+        r"equal-accuracy test requires a population \$R\^2_0\$ of \$?(?P<value>\d+(?:\.\d+)?)",
+        _detectable(120, "diebold_mariano_r_squared"),
+        tolerance=5e-5,
+    ),
+    Claim(
+        "minimum detectable covariance ratio at 120 sessions",
+        r"Clark-{2}West requires a covariance ratio of \$?(?P<value>\d+(?:\.\d+)?)",
+        _detectable(120, "clark_west_covariance_ratio"),
+        tolerance=5e-5,
+    ),
 )
 
 
+_LATEX_LITERALS = (
+    ("{,}", ","),  # a LaTeX thin-space digit separator, as in 1{,}004
+    ("\\%", "%"),
+    ("\\,", ""),
+    ("~", " "),
+)
+
+
+def _normalise(text: str) -> str:
+    r"""Return document text a single claim pattern can match in either format.
+
+    The same claim is stated in Markdown prose and in LaTeX, where a thousands
+    separator is ``1{,}004`` rather than ``1,004`` and a sentence may wrap
+    mid-number. Without this, a pattern tuned to one document silently matches
+    the wrong digits in the other: ``1{,}004 provider rows`` reads as ``4``.
+    Line structure carries no meaning for these claims, so whitespace is
+    collapsed and every pattern can be written as though the document were one
+    line.
+    """
+    for source, replacement in _LATEX_LITERALS:
+        text = text.replace(source, replacement)
+    return re.sub(r"\s+", " ", text)
+
+
 def _document_text(paths: Sequence[Path]) -> str:
-    return "\n".join(path.read_text(encoding="utf-8") for path in paths)
+    return _normalise("\n".join(path.read_text(encoding="utf-8") for path in paths))
 
 
 def _block_content(document: str, block: str) -> str | None:
@@ -327,22 +588,26 @@ def _block_content(document: str, block: str) -> str | None:
     return document[document.index(start) + len(start) : document.index(end)].strip("\n")
 
 
-def _artifacts(run_path: Path) -> dict[str, Any]:
+def _artifacts(run_path: Path, calibration_path: Path) -> dict[str, Any]:
     def load(name: str) -> Any:
         return json.loads((run_path / name).read_text(encoding="utf-8"))
 
     metrics = load("metrics.json")
+    # The calibration study is a second immutable artifact with its own hash. It
+    # is merged under one key rather than flattened, so a calibration claim can
+    # never accidentally resolve against a run-bundle field of the same name.
     return {
         **metrics,
         "metrics": metrics,
         "data_manifest": load("data_manifest.json"),
         "run_manifest": load("run_manifest.json"),
         "universe_manifest": load("universe_manifest.json"),
+        "calibration": json.loads(calibration_path.read_text(encoding="utf-8")),
     }
 
 
-def check(documents: Sequence[Path], run_path: Path) -> int:
-    metrics = _artifacts(run_path)
+def check(documents: Sequence[Path], run_path: Path, calibration_path: Path) -> int:
+    metrics = _artifacts(run_path, calibration_path)
     rows: list[tuple[str, str, str, str]] = []
     failures = 0
 
@@ -406,9 +671,19 @@ def main(argv: Sequence[str] | None = None) -> int:
         default=None,
         help="document to check; repeatable",
     )
+    parser.add_argument(
+        "--calibration",
+        type=Path,
+        default=ROOT / "calibration" / "study.json",
+        help="simulation calibration study",
+    )
     arguments = parser.parse_args(argv)
-    documents = arguments.document or [ROOT / "README.md"]
-    return check([Path(item) for item in documents], Path(arguments.run))
+    documents = arguments.document or [ROOT / "README.md", ROOT / "paper" / "main.tex"]
+    return check(
+        [Path(item) for item in documents],
+        Path(arguments.run),
+        Path(arguments.calibration),
+    )
 
 
 if __name__ == "__main__":

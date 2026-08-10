@@ -78,10 +78,8 @@ MUTATIONS = [
     (
         "SPA: compare floored maxima, collapsing the comparison onto the atom at zero",
         "src/bist_predict/research/inference/snooping.py",
-        "        p_values[name] = float(np.mean(np.max(adjusted, axis=1) > observed_maximum))",
-        "        p_values[name] = float(\n"
-        "            np.mean(np.maximum(0.0, np.max(adjusted, axis=1)) > max(0.0, observed_maximum))\n"
-        "        )",
+        "        p_values[name] = float(np.mean(draws > observed_maximum))",
+        "        p_values[name] = float(np.mean(np.maximum(draws, 0.0) > max(observed_maximum, 0.0)))",
         "tests/test_research/test_inference_snooping.py::test_a_family_of_inferior_candidates_reports_no_evidence",
     ),
     (
@@ -132,6 +130,59 @@ MUTATIONS = [
         '    sensitivity_grid: str = "train=24,36,48|val=5,10,20|embargo=1,2|topk=1,2,3,4"',
         '    sensitivity_grid: str = "train=36,48|val=5,20|embargo=2|topk=1,2,4"',
         "tests/test_research/test_accepted_benchmark.py::test_accepted_configuration_appears_in_its_own_sensitivity_grid",
+    ),
+    (
+        "Clark-West: drop the factor of two from the encompassing adjustment",
+        "src/bist_predict/research/inference/nested.py",
+        "    adjusted = (\n        2.0\n"
+        '        * rows["target"].to_numpy(dtype=np.float64)\n'
+        '        * rows["predicted_return"].to_numpy(dtype=np.float64)\n'
+        "    )",
+        "    adjusted = (\n"
+        '        rows["target"].to_numpy(dtype=np.float64)\n'
+        '        * rows["predicted_return"].to_numpy(dtype=np.float64)\n'
+        "    )",
+        "tests/test_research/test_inference_nested.py::test_the_adjustment_is_twice_the_product_of_target_and_forecast",
+    ),
+    (
+        "Clark-West: make the one-sided test two-sided and halve its power",
+        "src/bist_predict/research/inference/nested.py",
+        "        p_value=float(stats.norm.sf(statistic)),",
+        "        p_value=float(2.0 * stats.norm.sf(abs(statistic))),",
+        "tests/test_research/test_inference_nested.py::test_the_test_is_one_sided",
+    ),
+    (
+        # A skill-free grid cannot guard this: its means are already near zero,
+        # so removing the recentring barely moves the null. The defect only
+        # shows when a configuration has a mean worth removing, at which point
+        # leaving it in the bootstrap raises the null to meet the observation.
+        "Joint search: skip the recentring, so the joint null is never imposed",
+        "src/bist_predict/research/inference/joint_search.py",
+        "    centred = values - observed_mean",
+        "    centred = values",
+        "tests/test_research/test_inference_joint_search.py::test_a_genuinely_strong_configuration_is_rejected",
+    ),
+    (
+        "Joint search: resample each configuration on its own index draw",
+        "src/bist_predict/research/inference/joint_search.py",
+        "    draws = _sharpe_along_axis(centred[indices])",
+        "    draws = _sharpe_along_axis(\n"
+        "        np.stack(\n"
+        "            [\n"
+        "                centred[\n"
+        "                    stationary_bootstrap_indices(\n"
+        "                        count,\n"
+        "                        block_length=chosen_block,\n"
+        "                        replications=replications,\n"
+        "                        rng=np.random.default_rng(seed + column),\n"
+        "                    )\n"
+        "                ][:, :, column]\n"
+        "                for column in range(values.shape[1])\n"
+        "            ],\n"
+        "            axis=2,\n"
+        "        )\n"
+        "    )",
+        "tests/test_research/test_inference_joint_search.py::test_the_effective_trial_count_falls_as_the_grid_becomes_redundant",
     ),
 ]
 

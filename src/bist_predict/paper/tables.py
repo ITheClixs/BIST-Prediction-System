@@ -144,6 +144,71 @@ def accuracy_test_table(metrics: Mapping[str, Any]) -> str:
     )
 
 
+def nested_test_table(metrics: Mapping[str, Any]) -> str:
+    """Clark-West tests of predictive content against the zero benchmark."""
+    content = metrics["inference"]["predictive_content"]
+    session = content["session_aggregated"]
+    adjusted = content["family_wise_correction"]["adjusted_p_values"]
+    labels = {
+        "predictive_content": "content",
+        "no_predictive_content": "none",
+    }
+    rows = []
+    for name in sorted(session, key=lambda key: -float(session[key]["statistic"])):
+        test = session[name]
+        rows.append(
+            " & ".join(
+                (
+                    rf"\texttt{{{escape_latex(name)}}}",
+                    f"{float(test['mean_adjusted_differential']):+.3e}",
+                    f"{float(test['statistic']):+.3f}",
+                    f"{float(test['p_value']):.4f}",
+                    f"{float(adjusted[name]):.4f}",
+                    labels[str(test["verdict"])],
+                )
+            )
+        )
+    return _table(
+        "Clark--West tests of predictive content against the zero-return benchmark. The adjusted "
+        "differential is $f_t = 2 r_t \\hat r_t$, whose expectation is zero under the null that "
+        "the population forecast is zero and positive whenever the forecast covaries with the "
+        "target. The test is one-sided and, unlike the squared-error comparison in "
+        "Table~\\ref{tab:accuracy}, is correctly sized for this nested pair.",
+        "nested",
+        "lrrrrl",
+        "Model & $\\bar f$ & $CW$ & $p$ & Holm $p$ & Verdict",
+        rows,
+    )
+
+
+def joint_search_table(metrics: Mapping[str, Any]) -> str:
+    """The best configuration against a bootstrap of the whole grid."""
+    joint = metrics["inference"]["joint_search"]
+    rows = [
+        f"Configurations resampled jointly & {int(joint['trial_count'])}",
+        f"Sessions common to every configuration & {int(joint['session_count'])}",
+        "Mean pairwise correlation between configurations & "
+        f"{float(joint['mean_pairwise_correlation']):.4f}",
+        f"Stationary bootstrap block length & {float(joint['block_length']):.2f}",
+        rf"Best configuration & \texttt{{{escape_latex(joint['best_trial'])}}}",
+        f"Its per-session Sharpe ratio & {float(joint['best_per_period_sharpe']):.4f}",
+        f"Expected maximum under the joint null & {float(joint['null_expected_maximum']):.4f}",
+        f"95th percentile under the joint null & {float(joint['null_quantile_95']):.4f}",
+        f"Exact bootstrap p-value & {float(joint['p_value']):.4f}",
+        f"Independent-equivalent trials & {float(joint['independent_equivalent_trials']):.2f}",
+    ]
+    return _table(
+        "The best of the configuration grid against a stationary bootstrap that recentres every "
+        "configuration to zero expected return and resamples all of them on a single index draw. "
+        "Unlike the deflated Sharpe ratio this assumes nothing about how the trials disperse, and "
+        "it returns a critical value and a p-value rather than an expectation.",
+        "joint_search",
+        "lr",
+        "Quantity & Value",
+        rows,
+    )
+
+
 def snooping_table(metrics: Mapping[str, Any]) -> str:
     """Joint tests over the whole model family."""
     snooping = metrics["inference"]["data_snooping"]
@@ -455,6 +520,8 @@ TABLE_BUILDERS = {
     "dependence": dependence_table,
     "prediction": prediction_table,
     "accuracy": accuracy_test_table,
+    "nested": nested_test_table,
+    "joint_search": joint_search_table,
     "snooping": snooping_table,
     "sharpe": sharpe_table,
     "portfolio": portfolio_table,

@@ -33,3 +33,17 @@ prediction_tracking/
 
 # Local configuration; config.example.toml is the committed template.
 config.toml
+
+# The arXiv package is assembled from committed sources by tools/build_arxiv.py.
+# Committing the staging tree or the tarball would store the same bytes twice
+# and let the two drift.
+paper/arxiv/
+paper/arxiv-submission.tar.gz
+
+# Intermediates left by the typesetter.
+paper/main.aux
+paper/main.bbl
+paper/main.blg
+paper/main.log
+paper/main.out
+paper/main.xdv

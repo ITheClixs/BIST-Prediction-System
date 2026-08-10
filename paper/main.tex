@@ -41,8 +41,8 @@
 \setcounter{bottomnumber}{2}
 \setcounter{totalnumber}{5}
 
-\title{Nothing Beats Zero: Detectability Bounds for a Leakage-Controlled,
-Search-Corrected Borsa Istanbul Forecasting Benchmark}
+\title{Nothing Beats Zero, and the Standard Tests Cannot Tell:\\
+Simulation Calibration of Forecast Comparison on Correlated Equity Panels}
 
 \input{generated/authors}
 
@@ -51,41 +51,32 @@ Search-Corrected Borsa Istanbul Forecasting Benchmark}
 \maketitle
 
 \begin{abstract}
-Short-horizon equity forecasting studies usually report a model that beats a
-benchmark. This one reports the apparatus that would have detected such a model,
-the finding that none exists in the data examined, and---the part that is
-usually missing---a quantitative account of what that finding is worth. On a
-fixed four-stock Borsa Istanbul prototype universe over 251 sessions, seven
-forecasters are fitted under a date-grouped purged walk-forward protocol with an
-executable next-open-to-close target, and every out-of-sample prediction is
-persisted. The 480 out-of-sample rows are shown to carry roughly 177 independent
-observations because same-session returns correlate at $0.570$; loss
-differentials are therefore aggregated to one value per session, which
-multiplies the resulting p-values by a median factor of 52.
-Diebold--Mariano tests with the Harvey--Leybourne--Newbold correction under Holm
-family-wise control find four of six fitted models significantly \emph{worse}
-than a zero-return null and none better, Hansen's test of superior predictive
-ability does not reject, and across a 72-configuration grid of the fold geometry
-and portfolio breadth the null attains the best out-of-sample $R^2$ in all 72.
-We then invert the same apparatus. Three results follow, each computed from the
-run's own artifacts. First, the design could only have separated an
-out-of-sample $R^2$ above $0.113$ from zero at conventional size and power,
-roughly eleven times the largest effect this literature credibly reports;
-reaching $0.01$ would take $15{,}126$ sessions. Second, widening the
-cross-section buys little: the loss differentials of names correlated at
-$\bar\rho$ carry at most $1/\bar\rho$ independent observations per session,
-worth a $9\%$ standard-error gain here for an unlimited universe. Third, a
-closed-form feasibility bound shows the cost schedule demands a cross-sectional
-information coefficient of $0.310$ from any forecaster in this design, against
-the $0.009$ achieved per session. That bound is not an impossibility result: at a
-fixed holding count the selection score grows without bound, so sufficient
-breadth always clears it: but the universe required at this level of skill
-exceeds $10^{6}$ names, and the concentrated rule that gets closest is the one
-capacity and market impact rule out. The negative result is therefore a statement
-about the experiment, not about the market, and we give the sample sizes,
-breadths and cost levels at which the question becomes answerable. The committed
-run replays byte-for-byte from bundled inputs, and sixteen seeded defects in the
-inference code are each required to break a guarding test.
+Short-horizon equity forecasting studies report a model that beats a benchmark.
+This one reports the apparatus, calibrates it against known truth, and finds
+three of its standard components badly wrong. On synthetic panels whose
+predictable share is fixed by construction, the two-sided Diebold--Mariano test
+applied to panel rows has size $0.23$ at four names correlated at $0.57$ and
+$0.79$ at a hundred, against a nominal $0.05$; the inflation is
+$2\Phi(-z_{1-\alpha/2}/\sqrt{1+(k-1)\bar\rho})$ in closed form, which the
+simulation tracks to within $0.007$ across the sweep, and Holm's family-wise
+error reaches $0.59$. Against a zero-forecast benchmark the models are nested,
+and Diebold--Mariano declares a pure-noise fitted forecast significantly
+\emph{worse} than the benchmark $92\%$ of the time. The False Strategy Theorem
+threshold is cleared by half of all skill-free grids at every level of
+dependence between trials, because it is an expectation and not a critical
+value. Three replacements are calibrated and hold their nominal level:
+aggregating loss differentials to one value per session, the Clark--West
+statistic, and a stationary bootstrap that resamples an entire configuration
+grid on a single index draw. Applied to a leakage-controlled Borsa Istanbul
+panel with an executable next-open-to-close target, the corrected stack finds no
+predictive content in any of six fitted forecasters, and an exact joint p-value
+of $0.77$ for the best of 72 configurations, measured to behave like $3.8$
+independent trials. The uncorrected stack would have reported four models as
+significantly worse than the null---an artefact of fitting, not a finding.
+Inverting the corrected tests, the design could only have resolved an
+out-of-sample $R^2$ above $0.11$, against the $0.01$ this literature treats as
+meaningful. The negative result is therefore a statement about the experiment
+rather than about the market.
 \end{abstract}
 
 \section{Introduction}
@@ -108,32 +99,87 @@ not. \citet{gelman2014} make the general argument: a design should be
 characterised by what it can resolve before its output is interpreted.
 \citet{button2013} show what happens to a field that does not do this.
 
-This work does both halves. The first half is an evaluation apparatus strict
-enough that a real effect would survive it, applied to a Borsa Istanbul panel;
-its verdict is negative at every level tested. The second half turns that same
-apparatus around and asks what it was capable of detecting. The answer reframes
-the result entirely: the design is not evidence that short-horizon prediction on
-this market is impossible, it is evidence that the question cannot be settled at
-this sample size, this cross-sectional breadth, or this cost level---and we
-compute how far each would have to move.
+There is a third failure mode, and it is the subject of this paper. Both of the
+arguments above assume the tests themselves work. A p-value is a claim about a
+long-run frequency, and that claim is a theorem only under conditions the data
+are supposed to satisfy: independent observations, non-nested models, trials
+that disperse like independent draws. Panel forecast comparison satisfies none
+of them. Four tickers observed on one session are not four observations. A
+fitted forecast compared against a zero forecast is nested inside it. Seventy-two
+configurations run over overlapping folds are not seventy-two searches. Each
+violation is well known in isolation; what is not known, and what nobody appears
+to have measured, is how far the resulting numbers are from the numbers they
+claim to be, on data with the dependence structure these studies actually have.
+
+We measure it. Synthetic panels are generated whose cross-sectional
+correlation, volatility and predictable share are fixed by construction and
+matched to a real panel, the production estimators are run on them unmodified,
+and the rate at which each one is wrong is recorded. The answers are not
+marginal. The two-sided equal-accuracy test applied to panel rows rejects a true
+null $23\%$ of the time on a four-name panel and $79\%$ on a hundred-name panel.
+Holm's family-wise error rate reaches $59\%$. Against a zero benchmark the
+squared-error comparison declares a forecast that is pure estimation noise
+significantly \emph{worse} than the benchmark in $92\%$ of replications, and in
+all of them once the record is long enough. The False Strategy Theorem's
+threshold, widely reported as though it were a critical value, is cleared by
+about half of all skill-free grids, which is exactly what an expectation should
+do.
+
+None of these is a curiosity of a badly behaved corner. The first has a closed
+form the simulation reproduces to three decimal places, so it can be evaluated
+before an experiment is run. The second is a consequence of nesting that grows
+with the fitted model's own variance and therefore penalises exactly the models
+a study is most interested in. The third is a definitional error that survives
+because the quantity it produces looks like a threshold.
+
+The rest of the paper does three things with this. It calibrates a replacement
+for each broken component and shows the replacements hold their level under
+heavy tails, clustered volatility, regime switches, and record lengths from 60
+to 500 sessions. It applies the corrected apparatus to a leakage-controlled
+Borsa Istanbul panel, where the verdict is negative but---importantly---negative
+in a different way than the uncorrected apparatus would have reported. And it
+inverts the corrected tests to ask what the design could have detected, which
+turns the negative result from a verdict about the market into a verdict about
+the experiment.
 
 \subsection*{Contributions}
 
-\textbf{C1. A dependence-aware evaluation protocol for panel forecast
-comparison.} Four tickers observed on one session are not four independent
-observations. Section~\ref{sec:dependence} measures the inflation and changes
-the unit of inference to the session rather than correcting after the fact; the
-row-level statistics are retained and reported alongside, so the size of the
-error the usual practice makes is visible rather than argued about. Here it is a
-median factor of 52 in the p-values.
+\textbf{C1. A measured error budget for the standard panel-forecast evaluation
+stack.} Section~\ref{sec:calibration} reports the size of each test in the
+usual pipeline on panels whose truth is fixed by construction and whose
+dependence is matched to a real one: the equal-accuracy test at row level, the
+same test under Holm correction, the Reality Check, both variants of the test of
+superior predictive ability, and the False Strategy threshold. Three of them are
+wrong by margins large enough to reverse published conclusions, and the errors
+are reported with Monte Carlo intervals rather than asserted.
 
-\textbf{C2. Detectability bounds for the design.} Inverting the accepted tests
+\textbf{C2. A closed form for the dependence inflation, and its verification
+(Proposition~\ref{prop:size}).} The limiting size of a pooled test on $k$ units
+equicorrelated at $\bar\rho$ is
+$2\Phi(-z_{1-\alpha/2}/\sqrt{1+(k-1)\bar\rho})$. The simulation lands on this
+curve at every width tested, the largest discrepancy across a size range from
+$0.11$ to $0.79$ being $0.0064$. A practitioner can therefore evaluate the
+damage before running anything, and a reader can evaluate it for a published
+study from two numbers that study already reports.
+
+\textbf{C3. Three calibrated replacements.} Aggregating loss differentials to
+one value per session restores the nominal level at every cross-section width
+and under every stress applied (Section~\ref{sec:calibration-size}); this is
+\citet{fama1973} applied to loss differentials rather than to returns. The
+Clark--West statistic \citep{clark2007} removes the nesting bias and holds its
+level where the squared-error comparison reaches $92\%$
+(Section~\ref{sec:calibration-nested}). A stationary bootstrap that resamples
+every configuration on one index draw supplies an exact p-value and a critical
+value for the best of a correlated grid, where the deflated Sharpe ratio
+supplies neither (Section~\ref{sec:calibration-search}).
+
+\textbf{C4. Detectability bounds for the design.} Inverting the accepted tests
 at conventional size and power yields the smallest out-of-sample $R^2$ and the
 smallest Sharpe ratio the experiment could have separated from its null
-(Section~\ref{sec:power}). Both exceed anything the literature credibly reports,
-by an order of magnitude.
+(Section~\ref{sec:power}), by simulation as well as in closed form. Both exceed
+anything the literature credibly reports, by an order of magnitude.
 
-\textbf{C3. An information ceiling for correlated panels
+\textbf{C5. An information ceiling for correlated panels
 (Proposition~\ref{prop:ceiling}).} Under equicorrelation, one session of a
 $k$-name cross-section carries $k / (1 + (k-1)\bar\rho)$ independent
 observations, which is bounded above by $1/\bar\rho$. Breadth therefore cannot
@@ -141,7 +187,7 @@ substitute for length: past a few dozen names, adding more buys essentially no
 statistical precision. On this panel an unlimited universe would improve
 standard errors by $9\%$.
 
-\textbf{C4. A breadth--cost feasibility bound
+\textbf{C6. A breadth--cost feasibility bound
 (Proposition~\ref{prop:feasibility}).} For a long-only rule holding the top $k$
 of $N$ ranked names against a round-trip cost $c$ and a target of volatility
 $\sigma$, positive expected net return requires a cross-sectional information
@@ -153,22 +199,29 @@ misses it by a factor of thirty. Its two breadth regimes differ
 converges, while at a fixed holding count it falls to zero, so the bound reports
 the universe a design would need rather than declaring any design impossible.
 
-\textbf{C5. An effective trial count for correlated searches
-(Proposition~\ref{prop:trials}).} The False Strategy Theorem assumes independent
-trials; a configuration grid reuses most of the same sessions and disperses
-less. Equating the two thresholds recovers the number of independent searches
-the grid behaves like---here $7.01$ of 72---and brackets the search correction
-between its two defensible readings. The grid maximum falls below both.
+\textbf{C7. An effective trial count for correlated searches
+(Proposition~\ref{prop:trials}), measured rather than assumed.} The False
+Strategy Theorem assumes independent trials; a configuration grid reuses most of
+the same sessions and disperses less. Two independent routes to the number of
+searches the grid really represents are reported: matching expected maxima in
+closed form gives $7.01$ of 72, and the joint bootstrap---which needs no
+independence assumption at all---gives $3.77$, at a measured mean pairwise
+correlation of $0.839$ between configurations. The simulation recovers the
+nominal count when the trials genuinely are independent, which is the check that
+licenses reading either number.
 
-\textbf{C6. A verified evaluator.} The inference code is itself subject to
-mutation testing: sixteen real defects are reintroduced one at a time and each
-is required to break a specific test (Appendix~\ref{app:mutations}). Three tests
+\textbf{C8. A verified evaluator.} The inference code is itself subject to
+mutation testing: twenty real defects are reintroduced one at a time and each
+is required to break a specific test (Appendix~\ref{app:mutations}). Four tests
 were found to be decorative this way and repaired. The committed run replays
 byte-for-byte from bundled inputs, and every table and figure in this manuscript
-is generated from that bundle by a tested module.
+is generated from that bundle, or from the calibration study's own hashed
+artifact, by a tested module.
 
-The outcome is negative and is retained because methodological validity, not
-model novelty, is the acceptance criterion.
+The empirical outcome is negative. It is retained because the calibration is
+what makes it interpretable, and because the same calibration shows that the
+uncorrected apparatus would have reported a different negative result---one
+that a reader could reasonably have mistaken for a finding.
 
 \section{Related work}
 
@@ -176,12 +229,41 @@ model novelty, is the acceptance criterion.
 equal predictive accuracy; \citet{harvey1997} show the statistic is oversized in
 small samples and supply the correction used here. \citet{diebold2015} later
 emphasised that the test compares forecasts rather than the models producing
-them, which is the interpretation adopted below.
+them, which is the interpretation adopted below, and warned specifically against
+applying the test to nested comparisons---a warning Section~\ref{sec:calibration-nested}
+quantifies. \citet{giacomini2006} reframe the comparison as one of conditional
+predictive ability under a fixed estimation window, which sidesteps the nesting
+problem by changing the null rather than by correcting the statistic.
+
+\textbf{Nested models.} When one forecast nests another, the population loss
+differential is zero under the null and the numerator of the Diebold--Mariano
+statistic degenerates; \citet{clark2001} and \citet{mccracken2007} derive the
+resulting non-standard limiting distributions. \citet{clark2007} give the
+adjustment used here, which restores approximate normality by removing the term
+the fitted model's own estimation variance contributes. This literature is
+mature and unambiguous, and it is nonetheless routine for applied short-horizon
+studies to compare a fitted model against a zero or historical-mean forecast
+with an unadjusted squared-error test. Section~\ref{sec:calibration-nested}
+reports what that costs: not a mild size distortion but a near-certain verdict
+in the benchmark's favour, whatever the data contain.
+
+\textbf{Cross-sectional dependence in panels.} \citet{petersen2009} shows that
+standard errors in finance panels are badly understated when a common time
+effect is ignored, and that the size of the error is a function of the
+correlation and the cross-section's width; \citet{thompson2011} gives two-way
+clustered formulas. \citet{fama1973} is the older remedy and the one adopted
+here: reduce each period's cross-section to a single number and conduct
+inference on the resulting series. Section~\ref{sec:calibration-size} shows that
+applying this to loss differentials rather than to returns restores the nominal
+level of a forecast comparison exactly, and gives the closed form for the error
+it removes.
 
 \textbf{Data snooping.} \citet{white2000} shows that selecting the best of $m$
 models and testing that model alone is invalid, and gives a bootstrap Reality
 Check for the joint null. \citet{hansen2005} studentizes the statistic and
-recentres the bootstrap. \citet{sullivan1999} apply the Reality Check to a
+recentres the bootstrap; \citet{romano2005} extend the idea to a stepwise
+procedure that identifies which models survive, and \citet{hansen2011} to a
+confidence set over models. \citet{sullivan1999} apply the Reality Check to a
 century of technical trading rules and find the apparent performance of the best
 rule largely disappears once the size of the search is accounted for; that
 result is the direct template for Section~\ref{sec:snooping}.
@@ -217,6 +299,19 @@ observed estimate, which is the procedure of Section~\ref{sec:power};
 skipping it. To our knowledge this is not standard practice in the empirical
 finance forecasting literature, where negative results are reported without any
 accompanying statement of what the design could have resolved.
+
+\textbf{Calibrating an inference procedure by simulation.} The practice of
+generating data from a known truth and checking that a procedure recovers it at
+its advertised rate is standard in computational statistics and rare in
+empirical finance. \citet{cook2006} formalise it for Bayesian software by
+checking the uniformity of posterior quantiles, and \citet{talts2018} generalise
+the construction. Section~\ref{sec:calibration} is the frequentist analogue for
+a forecast-evaluation pipeline: the object being validated is not a posterior
+sampler but the chain of estimators that turns saved predictions into p-values,
+and the criterion is not quantile uniformity but the measured size of each test
+against its nominal level. We are not aware of a published study that reports
+this for the equity forecast-comparison stack, which is the gap the paper is
+addressed to.
 
 \textbf{Breadth and costs.} \citet{grinold1989} relates the information ratio of
 an active strategy to the product of skill and the square root of breadth.
@@ -401,13 +496,16 @@ model on the same index draw, preserving cross-model dependence, with the block
 length chosen automatically \citep{white2000,hansen2005,politis1994,politis2004}.
 One deviation from \citet{hansen2005} is recorded here because it matters in
 exactly this regime: the p-values compare untruncated maxima rather than the
-floored statistic $T_n$. This makes the reported quantity a \emph{variant} of
-Hansen's test rather than the test itself; its finite-sample size and power are
-not established here, so it is read as a diagnostic alongside the standard
-statistic rather than as a validated replacement for it. Applying the floor to both the observed value and every
+floored statistic $T_n$. Applying the floor to both the observed value and every
 bootstrap draw collapses the comparison onto the atom at zero as soon as no
 candidate has a positive mean, and returns an arbitrary p-value precisely when
-the evidence is weakest.
+the evidence is weakest. Because this is a judgement call rather than a
+derivation, both quantities are reported and the size of both is measured:
+Table~\ref{tab:calibration-family} puts the variant at $0.0755$ and Hansen's own
+definition at $0.0765$ on the anchor design, a difference well inside Monte
+Carlo error, and neither exceeds $0.083$ anywhere in the sweep. The deviation is
+therefore immaterial to size, and the untruncated form is preferred only because
+it remains informative in the region where the floored form does not.
 
 \textbf{Sharpe ratio under search.} For per-period Sharpe $\hat{SR}$ with
 skewness $\hat\gamma_3$ and kurtosis $\hat\gamma_4$,
@@ -446,6 +544,309 @@ $E_T = E_0 + \mathrm{PnL}_{\mathrm{gross}} + \mathrm{distributions} -
 \mathrm{costs}$ session by session. Cost sensitivity reuses the same trading
 decisions across multipliers, so only the bill moves. The complete parameter set
 is in Appendix~\ref{app:configuration}.
+
+\section{Calibrating the evaluation stack}
+\label{sec:calibration}
+
+Everything in Section~4 is standard practice. This section asks whether standard
+practice works, by running the same estimators on data whose answer is known
+before they see it.
+
+\subsection{The generator}
+
+A panel of $k$ units over $n$ sessions is assembled from four orthogonal
+unit-variance channels: a common predictable factor $z^{p}$, a common
+unpredictable factor $z^{u}$, and their idiosyncratic counterparts $e^{p}_i$ and
+$e^{u}_i$. With $\bar\rho$ the cross-sectional correlation, $\theta$ the share
+of return variance that is in principle predictable, and $\nu_t$ a unit
+mean-square volatility path shared by every name,
+\begin{equation}
+\label{eq:generator}
+r_{i,t} = \sigma\,\nu_t\Big[
+\sqrt{\bar\rho\theta}\,z^{p}_t + \sqrt{(1-\bar\rho)\theta}\,e^{p}_{i,t}
++ \sqrt{\bar\rho(1-\theta)}\,z^{u}_t
++ \sqrt{(1-\bar\rho)(1-\theta)}\,e^{u}_{i,t}\Big].
+\end{equation}
+Pairwise correlation is then exactly $\bar\rho$ whatever the volatility path
+does, and the predictable component carries exactly a share $\theta$ of the
+variance. Building the panel from named channels rather than from a single draw
+is what lets a forecast be specified by its \emph{population} moments: a
+forecast is a linear combination of the two predictable channels and two fresh
+noise channels, so its variance, its cross-sectional correlation and its
+covariance with the target are set rather than estimated afterwards. In
+particular the population out-of-sample $R^2_0$ of a forecast is
+\begin{equation}
+\label{eq:population-r2}
+R^2_{0} = \frac{2\,\mathrm{cov}(r,\hat r) - \mathbb{E}[\hat r^2]}{\mathbb{E}[r^2]},
+\end{equation}
+which is zero at a covariance ratio equal to the forecast's own variance ratio,
+positive above it and negative below. That identity is the reason the two tests
+in this paper answer different questions, and it is the axis every power curve
+below is drawn against.
+
+The volatility path is Gaussian and constant in the baseline and is replaced in
+turn by a GARCH(1,1) recursion, a two-state switching level, Student $t_5$
+innovations, and both together. Every path is rescaled to mean square one, so a
+heteroskedastic cell differs from a constant one in its clustering and not in
+its scale.
+
+The design point the empirical chapter is entitled to cite is fixed by
+measurement rather than by preference: four names, 120 evaluated sessions,
+target correlation $0.5697$, target volatility $0.0190$, and a forecast whose
+variance ratio $0.272$ and cross-sectional correlation $0.947$ are those of the
+ridge model in the committed run. Only the predictable share cannot be measured,
+and it is set to the value that reproduces the measured variance ratio at a
+population accuracy of exactly zero.
+
+\subsection{The size of a test applied to panel rows}
+\label{sec:calibration-size}
+
+\begin{proposition}[Size of a pooled test under equicorrelation]
+\label{prop:size}
+Let a session contain $k$ units whose loss differentials are equicorrelated at
+$\bar\rho$, and let a two-sided test at nominal level $\alpha$ divide the pooled
+mean by $\sqrt{\hat\sigma^2/(kT)}$, ignoring the dependence. Its rejection
+probability under the null converges to
+\begin{equation}
+\label{eq:size}
+\alpha^{\ast}(k,\bar\rho)
+= 2\,\Phi\!\left(-\frac{z_{1-\alpha/2}}{\sqrt{1+(k-1)\bar\rho}}\right),
+\end{equation}
+which is increasing in both arguments and tends to one as $k\to\infty$ for any
+$\bar\rho>0$.
+\end{proposition}
+
+The proof is two lines and is given in Appendix~\ref{app:proofs}. Its value is
+not its difficulty but its falsifiability: it makes a point prediction for every
+cell of a simulation that was written independently of it.
+
+Table~\ref{tab:calibration-size} and the left panel of
+Figure~\ref{fig:calibration-size} report the comparison. At the measured
+correlation of $0.5697$ the row-level test rejects a true null $22.84\%$ of the
+time on four names against a predicted $22.20\%$, $62.81\%$ on thirty against a
+predicted $62.70\%$, and $79.13\%$ on a hundred against a predicted $78.78\%$.
+The largest discrepancy anywhere in the sweep is $0.0064$, which is the order of
+the Monte Carlo error at ten thousand replications. Equation~\ref{eq:size} is
+therefore not an approximation to be checked but a description to be used.
+
+\input{generated/calibration_size}
+
+\begin{figure}[!htbp]
+  \centering
+  \includegraphics[width=\textwidth]{../docs/figures/fig13_calibration_size.pdf}
+  \caption{Left: the measured size of the row-level equal-accuracy test against
+  the closed form of Proposition~\ref{prop:size}. Right: the session-aggregated
+  test under five departures from the baseline generator and two record
+  lengths.}
+  \label{fig:calibration-size}
+\end{figure}
+
+Two features of the table deserve emphasis because they are easy to misread.
+First, the failure is not a small-sample effect: it does not shrink as the
+record lengthens, because lengthening the record does not make the rows within a
+session any less dependent. Table~\ref{tab:calibration-robustness} confirms this
+directly, with the row-level size at $0.2314$ over 500 sessions against $0.2339$
+over 60. Second, the failure is not confined to wide panels. Even two names
+inflate a $5\%$ test to $11\%$, and it is common for short-horizon studies to
+pool a handful of tickers without remark.
+
+Aggregating to one differential per session removes the error completely. The
+session-level column of Table~\ref{tab:calibration-size} never leaves
+$[0.0456, 0.0529]$ across a hundred-fold change in the cross-section's width,
+and Table~\ref{tab:calibration-robustness} holds it inside $[0.0419, 0.0519]$
+under heavy tails, clustered volatility, a switching level, both together, and
+record lengths from 60 to 500 sessions. The single case that drifts below
+nominal is the regime-switching generator at $0.0419$, which is conservative
+rather than liberal. This is the \citet{fama1973} construction applied to loss
+differentials, and its cost is the loss of within-session information that
+Proposition~\ref{prop:ceiling} shows is largely illusory in the first place.
+
+\input{generated/calibration_robustness}
+
+\subsection{What a squared-error comparison does to a nested model}
+\label{sec:calibration-nested}
+
+Comparing a fitted forecast against a zero forecast under squared-error loss
+asks a question the fitted model cannot win fairly. Writing
+$d_t = \hat r_t^2 - 2 r_t \hat r_t$ for the differential against a zero
+benchmark,
+\begin{equation}
+\label{eq:nesting}
+\mathbb{E}[d] = \mathbb{E}[\hat r^2] - 2\,\mathrm{cov}(r,\hat r),
+\end{equation}
+so a forecast carrying genuine but small covariance with the target still loses
+whenever its estimation variance exceeds twice that covariance. Under the null
+that the \emph{population} forecast is zero, the fitted forecast is not zero: it
+is noise, with a variance the estimation procedure put there. The test therefore
+rejects towards the benchmark by construction, and the rate at which it does so
+is a property of the fitting procedure rather than of the market.
+
+Table~\ref{tab:calibration-nested} and Figure~\ref{fig:calibration-nested}
+measure that rate. At the variance ratio the committed run's ridge model
+actually exhibits, the session-aggregated Diebold--Mariano test declares the
+fitted model significantly worse than the benchmark in $92.19\%$ of
+replications in which the benchmark is exactly correct. At a variance ratio of
+$0.60$ it reaches $99.88\%$, and over 500 sessions it reaches $100\%$: more data
+makes the error more certain, not less, because the bias is in the estimand and
+not in the standard error. Only the low-variance cell, at a ratio of $0.05$,
+falls to $30.91\%$, which is still six times the nominal level. The
+complementary rate---the test declaring the fitted model significantly
+\emph{better}---never exceeds $0.04\%$.
+
+\input{generated/calibration_nested}
+
+\begin{figure}[!htbp]
+  \centering
+  \includegraphics[width=\textwidth]{../docs/figures/fig14_calibration_nested.pdf}
+  \caption{Under the nested null the zero benchmark is the correct population
+  forecast and the fitted model is estimation noise. The squared-error
+  comparison convicts the fitted model almost always; the Clark--West statistic
+  holds its level.}
+  \label{fig:calibration-nested}
+\end{figure}
+
+The consequence for how such a result should be read is direct, and it applies
+to this paper's own earlier reporting as much as to anyone else's. A study that
+compares fitted models against a zero or historical-mean benchmark under
+squared-error loss and reports that several of them are ``significantly worse
+than the benchmark'' has, with high probability, reported the output of
+Equation~\ref{eq:nesting} rather than a fact about its data. The finding is
+consistent with the models being worthless, and equally consistent with their
+carrying real information that is smaller than their own estimation variance.
+The two cannot be distinguished by that test.
+
+\citet{clark2007} remove the offending term. Adding back $(\hat r_t - 0)^2$
+gives $f_t = 2 r_t \hat r_t$, whose expectation is zero under the null and
+positive whenever the forecast covaries with the target, however weakly. The
+resulting one-sided test is correctly sized at every cell of
+Table~\ref{tab:calibration-nested}, between $0.0508$ and $0.0565$, including the
+cells where the squared-error comparison is at $100\%$. Its row-level
+counterpart is not: at thirty names it reaches $0.3496$, so the aggregation of
+Section~\ref{sec:calibration-size} is required for this test as well.
+
+The two tests answer different questions and this study reports both.
+Diebold--Mariano asks whether the forecast would have been worth using;
+Clark--West asks whether it contains predictive information at all. A forecast
+can fail the first and pass the second, and that combination---real information,
+too small to pay for the variance it costs---is the single most likely state of
+affairs in short-horizon equity prediction.
+
+\subsection{Family-wise error and the multiple-comparison layer}
+
+Table~\ref{tab:calibration-family} and Figure~\ref{fig:calibration-family}
+repeat the exercise for a family of six forecasts, every member skill-free by
+construction, so any rejection anywhere in the family is a false one.
+
+Holm's procedure controls the family-wise error rate without assuming
+independence between the hypotheses, and it does. What it cannot do is repair
+p-values that were wrong before it saw them: applied to row-level statistics on
+a correlated panel its family-wise error is $0.2250$ at four names and $0.5875$
+at thirty, while the identical procedure applied to session-aggregated
+statistics gives $0.0420$ and $0.0385$. The correction is not the problem; its
+inputs are.
+
+\input{generated/calibration_family}
+
+\begin{figure}[!htbp]
+  \centering
+  \includegraphics[width=\textwidth]{../docs/figures/fig15_calibration_family.pdf}
+  \caption{Family-wise error with every family member skill-free by
+  construction. Holm applied to row-level p-values on a correlated panel fails;
+  the same procedure on session-aggregated p-values is correct.}
+  \label{fig:calibration-family}
+\end{figure}
+
+The bootstrap corrections behave well without the aggregation, because the
+stationary bootstrap resamples sessions and therefore carries the within-session
+dependence with them. The Reality Check sits between $0.0505$ and $0.0585$; the
+two variants of the test of superior predictive ability sit between $0.0630$ and
+$0.0830$, mildly liberal in every cell and most so on the widest correlated
+panel. That is worth stating plainly rather than burying: a nominal $5\%$ SPA
+test on a design like this one is closer to an $8\%$ test.
+
+\subsection{What a correlated search is worth}
+\label{sec:calibration-search}
+
+The deflated Sharpe ratio corrects the best of $N$ trials using the False
+Strategy Theorem's expected maximum, $\sqrt{V}\,q(N)$ with $q$ as in
+Equation~\ref{eq:dsr}. Two things can go wrong. The trials may not disperse like
+independent draws, which Proposition~\ref{prop:trials} addresses by solving for
+an effective count. And the threshold is an \emph{expectation}, which a
+skill-free grid exceeds about half the time by definition.
+
+Table~\ref{tab:calibration-search} and Figure~\ref{fig:calibration-search}
+measure both. Across trial correlations from $0$ to $0.98$, a grid of 72
+skill-free configurations clears the expected maximum in $45.7\%$ to $50.0\%$ of
+replications. The rate is essentially flat in the dependence, which is the
+signature of the definitional error rather than of a dependence problem: whatever
+the correlation, an expectation is cleared about half the time. Reporting a grid
+maximum below this threshold is therefore a weak statement, and reporting one
+above it is not evidence of anything at all.
+
+Resampling the entire grid on a single stationary-bootstrap index draw fixes
+this. The draw preserves both the serial dependence within a configuration and
+the cross-sectional dependence between configurations, and its $95$th percentile
+is a critical value rather than a mean. Its measured size is $0.0560$, $0.0440$,
+$0.0460$ and $0.0460$ at the four correlation levels: correct throughout, and
+notably correct at $\bar\rho = 0.98$, where the analytic correction has no
+purchase at all.
+
+The same simulation validates the effective-trial diagnostic. When the trials
+are genuinely independent it recovers $67.10$ of a nominal $72$, which is the
+check that the construction is not simply reporting a small number whatever it
+is given; at correlations of $0.5$, $0.9$ and $0.98$ it returns $12.95$, $2.66$
+and $1.67$.
+
+\input{generated/calibration_search}
+
+\begin{figure}[!htbp]
+  \centering
+  \includegraphics[width=\textwidth]{../docs/figures/fig16_calibration_search.pdf}
+  \caption{Left: a skill-free grid clears the False Strategy expectation about
+  half the time at every level of dependence; the synchronised bootstrap
+  quantile holds its level. Right: the independent-trial count the grid behaves
+  like, recovered from the simulated maximum.}
+  \label{fig:calibration-search}
+\end{figure}
+
+\subsection{Detectable effects, by simulation}
+
+Table~\ref{tab:calibration-detectable} inverts the two tests by simulation
+rather than by a normal approximation: at each record length the population
+effect is raised until the measured rejection rate reaches $80\%$. At 120
+sessions the equal-accuracy test requires a population $R^2_0$ of $0.2012$ and
+Clark--West requires a covariance ratio of $0.1912$. Both fall roughly as
+$n^{-1/2}$ thereafter, reaching $0.0625$ and $0.0473$ at two thousand sessions.
+
+These numbers are larger than the closed-form inversion of
+Section~\ref{sec:power} reports, and the gap is informative rather than
+contradictory. The closed form uses central $t$ quantiles and treats the
+standard error as scaling exactly as $n^{-1/2}$; the simulation makes neither
+assumption and pays for the difference. Where the two disagree the simulation is
+the one to believe, and the direction of the disagreement means the closed form
+is optimistic about what such designs can resolve.
+
+\input{generated/calibration_detectable}
+
+\subsection{What is and is not established here}
+
+The calibration is a statement about estimators applied to data with a stated
+dependence structure, not about markets. Its force comes from the fact that the
+structure is measured from a real panel rather than chosen for convenience, and
+that the estimators are the production ones: the fast path used to form loss
+differentials is checked against the pandas path the empirical chapter runs, to
+floating-point tolerance, by a test that fails if they diverge.
+
+Three limits are worth stating. The generator is equicorrelated, so it does not
+reproduce a factor structure with heterogeneous loadings; the closed form of
+Proposition~\ref{prop:size} is correspondingly an average-case statement.
+Forecast families are generated by adding independent noise to a shared
+predictable component, which reproduces the correlation structure of a real
+model family only approximately. And the search experiment imposes an exchangeable
+correlation between trials, whereas a real configuration grid has neighbours
+that are more alike than distant points. In every case the direction of the
+approximation is towards understating the problem, so the measured error rates
+should be read as lower bounds on what the corresponding real designs suffer.
 
 \section{What the design could have detected}
 \label{sec:power}
@@ -636,9 +1037,36 @@ Every fitted model has negative out-of-sample $R^2$ (Table~\ref{tab:prediction}
 and Figure~\ref{fig:r2}). Under Holm correction, four of the six are
 significantly \emph{worse} than the null and none is better
 (Table~\ref{tab:accuracy}); \texttt{logistic} and \texttt{rolling\_mean} are
-indistinguishable from it. This is a stronger negative statement than ``no model
-beat the benchmark'': several models are reliably worse than predicting zero,
-which is what fitting a linear model to a signal-free panel produces.
+indistinguishable from it.
+
+That sentence is the one the calibration forces us to unlearn, and we state the
+correction plainly because the reading it displaces is the natural one and we
+had adopted it ourselves. That reading---several models are reliably worse than
+predicting zero, which is what fitting to a signal-free panel produces---treats
+the four rejections as information. They are not.
+Section~\ref{sec:calibration-nested} shows that this exact comparison, at this
+exact forecast variance ratio, produces significant rejections towards the
+benchmark in $92.19\%$ of replications in which the benchmark is exactly
+correct. Four of six is not evidence that the models are bad; it is slightly
+fewer rejections than the null hypothesis itself predicts. The correct statement
+is that Table~\ref{tab:accuracy} carries no information about these models in
+either direction, and that the apparatus which produced it should not have been
+asked the question.
+
+\input{generated/nested}
+
+The question it should have been asked is whether the forecasts carry predictive
+content at all, and Table~\ref{tab:nested} answers it with the statistic that is
+correctly sized here. No model reaches significance: the Clark--West statistics
+run from $-0.2286$ for \texttt{rolling\_mean} to $0.6214$ for \texttt{ridge},
+with one-sided p-values between $0.2672$ and $0.5904$, and Holm rejects nothing.
+The ordering is also worth noting, because it inverts the squared-error
+ordering: \texttt{ridge} and \texttt{previous\_return}, two of the four models
+the squared-error test convicted, are the two that come closest to showing
+predictive content. That is what Equation~\ref{eq:nesting} predicts---a forecast
+with more variance is punished harder regardless of its covariance---and it is
+the clearest illustration in this paper of why the two tests must be read
+together.
 
 \begin{figure}[!htbp]
   \centering
@@ -660,10 +1088,11 @@ which is what fitting a linear model to a signal-free panel produces.
 The right panel of Figure~\ref{fig:dm} makes the dependence problem concrete. At
 row level \texttt{logistic} reaches $p = 0.0015$; at session level it is $0.0541$
 and does not survive correction. Nothing about the data changed, only the claim
-about how much of it is independent. The same reversal applies in the other
-direction: the four rejections that survive Holm correction are all of the sign
-that says the model is worse, so the corrected table contains no discovery at
-all.
+about how much of it is independent. Table~\ref{tab:calibration-size} says which
+of the two is right: at four names correlated at $0.5697$ the row-level test
+rejects a true null $22.84\%$ of the time and the session-level test $5.29\%$,
+so the median factor of 52 separating the two columns is a measurement of an
+error and not a difference of opinion.
 
 Directional accuracy deserves a word, because it is the metric this literature
 usually leads with. In this window $53.12\%$ of realised targets are
@@ -729,6 +1158,31 @@ $0.0356$ falls short of the $0.1267$ that the best of 72 skill-free
 configurations would be expected to reach. The most compact statement of the
 result is that across all 72 configurations, the zero-return null attained the
 best out-of-sample $R^2$ in 72 of 72.
+
+\input{generated/joint_search}
+
+The deflated Sharpe ratio in the paragraph above rests on an assumption that
+Section~\ref{sec:calibration-search} shows is both unnecessary and, as a test,
+invalid: its threshold is an expectation that half of all skill-free grids
+clear. Table~\ref{tab:joint_search} replaces it with a measurement.
+Recentring all 72 configurations to zero expected return and resampling them on
+a single stationary-bootstrap index draw preserves the co-movement the analytic
+correction has to guess at, and that co-movement is substantial: the mean
+pairwise correlation between configurations is $0.8395$. The best of the grid,
+\texttt{train48\_val20\_step20\_emb2\_k2}, has a per-session Sharpe ratio of
+$0.0247$ on the 87 sessions every configuration evaluated, against an expected
+maximum of $0.1049$ and a $95$th percentile of $0.2925$ under the joint null.
+The exact bootstrap p-value is $0.7715$.
+
+The same bootstrap measures how much independent searching the grid represents,
+without the moment-matching that Proposition~\ref{prop:trials} requires: it
+behaves like $3.77$ independent trials. The closed-form route of
+Section~\ref{sec:trials} gives $7.01$. Both are far below the nominal 72 and the
+conclusion does not turn on which is preferred, but the gap is itself worth
+recording, since the closed form errs towards claiming more independence than
+the grid has, and therefore towards a harsher correction than necessary. The
+direction is conservative, which is the direction one wants an error in a search
+correction to run.
 
 \subsection{Costs, not signal, decide the outcome}
 \label{sec:costs}
@@ -886,7 +1340,7 @@ literature---would still have lost money in this design. A study that reported
 such a forecast as a success, without evaluating the bound, would be reporting a
 statistically real and economically worthless effect.
 
-\subsection{Both readings of the search correction agree}
+\subsection{Every reading of the search correction agrees}
 
 \input{generated/search}
 
@@ -910,11 +1364,23 @@ far below its nominal count is exploring one design repeatedly rather than
 exploring a design space.
 
 For the conclusion it matters less than one might expect, which is the point of
-reporting both. Treating the trials as independent sets the bar at $0.2203$;
-using their realised dispersion sets it at $0.1267$. The grid maximum is
-$0.0356$, below both by a wide margin (Figure~\ref{fig:search}). Whatever one
-believes about how to count a correlated search, nothing in this grid survives
-it.
+reporting every reading. Treating the trials as independent sets the bar at
+$0.2203$; using their realised dispersion sets it at $0.1267$. The grid maximum
+is $0.0356$, below both by a wide margin (Figure~\ref{fig:search}), and the
+joint bootstrap of Table~\ref{tab:joint_search}---which sets no bar at all but
+computes a p-value directly---returns $0.7715$. Whatever one believes about how
+to count a correlated search, nothing in this grid survives it.
+
+The three routes disagree about the effective trial count, and the disagreement
+is instructive rather than embarrassing. Moment-matching against Lo's sampling
+variance gives $7.01$; the joint bootstrap gives $3.77$. The first substitutes
+the realised dispersion of trial Sharpe ratios for a sampling variance, which
+conflates true heterogeneity between configurations with estimation noise; the
+second measures the distribution of the maximum directly and needs no such
+substitution. Where they differ we report both and prefer the second, and
+Section~\ref{sec:calibration-search} is the reason: the bootstrap recovers a
+nominal 72 when the trials really are independent, which is the only check that
+distinguishes a diagnostic from a number.
 
 \section{Discussion}
 
@@ -922,38 +1388,60 @@ it.
 
 On this universe, over this window, at this horizon, scale-normalised price and
 volume features carry no out-of-sample information about next-session
-open-to-close returns that survives an honest accounting of sample size and
-search. The apparatus is not merely failing to reject: several models are
-measurably worse than the null, and the family is far from rejection jointly.
+open-to-close returns that survives an honest accounting of sample size,
+dependence, nesting and search. The family is far from rejection jointly, no
+forecast shows predictive content under the one test that is correctly sized for
+the comparison, and the best of 72 configurations sits at a joint p-value of
+$0.7715$.
 
 It does not follow that Borsa Istanbul is efficient, that no short-horizon signal
 exists, or that machine learning cannot forecast equity returns. It does not even
 follow that this particular signal is absent. Section~\ref{sec:results-power}
-makes the honest version of the claim available for the first time: an effect
-large enough to be \emph{usable} at this horizon on this universe would have
-shown up, and did not; an effect of the size the literature actually reports
-would not have shown up either way, and the experiment is silent about it.
+makes the honest version of the claim available: an effect large enough to be
+\emph{usable} at this horizon on this universe would have shown up, and did not;
+an effect of the size the literature actually reports would not have shown up
+either way, and the experiment is silent about it.
 
-Two details deserve emphasis. First, a model with no signal does not merely fail
-to help; it adds estimation variance to the forecast, which is a pure cost in a
-squared-error comparison against a zero forecast. Observing several fitted models
-below zero is therefore a consistency check rather than a surprise. Second, the
-False Strategy threshold is an \emph{expectation}, not a critical value: a
-genuinely skill-free grid exceeds it about half the time, which the accompanying
-test suite verifies by simulation. It is reported as a diagnostic, and the
-deflated Sharpe ratio, which converts it into a probability, is the actual test.
+Two details deserve emphasis, and both are corrections to what a reader would
+otherwise reasonably conclude. First, a model with no signal does not merely
+fail to help; it adds estimation variance to the forecast, which is a pure cost
+in a squared-error comparison against a zero forecast. It is tempting to read
+several fitted models falling below zero as a consistency check confirming they
+are worthless. It is not a check of anything:
+Section~\ref{sec:calibration-nested} shows the same pattern arises with
+probability $0.9219$ when the models are in fact exactly at the null, so the
+observation has no diagnostic value and must be replaced by the Clark--West test
+rather than interpreted. Second, the False Strategy threshold is an
+\emph{expectation}, not a critical value: a genuinely skill-free grid exceeds it
+in $45.7\%$ to $50.0\%$ of replications regardless of how dependent the trials
+are. It is a diagnostic, and the test is either the deflated Sharpe ratio, which
+converts it into a probability under an independence assumption, or the joint
+bootstrap, which does not need one.
 
 \subsection{What follows for the design of such studies}
 
-The bounds in Section~\ref{sec:power} are cheap to compute and, we would argue,
-belong in the design phase rather than the post-mortem. Four of them can be
-evaluated before any data is modelled.
+The checks in Sections~\ref{sec:calibration} and~\ref{sec:power} are cheap to
+compute and, we would argue, belong in the design phase rather than the
+post-mortem. Most of them can be evaluated before any data is modelled.
 
-\textbf{Compute the detectable effect before running the experiment.}
-Equation~\ref{eq:mde} needs only the target's variance and the intended sample
-size. A design whose detectable effect exceeds the plausible effect by an order
-of magnitude will produce an uninformative answer whichever way it comes out, and
-should be lengthened or abandoned rather than run.
+\textbf{Compute the size of your test before trusting its p-values.}
+Equation~\ref{eq:size} needs two numbers a panel study already has: the width of
+the cross-section and the average correlation within it. A study pooling twenty
+names correlated at $0.4$ is running a $57\%$ test and calling it a $5\%$ test.
+This is the cheapest check in the paper and the one with the largest
+consequences.
+
+\textbf{Aggregate to the unit at which observations are independent, and say so.}
+The gap between the row-level and session-level p-values here is a median factor
+of 52, and Section~\ref{sec:calibration-size} establishes which side of that gap
+is correct. A panel study that does not state its unit of inference has not
+reported its result.
+
+\textbf{Do not compare a fitted model against a zero or mean benchmark under
+squared-error loss.} They are nested, and the comparison is decided by the
+fitted model's own variance. Use Clark--West, or change the null. If a study
+reports that its models are significantly worse than a naive benchmark, that
+finding is very likely an artefact and should not be interpreted at all.
 
 \textbf{Compute the feasibility bound before choosing a model family.}
 Equation~\ref{eq:feasibility} needs only the cost schedule, the target volatility
@@ -963,33 +1451,51 @@ Reporting it also disciplines the reader: a paper that clears the statistical ba
 but not the feasibility bound has found something true and useless, and should
 say so.
 
-\textbf{State the unit of inference and defend it.} The gap between the row-level
-and session-level p-values here is a median factor of 52. A panel study that does
-not say which it used has not reported its result.
+\textbf{Compute the detectable effect before running the experiment.}
+Equation~\ref{eq:mde} needs only the target's variance and the intended sample
+size. A design whose detectable effect exceeds the plausible effect by an order
+of magnitude will produce an uninformative answer whichever way it comes out, and
+should be lengthened or abandoned rather than run.
 
-\textbf{Report the effective size of the search, not only its nominal size.}
-$N_{\mathrm{eff}} = 7.01$ against a nominal 72 says the grid was narrower than it
-looked. The opposite case---a search whose configurations are genuinely
+\textbf{Report the effective size of the search, not only its nominal size, and
+resample the grid rather than deflating it.} $N_{\mathrm{eff}}$ between $3.77$
+and $7.01$ against a nominal 72 says the grid was far narrower than it looked.
+The opposite case---a search whose configurations are genuinely
 independent---deserves a correspondingly harsher correction, and neither is
-visible from the trial count alone.
+visible from the trial count alone. A joint bootstrap costs one index draw per
+replication and returns a p-value instead of a comparison against an
+expectation.
 
 \subsection{Verifying the evaluator, not only the model}
 
 An evaluation apparatus is software, and software with no adversarial test is
-software of unknown quality. Sixteen real defects in the inference and reporting
+software of unknown quality. Twenty real defects in the inference and reporting
 code---an autocovariance normalised by $n-k$ instead of $n$, a Holm correction
 without its running maximum, a Diebold--Mariano test aggregating rows instead of
-sessions, a deflated Sharpe ratio that ignores the trial count, and twelve
-others---are reintroduced one at a time by a harness that requires a named test
+sessions, a deflated Sharpe ratio that ignores the trial count, a Clark--West adjustment
+missing its factor of two, a joint bootstrap that resamples each configuration
+separately, and fourteen others---are reintroduced one at a time by a harness that requires a named test
 to fail for each and to pass again once the edit is reverted
-(Appendix~\ref{app:mutations}). Three of the guarding tests turned out to be
-decorative and were repaired as a result.
+(Appendix~\ref{app:mutations}). Four of the guarding tests turned out to be
+decorative and were repaired as a result: three when the catalogue was first
+written, and one when the joint search was added, where a skill-free grid could
+not detect a missing recentring because its means were already near zero.
 
 We think this is the right standard for statistical code that produces published
 numbers, and it is cheaper than it sounds: the catalogue is a list of edits and
 test identifiers, and the harness is under a hundred lines. A negative result in
 particular has no external check---nobody notices when a broken test fails to
 find an effect that is not there---so the apparatus has to be checked directly.
+
+Mutation testing and simulation calibration answer different questions and a
+serious pipeline needs both. Mutation testing asks whether the code implements
+the estimator its author intended; simulation calibration asks whether that
+estimator answers the question its user believes it answers. Everything
+Section~\ref{sec:calibration} found wrong was correctly implemented. The
+Diebold--Mariano test computes the Diebold--Mariano statistic exactly as
+specified, on rows that are not independent, for models that are nested. No
+amount of testing against the specification would have found it, because the
+specification was not the problem.
 
 \section{Limitations}
 
@@ -1019,16 +1525,33 @@ forecast and an iid cross-section, and ignores estimation error in the
 ranking---all of which make the bound optimistic, so a design that fails it fails
 a fortiori, while a design that clears it has met a necessary condition only.
 
-The power calculation of Equation~\ref{eq:mde} is the weakest of the three. It
-treats the loss-differential standard error as scaling exactly as $n^{-1/2}$,
-which is exact only if the dependence and the higher moments of the differential
-are stable across window lengths---an assumption a sixty-year extrapolation
-strains badly. It inverts the test with central $t$ quantiles rather than the
-noncentral distribution, and it instantiates the calculation at the standard
-error of the candidate selected \emph{after} seeing the run. The resulting
-session counts are order-of-magnitude statements about the design, not
-sample-size requirements, and a simulation-calibrated analysis that reruns the
-whole pipeline under injected signals of known size would replace them.
+The closed-form power calculation of Equation~\ref{eq:mde} is the weakest of the
+three. It treats the loss-differential standard error as scaling exactly as
+$n^{-1/2}$, which is exact only if the dependence and the higher moments of the
+differential are stable across window lengths---an assumption a sixty-year
+extrapolation strains badly. It inverts the test with central $t$ quantiles
+rather than the noncentral distribution, and it instantiates the calculation at
+the standard error of the candidate selected \emph{after} seeing the run. The
+resulting session counts are order-of-magnitude statements about the design
+rather than sample-size requirements. Table~\ref{tab:calibration-detectable}
+supersedes it where the two overlap, by raising a known population effect until
+the measured rejection rate reaches $80\%$; it reports a larger minimum
+detectable effect than the closed form, which means the closed form is
+optimistic and the design was even less well powered than
+Section~\ref{sec:results-power} states.
+
+The calibration study has limits of its own, set out in
+Section~\ref{sec:calibration} and repeated here because they bound every claim
+in this paper. Its panels are equicorrelated rather than factor-structured, its
+forecast families share one predictable component and differ only in noise, and
+its search experiment imposes exchangeable dependence between trials. Each
+simplification omits heterogeneity that a real design has, and in each case the
+omission works in the direction of understating the measured error rate, so the
+numbers should be read as lower bounds. The study also calibrates the estimators
+against panels matched to \emph{this} panel; a study whose cross-sectional
+correlation or forecast variance ratio differs must re-run the calibration at
+its own design point rather than citing these numbers, which is why the
+generator and the study driver are part of the released code.
 
 Finally, the repository implements Kalman filters, Ornstein--Uhlenbeck mean
 reversion, GARCH, HMM regimes, wavelets, cointegration, Kelly sizing, gradient
@@ -1039,20 +1562,37 @@ integrated, evaluated, and backed by run evidence.
 
 \section{Conclusion}
 
-Seven forecasters were evaluated on a leakage-controlled Borsa Istanbul panel
-with an executable target, under tests that account for cross-sectional
-dependence, the number of models compared, and the number of configurations
-examined. No model beats the zero-return null, four are significantly worse, the
-joint data-snooping null is not rejected at any conventional level, and the best
-of 72 configurations does not reach the Sharpe ratio that skill-free search alone
-would produce. The reported strategy loses money after costs and would lose money
-at $0.62\times$ the modelled cost schedule.
+The standard apparatus for comparing forecasts on an equity panel is
+miscalibrated in three places, and we measured how badly. Applied to panel rows,
+the equal-accuracy test rejects a true null $22.84\%$ of the time on four
+correlated names and $79.13\%$ on a hundred, at a nominal $5\%$; the inflation
+has the closed form $2\Phi(-z_{1-\alpha/2}/\sqrt{1+(k-1)\bar\rho})$, which the
+simulation reproduces to within $0.0064$ everywhere, and Holm's family-wise
+error rate follows it to $58.75\%$. Compared against a zero benchmark under
+squared-error loss, a forecast that is pure estimation noise is declared
+significantly worse than the benchmark in $92.19\%$ of replications, rising to
+certainty as the record lengthens. The False Strategy Theorem's threshold is
+cleared by roughly half of all skill-free grids at every level of dependence
+between trials, because it is an expectation. Each failure has a replacement
+that holds its nominal level under heavy tails, clustered volatility, regime
+switches and record lengths from 60 to 500 sessions: session aggregation, the
+Clark--West statistic, and a synchronised bootstrap of the whole grid.
 
-Inverting the same apparatus turns that from a verdict about the market into a
-verdict about the experiment. The design could only have resolved an
-out-of-sample $R^2$ above $0.113$, roughly eleven times the largest effect this
-literature credibly reports; reaching $0.01$ would take $15{,}126$ sessions.
-Widening the cross-section substitutes poorly, because the loss differentials of
+Applied to a leakage-controlled Borsa Istanbul panel with an executable target,
+the corrected apparatus returns a negative result, and a different one from what
+the uncorrected apparatus reports. No forecast shows predictive content; the
+joint data-snooping null is not rejected; the best of 72 configurations---which
+behave like fewer than four independent trials---has an exact joint p-value of
+$0.7715$. What does \emph{not} survive is the claim that four of the six models
+are significantly worse than the null. That is the nesting artefact, and a study
+reporting it as a finding would be reporting the output of its own estimation
+variance.
+
+Inverting the corrected tests turns the negative result from a verdict about the
+market into a verdict about the experiment. The design could only have resolved
+an out-of-sample $R^2$ above $0.113$ in closed form and $0.201$ by simulation,
+against the $0.01$ this literature treats as economically meaningful. Widening
+the cross-section substitutes poorly, because the loss differentials of
 correlated names carry at most $1/\bar\rho$ independent observations per
 session. And the cost schedule demanded an information coefficient of $0.310$
 from a design that delivered $0.009$ per session---a bound no choice of model
@@ -1060,21 +1600,31 @@ family could have met, and one computable before any model was fitted.
 
 The useful output is therefore the apparatus and its self-assessment: a target
 the backtest can trade, an evaluation whose unit of inference matches the data's
-dependence structure, a search that is counted rather than hidden, an explicit
+dependence structure, tests whose measured size is reported alongside their
+nominal size, a search that is resampled rather than assumed, an explicit
 statement of what the design could and could not have found, and a run that
-replays byte-for-byte. The next legitimate step is a longer point-in-time dated
-universe and a cheaper execution assumption, chosen so that the feasibility bound
-is cleared before the first model is fitted---not another model family.
+replays byte-for-byte. Two next steps follow, and they are not the same step. For
+this market, a longer point-in-time dated universe and a cheaper execution
+assumption, chosen so that the feasibility bound is cleared before the first
+model is fitted---not another model family. For the literature, a calibration
+run at each study's own design point, which costs a few minutes of computation
+and is the difference between a p-value and a number that resembles one.
 
 \section*{Reproducibility}
 
-Every table and figure in this manuscript is generated from one immutable run
-bundle by a tested module and regenerated by \texttt{make paper}; the manuscript
-cannot state a table entry the pipeline does not produce. The run replays
-byte-for-byte from bundled inputs with \texttt{make reproduce-committed},
-\texttt{make verify-claims} checks the prose figures in the repository's README
-against the same artifacts, and \texttt{make mutation-check} reintroduces sixteen
-real defects into the source and requires the guarding test to fail for each.
+Every table and figure in this manuscript is generated by a tested module from
+one of two immutable artifacts---the run bundle for the empirical sections, the
+calibration study for Section~\ref{sec:calibration}---and regenerated by
+\texttt{make paper}; the manuscript cannot state a table entry the pipeline does
+not produce. The run replays byte-for-byte from bundled inputs with
+\texttt{make reproduce-committed}. The calibration study is rebuilt by
+\texttt{bist-predict calibrate}, takes about four minutes, and carries a content
+hash over its own numbers that excludes the elapsed time, so the artifact is
+identified by what it measured rather than by the machine that measured it.
+\texttt{make verify-claims} checks the prose figures in this manuscript and in
+the repository's README against those artifacts, and \texttt{make
+mutation-check} reintroduces twenty real defects into the source and requires
+the guarding test to fail for each.
 Code and artifacts: \url{https://github.com/ITheClixs/Prediction-System-for-Istanbul-Stock-Exchange}.
 
 \bibliographystyle{unsrtnat}
@@ -1084,6 +1634,37 @@ Code and artifacts: \url{https://github.com/ITheClixs/Prediction-System-for-Ista
 
 \section{Proofs}
 \label{app:proofs}
+
+\begin{proof}[Proof of Proposition~\ref{prop:size}]
+Let $d_{i,t}$ have common variance $\sigma^2$ and equicorrelation $\bar\rho$
+within a session, and be independent across the $T$ sessions. The pooled mean
+$\bar d$ over $kT$ observations has true variance
+\begin{equation}
+\mathrm{Var}(\bar d) = \frac{\sigma^2}{kT}\left(1 + (k-1)\bar\rho\right),
+\end{equation}
+by the computation in the proof of Proposition~\ref{prop:ceiling}. A test that
+divides by $\sqrt{\hat\sigma^2/(kT)}$ uses a denominator that converges to
+$\sigma/\sqrt{kT}$, so the statistic it forms is
+$\sqrt{1+(k-1)\bar\rho}$ times a standard normal variate in the limit. Writing
+$\kappa = \sqrt{1+(k-1)\bar\rho}$, its two-sided rejection probability is
+\begin{equation}
+\Pr\left[\left|\kappa Z\right| > z_{1-\alpha/2}\right]
+= 2\,\Phi\!\left(-\frac{z_{1-\alpha/2}}{\kappa}\right),
+\end{equation}
+which is Equation~\ref{eq:size}. Since $\Phi$ is strictly increasing and
+$-z_{1-\alpha/2}/\kappa$ is strictly increasing in $\kappa$, and $\kappa$ is
+strictly increasing in $k$ for $\bar\rho>0$ and in $\bar\rho$ for $k>1$, the
+size is strictly increasing in both. Finally $\kappa\to\infty$ as $k\to\infty$
+whenever $\bar\rho>0$, so the argument of $\Phi$ tends to $0$ and the size tends
+to $2\Phi(0)=1$. \end{proof}
+
+\begin{remark}
+The proposition is stated for the dependence of the \emph{loss differential},
+which is what enters the standard error of the test, rather than of the raw
+target. The two are close on the committed panel---$0.5662$ against
+$0.5697$---but they are different objects, and only one of them governs the
+size.
+\end{remark}
 
 \begin{proof}[Proof of Proposition~\ref{prop:ceiling}]
 Let $x_1,\dots,x_k$ be the session's targets, each of variance $\sigma^2$, with
@@ -1124,12 +1705,13 @@ net return per name is $\rho\,\sigma\,\lambda(N,k) - c$, and requiring it to be
 positive gives Equation~\ref{eq:feasibility}. The second form of $\lambda$ in
 Equation~\ref{eq:lambda} follows from exchangeability: a given draw lies among
 the top $k$ exactly when at most $k-1$ of the remaining $N-1$ draws exceed it, so
-\begin{equation}
+\begin{align}
 \sum_{i=N-k+1}^{N}\mathbb{E}\!\left[Z_{(i:N)}\right]
-= N\,\mathbb{E}\!\left[Z \cdot \mathbf{1}\{Z \text{ in top } k\}\right]
-= N\int_0^1 \Phi^{-1}(u)\,
+&= N\,\mathbb{E}\!\left[Z \cdot \mathbf{1}\{Z \text{ in top } k\}\right]
+\nonumber\\
+&= N\int_0^1 \Phi^{-1}(u)\,
   \Pr\!\left[\mathrm{Bin}(N-1,\,1-u) \le k-1\right]\mathrm{d}u,
-\end{equation}
+\end{align}
 and the binomial tail is the regularised incomplete beta function
 $I_u(N-k,\,k)$. \end{proof}
 

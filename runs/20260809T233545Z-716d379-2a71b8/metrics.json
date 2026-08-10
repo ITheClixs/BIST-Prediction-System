@@ -4388,10 +4388,17 @@
       "replications": 10000,
       "seed": 42,
       "superior_predictive_ability": {
+        "hansen_2005": {
+          "p_value_consistent": 0.0263,
+          "p_value_lower": 0.0263,
+          "p_value_upper": 0.9232,
+          "variant": "truncated_at_zero"
+        },
         "p_value_consistent": 0.6891,
         "p_value_lower": 0.6891,
         "p_value_upper": 1.0,
-        "statistic": 0.0
+        "statistic": 0.0,
+        "variant": "untruncated_maxima"
       },
       "verdict": "no_candidate_beats_benchmark"
     },
@@ -4644,6 +4651,24 @@
       },
       "test": "diebold_mariano_harvey_leybourne_newbold"
     },
+    "joint_search": {
+      "best_per_period_sharpe": 0.024749281721330396,
+      "best_trial": "train48_val20_step20_emb2_k2",
+      "block_length": 5.0196685743353795,
+      "independent_equivalent_trials": 3.7678008553924744,
+      "mean_pairwise_correlation": 0.8394847021918708,
+      "null": "every configuration has zero expected net return",
+      "null_expected_maximum": 0.10491718696806689,
+      "null_maximum_dispersion": 0.10481508360730081,
+      "null_quantile_95": 0.2925043984542779,
+      "p_value": 0.7715,
+      "replications": 10000,
+      "resampling": "stationary_bootstrap_synchronised_across_trials",
+      "seed": 42,
+      "session_count": 87,
+      "trial_count": 72,
+      "verdict": "best_trial_is_within_search_noise"
+    },
     "models": [
       "logistic",
       "majority_direction",
@@ -4671,7 +4696,115 @@
       "trial_sharpe_variance": 0.002757385313670684,
       "verdict": "skill_not_established"
     },
-    "schema_version": 1
+    "predictive_content": {
+      "any_candidate_shows_predictive_content": false,
+      "benchmark": "zero_return",
+      "family_wise_correction": {
+        "adjusted_p_values": {
+          "logistic": 1.0,
+          "majority_direction": 1.0,
+          "market_direction": 1.0,
+          "previous_return": 1.0,
+          "ridge": 1.0,
+          "rolling_mean": 1.0
+        },
+        "alpha": 0.05,
+        "family_size": 6,
+        "method": "holm_step_down",
+        "raw_p_values": {
+          "logistic": 0.3943673094085584,
+          "majority_direction": 0.3571854329620673,
+          "market_direction": 0.4694707190598649,
+          "previous_return": 0.2757110975151609,
+          "ridge": 0.26717341943889283,
+          "rolling_mean": 0.5903915897088742
+        },
+        "rejected": []
+      },
+      "null": "the population forecast is the zero forecast",
+      "session_aggregated": {
+        "logistic": {
+          "aggregation": "session",
+          "benchmark": "zero_return",
+          "candidate": "logistic",
+          "convention": "f = 2 * target * forecast; a positive mean favours the candidate",
+          "lags": 0,
+          "mean_adjusted_differential": 3.795058046514937e-06,
+          "observation_count": 120,
+          "p_value": 0.3943673094085584,
+          "standard_error": 1.4163087905799979e-05,
+          "statistic": 0.2679541404922587,
+          "verdict": "no_predictive_content"
+        },
+        "majority_direction": {
+          "aggregation": "session",
+          "benchmark": "zero_return",
+          "candidate": "majority_direction",
+          "convention": "f = 2 * target * forecast; a positive mean favours the candidate",
+          "lags": 0,
+          "mean_adjusted_differential": 1.6980006175647274e-05,
+          "observation_count": 120,
+          "p_value": 0.3571854329620673,
+          "standard_error": 4.639444313901595e-05,
+          "statistic": 0.3659922401648084,
+          "verdict": "no_predictive_content"
+        },
+        "market_direction": {
+          "aggregation": "session",
+          "benchmark": "zero_return",
+          "candidate": "market_direction",
+          "convention": "f = 2 * target * forecast; a positive mean favours the candidate",
+          "lags": 0,
+          "mean_adjusted_differential": 3.4824453471510477e-06,
+          "observation_count": 120,
+          "p_value": 0.4694707190598649,
+          "standard_error": 4.546249363760989e-05,
+          "statistic": 0.0766004032887038,
+          "verdict": "no_predictive_content"
+        },
+        "previous_return": {
+          "aggregation": "session",
+          "benchmark": "zero_return",
+          "candidate": "previous_return",
+          "convention": "f = 2 * target * forecast; a positive mean favours the candidate",
+          "lags": 0,
+          "mean_adjusted_differential": 2.9368485624541137e-05,
+          "observation_count": 120,
+          "p_value": 0.2757110975151609,
+          "standard_error": 4.930656319047446e-05,
+          "statistic": 0.595630352719754,
+          "verdict": "no_predictive_content"
+        },
+        "ridge": {
+          "aggregation": "session",
+          "benchmark": "zero_return",
+          "candidate": "ridge",
+          "convention": "f = 2 * target * forecast; a positive mean favours the candidate",
+          "lags": 0,
+          "mean_adjusted_differential": 1.664389156509253e-05,
+          "observation_count": 120,
+          "p_value": 0.26717341943889283,
+          "standard_error": 2.678518457625109e-05,
+          "statistic": 0.6213842401463131,
+          "verdict": "no_predictive_content"
+        },
+        "rolling_mean": {
+          "aggregation": "session",
+          "benchmark": "zero_return",
+          "candidate": "rolling_mean",
+          "convention": "f = 2 * target * forecast; a positive mean favours the candidate",
+          "lags": 0,
+          "mean_adjusted_differential": -3.275183690965484e-06,
+          "observation_count": 120,
+          "p_value": 0.5903915897088742,
+          "standard_error": 1.43301213093221e-05,
+          "statistic": -0.22855240512408612,
+          "verdict": "no_predictive_content"
+        }
+      },
+      "test": "clark_west_encompassing"
+    },
+    "schema_version": 2
   },
   "portfolio": {
     "annualized_return": -0.09752128250360759,

@@ -31,9 +31,7 @@ def main(argv: Sequence[str] | None = None) -> int:
     arguments = parser.parse_args(argv)
     manifests = [build_all_figures(arguments.run, arguments.output)]
     if arguments.calibration.exists():
-        manifests.append(
-            build_all_calibration_figures(arguments.calibration, arguments.output)
-        )
+        manifests.append(build_all_calibration_figures(arguments.calibration, arguments.output))
     total = 0
     for manifest in manifests:
         for record in manifest["figures"]:

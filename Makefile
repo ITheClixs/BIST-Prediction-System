@@ -1,8 +1,8 @@
-.PHONY: paper doc-checks reproduce-smoke reproduce reproduce-committed benchmark readme-results test research-invariants lint format-check typecheck coverage rust-test rust-equivalence provider-smoke mutation-check verify-claims figures
+.PHONY: paper doc-checks reproduce-smoke reproduce reproduce-committed benchmark readme-results test research-invariants lint format-check typecheck coverage rust-test rust-equivalence provider-smoke mutation-check verify-claims figures calibrate arxiv
 
 UV_RUN = UV_CACHE_DIR=/tmp/bist-uv-cache PYTHONPATH=src uv run
 RUNS_ROOT ?= runs
-COMMITTED_RUN_ID ?= 20260730T174110Z-21e94d0-2a71b8
+COMMITTED_RUN_ID ?= 20260809T233545Z-716d379-2a71b8
 
 reproduce-smoke:
 	$(UV_RUN) bist-predict reproduce-smoke --runs-root $(RUNS_ROOT)
@@ -52,6 +52,12 @@ rust-equivalence:
 figures:
 	@test -n "$(RUN_ID)" || (echo "RUN_ID is required" && exit 2)
 	$(UV_RUN) python tools/build_figures.py --run $(RUNS_ROOT)/$(RUN_ID)
+
+calibrate:
+	$(UV_RUN) bist-predict calibrate
+
+arxiv:
+	$(UV_RUN) python tools/build_arxiv.py
 
 verify-claims:
 	@test -n "$(RUN_ID)" || (echo "RUN_ID is required" && exit 2)

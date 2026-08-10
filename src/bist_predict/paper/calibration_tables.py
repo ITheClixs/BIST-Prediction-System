@@ -147,36 +147,51 @@ def nested_table(study: Mapping[str, Any]) -> str:
 
 
 def family_wise_table(study: Mapping[str, Any]) -> str:
-    """Family-wise error of each multiple-comparison correction."""
-    labels = {
-        "anchor": "4 names, correlated",
-        "independent_rows": "4 names, independent",
-        "thirty_names": "30 names, correlated",
-        "thirty_names_independent": "30 names, independent",
+    """Family-wise error of each multiple-comparison correction.
+
+    Corrections are the rows and designs the columns. Six corrections against
+    four designs does not fit the text width with a Monte Carlo interval in
+    every cell, and the comparison a reader wants runs along the corrections
+    rather than along the designs, so the intervals stay and the table is
+    transposed instead of being thinned.
+    """
+    columns = {
+        "anchor": "$k{=}4$ corr.",
+        "independent_rows": "$k{=}4$ indep.",
+        "thirty_names": "$k{=}30$ corr.",
+        "thirty_names_independent": "$k{=}30$ indep.",
     }
+    cells = {str(cell["variant"]): cell for cell in study["experiments"]["family"]}
+    corrections = (
+        ("uncorrected_any", "Uncorrected"),
+        ("holm_row", "Holm, row level"),
+        ("holm_session", "Holm, session level"),
+        ("reality_check", "White Reality Check"),
+        ("spa_untruncated", "SPA, untruncated"),
+        ("spa_hansen", "SPA, Hansen"),
+    )
     rows = []
-    for cell in study["experiments"]["family"]:
+    for key, label in corrections:
         rows.append(
-            " & ".join(
-                (
-                    labels.get(str(cell["variant"]), str(cell["variant"])),
-                    _rate(cell["uncorrected_any"], 3),
-                    _rate(cell["holm_row"], 3),
-                    _rate(cell["holm_session"], 3),
-                    _rate(cell["reality_check"], 3),
-                    _rate(cell["spa_hansen"], 3),
-                )
-            )
+            " & ".join([label] + [f"{float(cells[name][key]['rate']):.3f}" for name in columns])
         )
+    replications = int(study["configuration"]["family_replications"])
+    half_width = max(
+        float(cell[key]["upper"]) - float(cell[key]["rate"])
+        for cell in cells.values()
+        for key, _ in corrections
+    )
     return _table(
         "Family-wise error rate at a nominal $5\\%$ with every member of a family of "
-        f"{int(study['configuration']['family_size'])} forecasts skill-free by construction. "
-        "Holm controls the family but not the dependence: applied to row-level p-values on a "
-        "correlated panel it fails outright, while the same procedure on session-aggregated "
-        "p-values is correct. The bootstrap corrections are mildly liberal throughout.",
+        f"{int(study['configuration']['family_size'])} forecasts skill-free by construction, so "
+        "any rejection anywhere in the family is a false one. Holm controls the family but not "
+        "the dependence: applied to row-level p-values on a correlated panel it fails outright, "
+        "while the same procedure on session-aggregated p-values is correct. The bootstrap "
+        f"corrections are mildly liberal throughout. Over {replications:,} replications the "
+        f"widest $95\\%$ Monte Carlo half-width in the table is {half_width:.3f}.",
         "calibration-family",
-        "llllll",
-        "Design & Uncorrected & Holm (row) & Holm (session) & Reality Check & SPA",
+        "lrrrr",
+        "Correction & " + " & ".join(columns.values()),
         rows,
     )
 
