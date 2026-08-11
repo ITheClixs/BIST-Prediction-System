@@ -1,0 +1,38 @@
+{
+  "content_hash": "0237df933855f5ea80e73130774004dfca326f5a0a274acf597d38d96eee6589",
+  "figure_count": 4,
+  "figures": [
+    {
+      "figure": "fig13_calibration_size",
+      "largest_closed_form_error": 0.006421516046491493,
+      "maximum_row_size": 0.7913,
+      "maximum_session_size": 0.0529,
+      "pdf": "fig13_calibration_size.pdf",
+      "png": "fig13_calibration_size.png"
+    },
+    {
+      "figure": "fig14_calibration_nested",
+      "maximum_clark_west_rate": 0.0565,
+      "maximum_diebold_mariano_rate": 1.0,
+      "minimum_diebold_mariano_rate": 0.3091,
+      "pdf": "fig14_calibration_nested.pdf",
+      "png": "fig14_calibration_nested.png"
+    },
+    {
+      "figure": "fig15_calibration_family",
+      "pdf": "fig15_calibration_family.pdf",
+      "png": "fig15_calibration_family.png",
+      "worst_holm_row_rate": 0.5875,
+      "worst_holm_session_rate": 0.043
+    },
+    {
+      "effective_trials_at_highest_correlation": 1.6707183527385956,
+      "figure": "fig16_calibration_search",
+      "pdf": "fig16_calibration_search.pdf",
+      "png": "fig16_calibration_search.png",
+      "worst_bootstrap_rate": 0.056,
+      "worst_false_strategy_rate": 0.5
+    }
+  ],
+  "schema_version": 2
+}

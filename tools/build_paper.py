@@ -16,12 +16,16 @@ import yaml
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "src"))
 
 from bist_predict.paper.appendix import render_all_appendices  # noqa: E402
+from bist_predict.paper.calibration_tables import (  # noqa: E402
+    render_all_calibration_tables,
+)
 from bist_predict.paper.tables import escape_latex, render_all_tables  # noqa: E402
 
 ROOT = Path(__file__).resolve().parent.parent
 PAPER = ROOT / "paper"
 MUTATION_HARNESS = ROOT / "tools" / "mutation_check.py"
 RENDERED = ROOT / "paper.pdf"
+CALIBRATION = ROOT / "calibration" / "study.json"
 
 
 def _authors(author: str, affiliation: str, address: str = "") -> str:
@@ -47,14 +51,30 @@ def main(argv: Sequence[str] | None = None) -> int:
     parser.add_argument("--author", required=True, help="author name for the title block")
     parser.add_argument("--affiliation", default="", help="institution, verbatim; may be empty")
     parser.add_argument("--address", default="", help="city and country, verbatim; may be empty")
+    parser.add_argument(
+        "--calibration",
+        type=Path,
+        default=CALIBRATION,
+        help="simulation calibration study written by 'bist-predict calibrate'",
+    )
     parser.add_argument("--skip-typeset", action="store_true", help="write tables only")
     arguments = parser.parse_args(argv)
 
     run = arguments.run
     metrics = json.loads((run / "metrics.json").read_text(encoding="utf-8"))
+    # The calibration study measures the estimators, not the market, so it is a
+    # separate artifact with its own hash and is not regenerated per run. The
+    # manuscript cites both, so neither may be missing at build time.
+    if not arguments.calibration.exists():
+        raise SystemExit(
+            f"calibration study not found at {arguments.calibration}; "
+            "run 'bist-predict calibrate' first"
+        )
+    study = json.loads(arguments.calibration.read_text(encoding="utf-8"))
     generated = PAPER / "generated"
     generated.mkdir(parents=True, exist_ok=True)
     tables = render_all_tables(metrics)
+    tables.update(render_all_calibration_tables(study))
     tables.update(
         render_all_appendices(
             metrics=metrics,

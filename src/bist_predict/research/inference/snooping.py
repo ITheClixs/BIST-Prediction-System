@@ -40,6 +40,9 @@ class DataSnoopingResult:
     spa_p_value_lower: float
     spa_p_value_consistent: float
     spa_p_value_upper: float
+    hansen_p_value_lower: float
+    hansen_p_value_consistent: float
+    hansen_p_value_upper: float
     per_candidate_mean_outperformance: tuple[tuple[str, float], ...]
 
     @property
@@ -68,9 +71,16 @@ class DataSnoopingResult:
             },
             "superior_predictive_ability": {
                 "statistic": self.spa_statistic,
+                "variant": "untruncated_maxima",
                 "p_value_lower": self.spa_p_value_lower,
                 "p_value_consistent": self.spa_p_value_consistent,
                 "p_value_upper": self.spa_p_value_upper,
+                "hansen_2005": {
+                    "variant": "truncated_at_zero",
+                    "p_value_lower": self.hansen_p_value_lower,
+                    "p_value_consistent": self.hansen_p_value_consistent,
+                    "p_value_upper": self.hansen_p_value_upper,
+                },
             },
             "mean_outperformance": {
                 name: value for name, value in self.per_candidate_mean_outperformance
@@ -214,14 +224,21 @@ def reality_check_and_spa(
     observed_maximum = float(np.max(np.where(np.isnan(omega), -np.inf, observed_means / scale)))
     spa_statistic = float(max(0.0, float(np.max(studentized))))
     p_values: dict[str, float] = {}
+    hansen_p_values: dict[str, float] = {}
     for name, recentring in recentrings.items():
         adjusted = (resampled_means - recentring) / scale
+        draws = np.max(adjusted, axis=1)
         # Compare untruncated maxima. Hansen defines the statistic with a floor
         # at zero, but applying that floor to both the observed value and every
         # bootstrap draw collapses the comparison onto the atom at zero as soon
         # as no candidate has a positive mean, and returns an arbitrary p-value
         # in exactly the case where the evidence is weakest.
-        p_values[name] = float(np.mean(np.max(adjusted, axis=1) > observed_maximum))
+        p_values[name] = float(np.mean(draws > observed_maximum))
+        # Hansen's own definition is reported alongside rather than instead of
+        # it, because the deviation above is a judgement call and a reader is
+        # entitled to the published statistic. Section~7 of the manuscript
+        # measures the size of both by simulation.
+        hansen_p_values[name] = float(np.mean(np.maximum(draws, 0.0) > max(observed_maximum, 0.0)))
 
     best_position = int(np.argmax(observed_means))
     return DataSnoopingResult(
@@ -239,6 +256,9 @@ def reality_check_and_spa(
         spa_p_value_lower=p_values["lower"],
         spa_p_value_consistent=p_values["consistent"],
         spa_p_value_upper=p_values["upper"],
+        hansen_p_value_lower=hansen_p_values["lower"],
+        hansen_p_value_consistent=hansen_p_values["consistent"],
+        hansen_p_value_upper=hansen_p_values["upper"],
         per_candidate_mean_outperformance=tuple(
             (name, float(observed_means[position])) for position, name in enumerate(candidates)
         ),

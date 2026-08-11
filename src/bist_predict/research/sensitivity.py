@@ -31,6 +31,7 @@ from bist_predict.research.splits import ExpandingWindowSplitter
 from bist_predict.features.manifest import FeatureManifest
 
 __all__ = [
+    "SensitivityGrid",
     "SensitivityTrial",
     "configuration_grid",
     "run_configuration_sensitivity",
@@ -76,6 +77,37 @@ class SensitivityTrial:
     def to_dict(self) -> dict[str, object]:
         """Return a JSON-safe record of the trial."""
         return {"trial_id": self.trial_id, **asdict(self)}
+
+
+@dataclass(frozen=True)
+class SensitivityGrid:
+    """Every evaluated configuration, with the session returns each produced.
+
+    The summary statistics alone cannot support a joint test across the grid:
+    comparing the maximum of 72 numbers to a threshold requires knowing how the
+    72 co-move, and that information lives in the session-by-session returns.
+    They are carried here so the search correction can be computed from the
+    joint distribution rather than assumed.
+    """
+
+    trials: tuple[SensitivityTrial, ...]
+    session_returns: pd.DataFrame
+
+    def __post_init__(self) -> None:
+        expected = {"trial_id", "date", "net_return"}
+        missing = sorted(expected.difference(self.session_returns.columns))
+        if missing:
+            raise ValueError(f"session_returns missing required columns: {', '.join(missing)}")
+
+    def aligned_returns(self) -> pd.DataFrame:
+        """Return a dates-by-trials matrix on the sessions every trial evaluated.
+
+        Trials with different fold geometries start and stop on different dates.
+        A joint resample has to draw one date index and apply it to all of them,
+        so the intersection is the only admissible common support.
+        """
+        wide = self.session_returns.pivot(index="date", columns="trial_id", values="net_return")
+        return wide.dropna(axis=0, how="any").sort_index()
 
 
 def configuration_grid(
@@ -125,7 +157,7 @@ def _trial(
     costs: CostModel,
     portfolio_model: str,
     starting_equity: float,
-) -> SensitivityTrial | None:
+) -> tuple[SensitivityTrial, pd.DataFrame] | None:
     result = PortfolioBacktester(
         strategy=StrategyConfig(
             top_k=setting["top_k"],
@@ -156,7 +188,7 @@ def _trial(
         if values.get("zero_mean_r_squared") is not None
     }
     best_model = max(sorted(scored), key=lambda name: scored[name])
-    return SensitivityTrial(
+    trial = SensitivityTrial(
         min_train_dates=setting["min_train_dates"],
         validation_dates=setting["validation_dates"],
         step_dates=setting["step_dates"],
@@ -179,6 +211,14 @@ def _trial(
         best_model=best_model,
         best_zero_mean_r_squared=scored[best_model],
     )
+    returns = pd.DataFrame(
+        {
+            "trial_id": trial.trial_id,
+            "date": [snapshot.date for snapshot in result.daily_snapshots],
+            "net_return": net_returns,
+        }
+    )
+    return trial, returns
 
 
 def run_configuration_sensitivity(
@@ -193,7 +233,7 @@ def run_configuration_sensitivity(
     costs: CostModel,
     portfolio_model: str,
     starting_equity: float,
-) -> tuple[SensitivityTrial, ...]:
+) -> SensitivityGrid:
     """Evaluate every grid point and drop settings that produce no folds.
 
     Refitting the baselines dominates the cost and depends only on the fold
@@ -201,6 +241,7 @@ def run_configuration_sensitivity(
     only in the portfolio simulation.
     """
     trials: list[SensitivityTrial] = []
+    session_returns: list[pd.DataFrame] = []
     fitted: dict[tuple[int, int, int, int], BaselineBenchmarkResult | None] = {}
     for setting in grid:
         geometry = (
@@ -235,10 +276,14 @@ def run_configuration_sensitivity(
             starting_equity=starting_equity,
         )
         if trial is not None:
-            trials.append(trial)
+            trials.append(trial[0])
+            session_returns.append(trial[1])
     if not trials:
         raise ValueError("no configuration in the grid produced an evaluable experiment")
-    return tuple(trials)
+    return SensitivityGrid(
+        trials=tuple(trials),
+        session_returns=pd.concat(session_returns, ignore_index=True),
+    )
 
 
 def summarise_sensitivity(

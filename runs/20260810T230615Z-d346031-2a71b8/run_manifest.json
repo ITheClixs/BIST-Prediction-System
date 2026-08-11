@@ -1,0 +1,22 @@
+{
+  "config_hash": "2a71b88885296b5fca4341f5c9ee69c4753a2f4b4a3fd78652913d4cd366b14d",
+  "created_at": "2026-08-10T23:06:15.956037+00:00",
+  "data_manifest_sha256": "40c37d8bbac6b970462d89933c9811801ec70c9e113fde39f0a348d973d0092a",
+  "dirty_working_tree": false,
+  "environment": {
+    "machine": "arm64",
+    "platform": "macOS-26.0.1-arm64-arm-64bit-Mach-O",
+    "python_version": "3.13.5 (main, Jun 11 2025, 15:36:57) [Clang 17.0.0 (clang-1700.0.13.3)]"
+  },
+  "feature_manifest_hash": "b0349ccf178ddaf18885ffadcf3685d71f845458b211792d82ccbc866c84cf71",
+  "git_sha": "d346031b41907f15eb205114917781ff42786c87",
+  "model_artifact_sha256": "6d2188e8686a8f05a9cfa804a724f9c8611de559346332f1f370df2b9de77460",
+  "predictions_sha256": "d70b12060f2f8ee7eec23f97ce6a4f9db7746953de9771c140b67643a35dcb5a",
+  "random_seeds": [
+    42
+  ],
+  "run_id": "20260810T230615Z-d346031-2a71b8",
+  "schema_version": 1,
+  "training_command": "bist-predict benchmark --prices $RUN/input_prices.parquet --corporate-actions $RUN/corporate_actions.parquet --corporate-action-coverage $RUN/corporate_action_coverage.parquet",
+  "universe_manifest_sha256": "7ee21b4a59028096947f0de2b41c489a674b63dd1b8b2f5a4e00c48dae858839"
+}

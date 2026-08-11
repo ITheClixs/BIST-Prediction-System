@@ -7,10 +7,12 @@ import re
 import shutil
 import subprocess
 import sys
+from collections.abc import Iterator
 
 import pytest
 
 from bist_predict.figures import FIGURE_BUILDERS
+from bist_predict.figures.calibration import CALIBRATION_FIGURE_BUILDERS
 from tests.conftest import ROOT, accepted_run_directory
 
 RUN = accepted_run_directory()
@@ -20,6 +22,24 @@ pytestmark = [
     pytest.mark.skipif(not RUN.is_dir(), reason="committed accepted run is unavailable"),
     pytest.mark.skipif(shutil.which("tectonic") is None, reason="tectonic is not installed"),
 ]
+
+
+@pytest.fixture(scope="module", autouse=True)
+def preserve_committed_artifacts() -> Iterator[None]:
+    """Restore the committed manuscript after tests that rebuild it.
+
+    Several tests here typeset the paper with a placeholder author to check
+    determinism. ``build_paper.py`` copies its output to ``paper.pdf``, which is
+    committed and is the first thing a reader opens, so without this the suite
+    silently replaces the published document with one bylined "Test Author".
+    """
+    tracked = (ROOT / "paper.pdf", ROOT / "paper" / "generated" / "authors.tex")
+    saved = {path: path.read_bytes() for path in tracked if path.is_file()}
+    try:
+        yield
+    finally:
+        for path, payload in saved.items():
+            path.write_bytes(payload)
 
 
 @pytest.fixture(scope="module")
@@ -73,7 +93,10 @@ def test_every_declared_table_and_figure_is_referenced(rendered: tuple[int, str]
     figures = {int(number) for number in re.findall(r"Figure (\d+):", text)}
     assert tables == set(range(1, len(tables) + 1)), f"gap in table numbering: {sorted(tables)}"
     assert figures == set(range(1, len(figures) + 1)), f"gap in figure numbering: {sorted(figures)}"
-    assert len(figures) == len(FIGURE_BUILDERS)
+    # Figures come from two builder sets: the run bundle's and the calibration
+    # study's. Counting only the first would let a calibration figure be added
+    # to the manuscript without ever being referenced.
+    assert len(figures) == len(FIGURE_BUILDERS) + len(CALIBRATION_FIGURE_BUILDERS)
 
 
 def test_the_headline_numbers_reach_the_page(rendered: tuple[int, str]) -> None:
@@ -93,6 +116,13 @@ def test_the_headline_numbers_reach_the_page(rendered: tuple[int, str]) -> None:
         "15,126",  # sessions needed for the reference effect
         "0.3098",  # information coefficient the cost schedule demands
         "7.01",  # effective independent trials
+        "0.7715",  # exact joint bootstrap p-value for the best configuration
+        "0.8395",  # measured correlation between grid configurations
+        "0.2284",  # measured row-level size at four correlated names
+        "0.7913",  # measured row-level size at a hundred correlated names
+        "0.9219",  # nested null: DM rejects towards the benchmark
+        "0.5875",  # Holm family-wise error at row level, thirty names
+        "0.2012",  # simulation-calibrated minimum detectable R-squared
     )
     for value in headline:
         assert value in flattened, f"missing from the rendered PDF: {value}"
@@ -102,8 +132,9 @@ def test_the_propositions_are_stated_and_proved(rendered: tuple[int, str]) -> No
     """Each numbered proposition in the body must have a proof in the appendix."""
     _, text = rendered
     flattened = re.sub(r"\s+", " ", text)
-    for index in (1, 2, 3):
-        assert f"Proposition {index}" in flattened
+    stated = {int(number) for number in re.findall(r"Proposition (\d+)", flattened)}
+    assert stated, "the manuscript states no propositions"
+    for index in sorted(stated):
         assert f"Proof of Proposition {index}" in flattened
 
 

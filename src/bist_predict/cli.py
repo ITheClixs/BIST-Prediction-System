@@ -374,6 +374,29 @@ def reproduce(run_id: str, runs_root: Path) -> None:
     )
 
 
+@main.command("calibrate")
+@click.option(
+    "--destination",
+    type=click.Path(path_type=Path, dir_okay=False),
+    default=Path("calibration/study.json"),
+    show_default=True,
+)
+@click.option("--quick", is_flag=True, help="Run a reduced study for a smoke check")
+def calibrate(destination: Path, quick: bool) -> None:
+    """Measure the size and power of the evaluation stack by simulation."""
+    from bist_predict.research.simulation.study import (
+        StudyConfiguration,
+        run_study,
+        write_study,
+    )
+
+    configuration = StudyConfiguration()
+    study = run_study(configuration.quick() if quick else configuration)
+    path = write_study(destination, study)
+    click.echo(f"Wrote {path} in {study['elapsed_seconds']}s")
+    click.echo(f"Content hash: {study['content_hash']}")
+
+
 @main.command()
 @click.option("--ticker", default=None, help="Train for a single ticker")
 @click.option("--models", "model_names", default=None, help="Comma-separated base models")
